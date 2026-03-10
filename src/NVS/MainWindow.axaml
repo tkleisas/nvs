@@ -12,19 +12,19 @@
         WindowStartupLocation="CenterScreen"
         Background="#1E1E1E">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
         <!-- Menu Bar -->
         <Menu Grid.Row="0" Background="#2D2D30">
             <MenuItem Header="_File">
-                <MenuItem Header="_New File" InputGesture="Ctrl+N" />
-                <MenuItem Header="_Open File..." InputGesture="Ctrl+O" />
-                <MenuItem Header="Open _Folder..." InputGesture="Ctrl+K, Ctrl+O" />
+                <MenuItem Header="_New File" InputGesture="Ctrl+N" Command="{Binding NewFileCommand}" />
+                <MenuItem Header="_Open File..." InputGesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
+                <MenuItem Header="Open _Folder..." InputGesture="Ctrl+K, Ctrl+O" Command="{Binding OpenFolderCommand}" />
                 <Separator />
-                <MenuItem Header="_Save" InputGesture="Ctrl+S" />
+                <MenuItem Header="_Save" InputGesture="Ctrl+S" Command="{Binding SaveFileCommand}" />
                 <MenuItem Header="Save _As..." InputGesture="Ctrl+Shift+S" />
-                <MenuItem Header="Save A_ll" />
+                <MenuItem Header="Save A_ll" Command="{Binding SaveAllCommand}" />
                 <Separator />
-                <MenuItem Header="_Close" InputGesture="Ctrl+W" />
+                <MenuItem Header="_Close" InputGesture="Ctrl+W" Command="{Binding CloseFileCommand}" />
                 <MenuItem Header="Close All" />
                 <Separator />
                 <MenuItem Header="E_xit" InputGesture="Alt+F4" />
@@ -46,7 +46,7 @@
                 <MenuItem Header="_Source Control" InputGesture="Ctrl+Shift+G" />
                 <Separator />
                 <MenuItem Header="_Output" InputGesture="Ctrl+Shift+U" />
-                <MenuItem Header="_Terminal" InputGesture="Ctrl+`" />
+                <MenuItem Header="_Terminal" Command="{Binding ToggleTerminalCommand}" InputGesture="Ctrl+`" />
             </MenuItem>
             <MenuItem Header="_Go">
                 <MenuItem Header="Go to _File..." InputGesture="Ctrl+P" />
@@ -72,21 +72,21 @@
         <!-- Toolbar -->
         <Border Grid.Row="1" Background="#2D2D30" Padding="4">
             <StackPanel Orientation="Horizontal" Spacing="2">
-                <Button Width="28" Height="28" ToolTip.Tip="New File">
-                    <TextBlock Text="+" FontSize="14" />
+                <Button Width="28" Height="28" ToolTip.Tip="New File" Command="{Binding NewFileCommand}">
+                    <TextBlock Text="+" FontSize="14" Foreground="#CCCCCC" />
                 </Button>
-                <Button Width="28" Height="28" ToolTip.Tip="Open File">
+                <Button Width="28" Height="28" ToolTip.Tip="Open File" Command="{Binding OpenFileCommand}">
                     <TextBlock Text="&#x1F4C2;" FontSize="12" />
                 </Button>
-                <Button Width="28" Height="28" ToolTip.Tip="Save">
+                <Button Width="28" Height="28" ToolTip.Tip="Save" Command="{Binding SaveFileCommand}">
                     <TextBlock Text="&#x1F4BE;" FontSize="12" />
                 </Button>
                 <Border Width="1" Background="#555" Margin="4,2" />
                 <Button Width="28" Height="28" ToolTip.Tip="Undo">
-                    <TextBlock Text="&#x21B6;" FontSize="12" />
+                    <TextBlock Text="&#x21B6;" FontSize="12" Foreground="#CCCCCC" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Redo">
-                    <TextBlock Text="&#x21B7;" FontSize="12" />
+                    <TextBlock Text="&#x21B7;" FontSize="12" Foreground="#CCCCCC" />
                 </Button>
                 <Border Width="1" Background="#555" Margin="4,2" />
                 <Button Width="28" Height="28" ToolTip.Tip="Start Debugging">
@@ -109,71 +109,101 @@
                         <TextBlock Text="EXPLORER" FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
                     </Border>
                     <!-- Sidebar Content -->
-                    <TreeView Grid.Row="1" Padding="4" Background="Transparent">
-                        <TreeViewItem Header="NVS" IsExpanded="True">
-                            <TreeViewItem Header="src" IsExpanded="True">
-                                <TreeViewItem Header="NVS" />
-                                <TreeViewItem Header="NVS.Core" />
-                                <TreeViewItem Header="NVS.Infrastructure" />
-                                <TreeViewItem Header="NVS.Services" />
-                                <TreeViewItem Header="NVS.Plugins" />
-                            </TreeViewItem>
-                            <TreeViewItem Header="tests">
-                                <TreeViewItem Header="NVS.Core.Tests" />
-                                <TreeViewItem Header="NVS.Services.Tests" />
-                                <TreeViewItem Header="NVS.Plugins.Tests" />
-                            </TreeViewItem>
-                        </TreeViewItem>
+                    <TreeView Grid.Row="1" Padding="4" Background="Transparent"
+                              ItemsSource="{Binding FileTree}">
+                        <TreeView.ItemTemplate>
+                            <DataTemplate DataType="vm:FileTreeNode">
+                                <TreeViewItem Header="{Binding Name}" 
+                                             IsExpanded="True"
+                                             ItemsSource="{Binding Children}" />
+                            </DataTemplate>
+                        </TreeView.ItemTemplate>
                     </TreeView>
                 </Grid>
             </Border>
 
             <!-- Editor Area -->
-            <Grid Grid.Column="1" RowDefinitions="*,Auto">
-                <!-- Tab Control -->
-                <TabControl Grid.Row="0" Background="#1E1E1E">
-                    <TabItem Header="Welcome">
-                        <Border Background="#1E1E1E">
-                            <TextBlock Text="Welcome to NVS - No Vim Substitute (We're Honest)"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       FontSize="24"
-                                       Foreground="#CCCCCC" />
-                        </Border>
-                    </TabItem>
+            <Grid Grid.Column="1" RowDefinitions="Auto,*">
+                <!-- Tabs -->
+                <TabControl Grid.Row="0" 
+                            ItemsSource="{Binding Editor.OpenDocuments}"
+                            SelectedIndex="{Binding Editor.ActiveTabIndex}"
+                            Background="#1E1E1E"
+                            BorderThickness="0">
+                    <TabControl.ItemTemplate>
+                        <DataTemplate DataType="vm:DocumentViewModel">
+                            <TextBlock Text="{Binding Title}" FontSize="12"/>
+                        </DataTemplate>
+                    </TabControl.ItemTemplate>
+                    <TabControl.ContentTemplate>
+                        <DataTemplate DataType="vm:DocumentViewModel">
+                            <TextBox Text="{Binding Text}"
+                                    AcceptsReturn="True"
+                                    AcceptsTab="True"
+                                    TextWrapping="NoWrap"
+                                    FontFamily="Consolas,Courier New,monospace"
+                                    FontSize="14"
+                                    Background="#1E1E1E"
+                                    Foreground="#D4D4D4"
+                                    BorderThickness="0"
+                                    Padding="8"/>
+                        </DataTemplate>
+                    </TabControl.ContentTemplate>
                 </TabControl>
-
-                <!-- Output Panel -->
-                <Expander Grid.Row="1" Header="Output" IsExpanded="True" MaxHeight="200" Background="#1E1E1E">
-                    <Border Background="#1E1E1E" MinHeight="100" Padding="8">
-                        <TextBox IsReadOnly="True"
-                                 AcceptsReturn="True"
-                                 TextWrapping="Wrap"
-                                 Background="Transparent"
-                                 BorderThickness="0"
-                                 FontFamily="Consolas,Courier New,monospace"
-                                 FontSize="12"
-                                 Foreground="#CCCCCC"
-                                 Text="Welcome to NVS - No Vim Substitute (We're Honest)&#x0a;Ready.&#x0a;" />
-                    </Border>
-                </Expander>
+                
+                <!-- Empty State -->
+                <Border Grid.Row="1" Background="#1E1E1E" 
+                       IsVisible="{Binding !IsWorkspaceOpen}">
+                    <StackPanel HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"
+                               Spacing="16">
+                        <TextBlock Text="NVS" 
+                                  FontSize="48" 
+                                  FontWeight="Bold"
+                                  Foreground="#007ACC"
+                                  HorizontalAlignment="Center"/>
+                        <TextBlock Text="No Vim Substitute (We're Honest)" 
+                                  FontSize="18" 
+                                  Foreground="#CCCCCC"
+                                  HorizontalAlignment="Center"/>
+                        <TextBlock Text="Press Ctrl+O to open a file or Ctrl+K Ctrl+O to open a folder"
+                                  FontSize="14" 
+                                  Foreground="#808080"
+                                  HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Grid>
 
+        <!-- Output Panel -->
+        <Expander Grid.Row="3" Header="Output" IsExpanded="True" MaxHeight="200" Background="#1E1E1E">
+            <Border Background="#1E1E1E" MinHeight="100" Padding="8">
+                <TextBox IsReadOnly="True"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         FontFamily="Consolas,Courier New,monospace"
+                         FontSize="12"
+                         Foreground="#CCCCCC"
+                         Text="Welcome to NVS - No Vim Substitute (We're Honest)&#x0a;Ready.&#x0a;" />
+            </Border>
+        </Expander>
+
         <!-- Status Bar -->
-        <Border Grid.Row="3" Background="#007ACC" Padding="8,4">
+        <Border Grid.Row="4" Background="#007ACC" Padding="8,4">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
-                    <TextBlock Text="main" FontWeight="Bold" Foreground="White" />
+                    <TextBlock Text="{Binding CurrentBranch}" FontWeight="Bold" Foreground="White" />
                     <TextBlock Text="|" Foreground="#80FFFFFF" />
                     <TextBlock Text="0 problems" Foreground="White" />
                 </StackPanel>
                 <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" HorizontalAlignment="Center" Foreground="White" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12">
-                    <TextBlock Text="Ln 1, Col 1" Foreground="White" />
+                    <TextBlock Text="Ln 1" Foreground="White" />
+                    <TextBlock Text="Col 1" Foreground="White" />
                     <TextBlock Text="Spaces: 4" Foreground="White" />
                     <TextBlock Text="UTF-8" Foreground="White" />
-                    <TextBlock Text="C#" Foreground="White" />
                 </StackPanel>
             </Grid>
         </Border>
