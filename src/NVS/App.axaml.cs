@@ -2,9 +2,11 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
+using NVS.Core.Interfaces;
 using NVS.Infrastructure.DependencyInjection;
+using NVS.Services.Editor;
+using NVS.Services.FileSystem;
 using NVS.ViewModels;
-using Serilog;
 
 namespace NVS;
 
@@ -37,9 +39,16 @@ public partial class App : Application
         var services = new ServiceCollection();
 
         services.AddNvsInfrastructure();
-        services.AddNvsServices();
-
+        
+        // Core services
+        services.AddSingleton<IEditorService, EditorService>();
+        services.AddSingleton<IFileSystemService, FileSystemService>();
+        
+        // ViewModels
+        services.AddSingleton<EditorViewModel>();
         services.AddTransient<MainViewModel>();
+        
+        // Views
         services.AddTransient<MainWindow>();
 
         Services = services.BuildServiceProvider();
@@ -49,7 +58,7 @@ public partial class App : Application
         Directory.CreateDirectory(logPath);
         
         Infrastructure.Logging.LoggerConfiguration.ConfigureGlobalLogger(logPath);
-        Log.Information("NVS starting up...");
+        Serilog.Log.Information("NVS starting up...");
     }
 }
 
