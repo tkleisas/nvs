@@ -195,17 +195,17 @@ CREATE VIRTUAL TABLE content_fts USING fts5(
 
 ### Phase 1: Foundation (Weeks 1-4)
 - [x] Solution setup with .NET 10, AvaloniaUI
-- [ ] Core interfaces and DI setup
-- [ ] Basic shell UI (window, layout, menus)
-- [ ] Project/workspace model
-- [ ] Settings infrastructure
+- [x] Core interfaces and DI setup
+- [x] Basic shell UI (window, layout, menus)
+- [x] Project/workspace model
+- [x] Settings infrastructure
 
-### Phase 2: Editor Core (Weeks 5-8)
+### Phase 2: Editor Core (Weeks 5-8) - IN PROGRESS
 - [ ] AvaloniaEdit integration
-- [ ] Syntax highlighting (basic)
+- [x] Syntax highlighting (basic)
 - [ ] File management (open/save/tabs)
 - [ ] Basic commands (undo/redo/find)
-- [ ] File system watcher
+- [x] File system watcher
 
 ### Phase 3: LSP Integration (Weeks 9-12)
 - [ ] LSP client implementation (JSON-RPC)
