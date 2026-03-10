@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NVS.Core/NVS.Core.csproj" />
+    <Project Path="src/NVS.Infrastructure/NVS.Infrastructure.csproj" />
+    <Project Path="src/NVS.Plugins/NVS.Plugins.csproj" />
+    <Project Path="src/NVS.Services/NVS.Services.csproj" />
+    <Project Path="src/NVS/NVS.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NVS.Core.Tests/NVS.Core.Tests.csproj" />
+    <Project Path="tests/NVS.Plugins.Tests/NVS.Plugins.Tests.csproj" />
+    <Project Path="tests/NVS.Services.Tests/NVS.Services.Tests.csproj" />
+  </Folder>
+</Solution>

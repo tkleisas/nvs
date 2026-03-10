@@ -1,0 +1,8 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#1E1E1E" />
+        <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#252526" />
+        <SolidColorBrush x:Key="StatusBarBackgroundBrush" Color="#007ACC" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#007ACC" />
+    </Styles.Resources>
+</Styles>
