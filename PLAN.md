@@ -203,9 +203,10 @@ CREATE VIRTUAL TABLE content_fts USING fts5(
 ### Phase 2: Editor Core (Weeks 5-8) - IN PROGRESS
 - [x] AvaloniaEdit integration (basic TextBox for now)
 - [x] Syntax highlighting definitions (7 languages)
-- [x] File management services (EditorService, FileSystemService)
+- [x] File management services (EditorService, FileSystemService, WorkspaceService)
 - [x] EditorViewModel with commands
 - [x] Tab management UI
+- [x] File tree double-click to open files
 - [ ] Integrate actual AvaloniaEdit control
 - [ ] Advanced syntax highlighting
 - [ ] Basic commands (undo/redo/find)

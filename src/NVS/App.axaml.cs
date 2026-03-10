@@ -6,6 +6,9 @@ using NVS.Core.Interfaces;
 using NVS.Infrastructure.DependencyInjection;
 using NVS.Services.Editor;
 using NVS.Services.FileSystem;
+using NVS.Services.Languages;
+using NVS.Services.Settings;
+using NVS.Services.Workspaces;
 using NVS.ViewModels;
 
 namespace NVS;
@@ -27,7 +30,12 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var mainWindow = Services?.GetService(typeof(MainWindow)) as MainWindow ?? new MainWindow();
-            mainWindow.DataContext = Services?.GetService(typeof(MainViewModel)) as MainViewModel;
+            var mainViewModel = Services?.GetService(typeof(MainViewModel)) as MainViewModel;
+            if (mainViewModel != null)
+            {
+                mainViewModel.StorageProvider = mainWindow.StorageProvider;
+            }
+            mainWindow.DataContext = mainViewModel;
             desktop.MainWindow = mainWindow;
         }
 
@@ -43,6 +51,9 @@ public partial class App : Application
         // Core services
         services.AddSingleton<IEditorService, EditorService>();
         services.AddSingleton<IFileSystemService, FileSystemService>();
+        services.AddSingleton<IWorkspaceService, WorkspaceService>();
+        services.AddSingleton<ISettingsService, SettingsService>();
+        services.AddSingleton<ILanguageService, LanguageService>();
         
         // ViewModels
         services.AddSingleton<EditorViewModel>();

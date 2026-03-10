@@ -38,6 +38,8 @@ public partial class EditorViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool HasNoOpenDocuments => OpenDocuments.Count == 0;
+
     public ObservableCollection<DocumentViewModel> OpenDocuments { get; } = [];
 
     public EditorViewModel(IEditorService editorService, IFileSystemService fileSystemService)
@@ -51,7 +53,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
     }
 
     [RelayCommand]
-    private async Task NewFile()
+    public async Task NewFile()
     {
         var document = new Document
         {
@@ -66,10 +68,11 @@ public partial class EditorViewModel : INotifyPropertyChanged
         OpenDocuments.Add(docVm);
         ActiveDocument = docVm;
         ActiveTabIndex = OpenDocuments.Count - 1;
+        OnPropertyChanged(nameof(HasNoOpenDocuments));
     }
 
     [RelayCommand]
-    private async Task OpenFile()
+    public async Task OpenFile()
     {
         await Task.CompletedTask;
         // TODO: Implement file dialog via Avalonia
@@ -100,14 +103,14 @@ public partial class EditorViewModel : INotifyPropertyChanged
     }
 
     [RelayCommand]
-    private async Task SaveFile()
+    public async Task SaveFile()
     {
         if (ActiveDocument?.Document == null) return;
         await SaveDocumentAsync(ActiveDocument);
     }
 
     [RelayCommand]
-    private async Task SaveFileAs()
+    public async Task SaveFileAs()
     {
         if (ActiveDocument?.Document == null) return;
         // TODO: Implement save as dialog
@@ -115,7 +118,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
     }
 
     [RelayCommand]
-    private async Task SaveAll()
+    public async Task SaveAll()
     {
         foreach (var docVm in OpenDocuments.Where(d => d.IsDirty))
         {
@@ -124,14 +127,14 @@ public partial class EditorViewModel : INotifyPropertyChanged
     }
 
     [RelayCommand]
-    private void CloseFile()
+    public void CloseFile()
     {
         if (ActiveDocument == null) return;
         CloseDocument(ActiveDocument);
     }
 
     [RelayCommand]
-    private void CloseAllFiles()
+    public void CloseAllFiles()
     {
         foreach (var doc in OpenDocuments.ToList())
         {
@@ -155,6 +158,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
     {
         var index = OpenDocuments.IndexOf(docVm);
         OpenDocuments.Remove(docVm);
+        OnPropertyChanged(nameof(HasNoOpenDocuments));
 
         if (OpenDocuments.Count == 0)
         {
@@ -178,6 +182,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
         OpenDocuments.Add(docVm);
         ActiveDocument = docVm;
         ActiveTabIndex = OpenDocuments.Count - 1;
+        OnPropertyChanged(nameof(HasNoOpenDocuments));
     }
 
     private void OnDocumentClosed(object? sender, Document document)
