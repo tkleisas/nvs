@@ -1,7 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using NVS.ViewModels;
+using NVS.Views;
 
 namespace NVS;
 
@@ -25,5 +27,11 @@ public partial class MainWindow : Window
                 }
             }
         }
+    }
+
+    private async void OnAboutClick(object? sender, RoutedEventArgs e)
+    {
+        var about = new AboutWindow();
+        await about.ShowDialog(this);
     }
 }

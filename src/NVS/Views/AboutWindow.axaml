@@ -1,0 +1,55 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="350"
+        x:Class="NVS.Views.AboutWindow"
+        Title="About NVS"
+        Width="450" Height="350"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E"
+        SystemDecorations="BorderOnly">
+
+    <Border BorderBrush="#3F3F46" BorderThickness="1" Padding="32">
+        <StackPanel Spacing="16">
+            <!-- Title -->
+            <TextBlock Text="NVS — No Vim Substitute"
+                       FontSize="22" FontWeight="Bold"
+                       Foreground="#CCCCCC"
+                       HorizontalAlignment="Center" />
+
+            <Separator Background="#3F3F46" Height="1" />
+
+            <!-- Version info -->
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="8,0">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Version:" Foreground="#888888" Margin="0,2" />
+                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="VersionText" Foreground="#CCCCCC" Margin="12,2" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Commit:" Foreground="#888888" Margin="0,2" />
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="CommitText" Foreground="#569CD6" FontFamily="Cascadia Mono,Consolas,Menlo,monospace" Margin="12,2" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Runtime:" Foreground="#888888" Margin="0,2" />
+                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="RuntimeText" Foreground="#CCCCCC" Margin="12,2" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="OS:" Foreground="#888888" Margin="0,2" />
+                <TextBlock Grid.Row="3" Grid.Column="1" x:Name="OsText" Foreground="#CCCCCC" Margin="12,2" TextWrapping="Wrap" />
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Architecture:" Foreground="#888888" Margin="0,2" />
+                <TextBlock Grid.Row="4" Grid.Column="1" x:Name="ArchText" Foreground="#CCCCCC" Margin="12,2" />
+            </Grid>
+
+            <Separator Background="#3F3F46" Height="1" />
+
+            <!-- Copyright & link -->
+            <TextBlock Text="© 2025 NVS Contributors — MIT License"
+                       FontSize="11" Foreground="#888888"
+                       HorizontalAlignment="Center" />
+
+            <!-- Close button -->
+            <Button Content="OK" HorizontalAlignment="Center"
+                    Width="80" HorizontalContentAlignment="Center"
+                    Click="OnCloseClick" />
+        </StackPanel>
+    </Border>
+</Window>

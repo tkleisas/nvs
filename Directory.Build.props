@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <Version>0.0.1</Version>
     <Authors>NVS Contributors</Authors>
     <Product>NVS - No Vim Substitute</Product>
     <Copyright>Copyright (c) 2025 NVS Contributors</Copyright>
@@ -19,6 +20,16 @@
     <RepositoryUrl>https://github.com/nvs-ide/nvs</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
+
+  <!-- Set short git hash as SourceRevisionId so InformationalVersion = Version+ShortHash -->
+  <Target Name="SetGitShortHash" BeforeTargets="InitializeSourceControlInformation">
+    <Exec Command="git rev-parse --short HEAD" ConsoleToMsBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="SourceRevisionId" />
+    </Exec>
+    <PropertyGroup>
+      <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">unknown</SourceRevisionId>
+    </PropertyGroup>
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0">
