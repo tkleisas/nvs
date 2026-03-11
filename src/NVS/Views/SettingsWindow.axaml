@@ -7,7 +7,7 @@
         x:Class="NVS.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
-        Width="850" Height="750"
+        Width="850" Height="800"
         MinWidth="700" MinHeight="500"
         WindowStartupLocation="CenterOwner"
         Background="#1E1E1E">
@@ -35,7 +35,7 @@
             <ScrollViewer Grid.Column="1" Padding="24,16"
                          VerticalScrollBarVisibility="Auto"
                          HorizontalScrollBarVisibility="Disabled">
-                <Panel>
+                <Grid>
 
                     <!-- General Section -->
                     <StackPanel Spacing="16" IsVisible="{Binding IsGeneralVisible}">
@@ -84,7 +84,7 @@
                                    FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
                         <Separator Background="#3F3F46" />
 
-                        <ItemsControl ItemsSource="{Binding LanguageServers}" Margin="0,0,0,16">
+                        <ItemsControl ItemsSource="{Binding LanguageServers}" Margin="0,0,0,32">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="vm:LanguageServerItemViewModel">
                                     <Border Margin="0,2" Padding="10,8" Background="#2D2D30"
@@ -155,7 +155,7 @@
                         <CheckBox IsChecked="{Binding LlmEnableChat}" Content="Enable AI chat" Foreground="#CCCCCC" />
                     </StackPanel>
 
-                </Panel>
+                </Grid>
             </ScrollViewer>
         </Grid>
 
