@@ -17,4 +17,8 @@
     <ProjectReference Include="..\NVS.Infrastructure\NVS.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="NVS.Services.Tests" />
+  </ItemGroup>
+
 </Project>

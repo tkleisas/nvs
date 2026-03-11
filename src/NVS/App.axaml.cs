@@ -7,6 +7,7 @@ using NVS.Infrastructure.DependencyInjection;
 using NVS.Services.Editor;
 using NVS.Services.FileSystem;
 using NVS.Services.Languages;
+using NVS.Services.Lsp;
 using NVS.Services.Settings;
 using NVS.Services.Workspaces;
 using NVS.ViewModels;
@@ -54,6 +55,7 @@ public partial class App : Application
         services.AddSingleton<IWorkspaceService, WorkspaceService>();
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<ILanguageService, LanguageService>();
+        services.AddSingleton<ILspClientFactory, LspClientFactory>();
         
         // ViewModels
         services.AddSingleton<EditorViewModel>();
