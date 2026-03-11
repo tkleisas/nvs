@@ -7,7 +7,7 @@
         x:Class="NVS.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
-        Width="700" Height="550"
+        Width="700" Height="650"
         MinWidth="600" MinHeight="400"
         WindowStartupLocation="CenterOwner"
         Background="#1E1E1E">
@@ -32,7 +32,9 @@
             </Border>
 
             <!-- Content area -->
-            <ScrollViewer Grid.Column="1" Padding="24,16">
+            <ScrollViewer Grid.Column="1" Padding="24,16"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Disabled">
                 <Panel>
 
                     <!-- General Section -->
@@ -82,7 +84,7 @@
                                    FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
                         <Separator Background="#3F3F46" />
 
-                        <ItemsControl ItemsSource="{Binding LanguageServers}">
+                        <ItemsControl ItemsSource="{Binding LanguageServers}" Margin="0,0,0,16">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="vm:LanguageServerItemViewModel">
                                     <Border Margin="0,2" Padding="8" Background="#2D2D30"
