@@ -25,11 +25,14 @@ public partial class MainViewModel : INotifyPropertyChanged
     private string _statusMessage = "Ready";
     private string _currentBranch = "";
     private EditorViewModel? _editor;
-    private bool _isSidebarShowingGit;
+    private string _sidebarMode = "Explorer";
     private bool _isTerminalVisible;
     private string _terminalOutput = "";
     private string _terminalInput = "";
     private string _commitMessage = "";
+    private string _searchQuery = "";
+    private bool _isSearching;
+    private CancellationTokenSource? _searchCts;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -91,20 +94,44 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<FileTreeNode> FileTree { get; } = [];
 
-    // Sidebar mode
-    public bool IsSidebarShowingGit
+    // Sidebar mode: "Explorer", "Git", "Search"
+    public string SidebarMode
     {
-        get => _isSidebarShowingGit;
+        get => _sidebarMode;
         set
         {
-            if (SetProperty(ref _isSidebarShowingGit, value))
+            if (SetProperty(ref _sidebarMode, value))
             {
                 OnPropertyChanged(nameof(IsSidebarShowingExplorer));
+                OnPropertyChanged(nameof(IsSidebarShowingGit));
+                OnPropertyChanged(nameof(IsSidebarShowingSearch));
             }
         }
     }
 
-    public bool IsSidebarShowingExplorer => !_isSidebarShowingGit;
+    public bool IsSidebarShowingGit
+    {
+        get => _sidebarMode == "Git";
+        set { if (value) SidebarMode = "Git"; }
+    }
+
+    public bool IsSidebarShowingExplorer => _sidebarMode == "Explorer";
+    public bool IsSidebarShowingSearch => _sidebarMode == "Search";
+
+    // Search properties
+    public string SearchQuery
+    {
+        get => _searchQuery;
+        set => SetProperty(ref _searchQuery, value);
+    }
+
+    public bool IsSearching
+    {
+        get => _isSearching;
+        set => SetProperty(ref _isSearching, value);
+    }
+
+    public ObservableCollection<FileSearchResult> SearchResults { get; } = [];
 
     // Git properties
     public ObservableCollection<GitFileStatus> GitChangedFiles { get; } = [];
@@ -336,19 +363,25 @@ public partial class MainViewModel : INotifyPropertyChanged
     [RelayCommand]
     private void ToggleSidebar()
     {
-        IsSidebarShowingGit = !IsSidebarShowingGit;
+        SidebarMode = SidebarMode == "Git" ? "Explorer" : "Git";
     }
 
     [RelayCommand]
     private void ShowExplorer()
     {
-        IsSidebarShowingGit = false;
+        SidebarMode = "Explorer";
     }
 
     [RelayCommand]
     private void ShowSourceControl()
     {
-        IsSidebarShowingGit = true;
+        SidebarMode = "Git";
+    }
+
+    [RelayCommand]
+    private void ShowSearch()
+    {
+        SidebarMode = "Search";
     }
 
     [RelayCommand]
@@ -492,6 +525,87 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    [RelayCommand]
+    private async Task SearchFiles()
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery) || _workspacePath is null) return;
+
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        var token = _searchCts.Token;
+
+        IsSearching = true;
+        SearchResults.Clear();
+        var query = SearchQuery;
+
+        try
+        {
+            var files = await _fileSystemService.GetFilesAsync(_workspacePath, "*", recursive: true, token);
+            foreach (var file in files)
+            {
+                if (token.IsCancellationRequested) break;
+                if (IsBinaryExtension(file)) continue;
+
+                try
+                {
+                    var content = await _fileSystemService.ReadAllTextAsync(file, token);
+                    var lines = content.Split('\n');
+                    for (var i = 0; i < lines.Length; i++)
+                    {
+                        if (lines[i].Contains(query, StringComparison.OrdinalIgnoreCase))
+                        {
+                            var relativePath = System.IO.Path.GetRelativePath(_workspacePath, file);
+                            SearchResults.Add(new FileSearchResult
+                            {
+                                FilePath = file,
+                                RelativePath = relativePath,
+                                LineNumber = i + 1,
+                                LineText = lines[i].Trim(),
+                            });
+
+                            if (SearchResults.Count >= 500) break;
+                        }
+                    }
+                    if (SearchResults.Count >= 500) break;
+                }
+                catch
+                {
+                    // Skip files that can't be read
+                }
+            }
+
+            StatusMessage = $"Search: {SearchResults.Count} result(s) for \"{query}\"";
+        }
+        catch (OperationCanceledException)
+        {
+            // Search was cancelled
+        }
+        finally
+        {
+            IsSearching = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenSearchResult(FileSearchResult? result)
+    {
+        if (result is null) return;
+        await OpenFileAsync(result.FilePath);
+        if (Editor?.ActiveDocument is { } doc)
+        {
+            doc.CursorLine = result.LineNumber;
+        }
+    }
+
+    private static bool IsBinaryExtension(string path)
+    {
+        var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+        return ext is ".exe" or ".dll" or ".pdb" or ".obj" or ".bin" or ".zip" or ".gz"
+            or ".tar" or ".7z" or ".rar" or ".png" or ".jpg" or ".jpeg" or ".gif"
+            or ".bmp" or ".ico" or ".mp3" or ".mp4" or ".avi" or ".mov" or ".pdf"
+            or ".nupkg" or ".snk" or ".woff" or ".woff2" or ".ttf" or ".eot";
+    }
+
     private static List<FilePickerFileType> GetFileTypes()
     {
         return
@@ -558,4 +672,13 @@ public class FileTreeNode
             _ => "📄"
         };
     }
+}
+
+public class FileSearchResult
+{
+    public string FilePath { get; init; } = "";
+    public string RelativePath { get; init; } = "";
+    public int LineNumber { get; init; }
+    public string LineText { get; init; } = "";
+    public string Display => $"{RelativePath}:{LineNumber}";
 }

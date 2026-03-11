@@ -269,6 +269,25 @@ public partial class MainWindow : Window
         await RefreshExplorer();
     }
 
+    // --- Search ---
+
+    private void OnSearchQueryKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && DataContext is MainViewModel vm)
+        {
+            vm.SearchFilesCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    private async void OnSearchResultDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is ListBox listBox && listBox.SelectedItem is FileSearchResult result && DataContext is MainViewModel vm)
+        {
+            await vm.OpenSearchResultCommand.ExecuteAsync(result);
+        }
+    }
+
     private async Task RefreshExplorer()
     {
         if (DataContext is MainViewModel vm)

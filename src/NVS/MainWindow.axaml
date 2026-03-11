@@ -16,6 +16,18 @@
         WindowStartupLocation="CenterScreen"
         Background="#1E1E1E">
 
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+N" Command="{Binding NewFileCommand}" />
+        <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveFileCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveFileAsCommand}" />
+        <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseFileCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+E" Command="{Binding ShowExplorerCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+F" Command="{Binding ShowSearchCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+G" Command="{Binding ShowSourceControlCommand}" />
+        <KeyBinding Gesture="Ctrl+OemTilde" Command="{Binding ToggleTerminalCommand}" />
+    </Window.KeyBindings>
+
     <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
         <!-- Menu Bar -->
         <Menu Grid.Row="0" Background="#2D2D30">
@@ -47,6 +59,7 @@
             </MenuItem>
             <MenuItem Header="_View">
                 <MenuItem Header="_Explorer" InputGesture="Ctrl+Shift+E" Command="{Binding ShowExplorerCommand}" />
+                <MenuItem Header="_Search" InputGesture="Ctrl+Shift+F" Command="{Binding ShowSearchCommand}" />
                 <MenuItem Header="_Source Control" InputGesture="Ctrl+Shift+G" Command="{Binding ShowSourceControlCommand}" />
                 <Separator />
                 <MenuItem Header="_Terminal" Command="{Binding ToggleTerminalCommand}" InputGesture="Ctrl+OemTilde" />
@@ -105,6 +118,13 @@
                                        Opacity="{Binding IsSidebarShowingExplorer, Converter={x:Static vm:BoolToOpacityConverter.Instance}}" />
                         </Button>
                         <Button Padding="12,8" Background="Transparent" BorderThickness="0"
+                                Command="{Binding ShowSearchCommand}"
+                                ToolTip.Tip="Search (Ctrl+Shift+F)">
+                            <TextBlock Text="🔍 SEARCH" FontWeight="Bold" FontSize="11"
+                                       Foreground="#CCCCCC"
+                                       Opacity="{Binding IsSidebarShowingSearch, Converter={x:Static vm:BoolToOpacityConverter.Instance}}" />
+                        </Button>
+                        <Button Padding="12,8" Background="Transparent" BorderThickness="0"
                                 Command="{Binding ShowSourceControlCommand}"
                                 ToolTip.Tip="Source Control (Ctrl+Shift+G)">
                             <TextBlock Text="🔀 GIT" FontWeight="Bold" FontSize="11"
@@ -148,6 +168,54 @@
                             </TreeDataTemplate>
                         </TreeView.ItemTemplate>
                     </TreeView>
+
+                    <!-- Search Panel -->
+                    <Grid Grid.Row="1" RowDefinitions="Auto,*"
+                          IsVisible="{Binding IsSidebarShowingSearch}"
+                          Margin="8,4">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding SearchQuery}"
+                                     Watermark="Search in files..."
+                                     Background="#3C3C3C"
+                                     Foreground="#CCCCCC"
+                                     BorderBrush="#555"
+                                     FontSize="12"
+                                     Padding="6,4"
+                                     KeyDown="OnSearchQueryKeyDown" />
+                            <Button Grid.Column="1" Content="🔍" Padding="6,4" Margin="4,0,0,0"
+                                    Command="{Binding SearchFilesCommand}"
+                                    Background="#3C3C3C" Foreground="#CCCCCC" />
+                        </Grid>
+                        <Border Grid.Row="1" IsVisible="{Binding IsSearching}"
+                                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8">
+                            <TextBlock Text="Searching..." Foreground="#808080" FontSize="12" />
+                        </Border>
+                        <ListBox Grid.Row="1"
+                                 ItemsSource="{Binding SearchResults}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 DoubleTapped="OnSearchResultDoubleTapped">
+                            <ListBox.Styles>
+                                <Style Selector="ListBoxItem">
+                                    <Setter Property="Padding" Value="2,1"/>
+                                    <Setter Property="MinHeight" Value="20"/>
+                                </Style>
+                            </ListBox.Styles>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:FileSearchResult">
+                                    <StackPanel Spacing="0" Margin="0,1">
+                                        <TextBlock Text="{Binding Display}" FontSize="11"
+                                                   Foreground="#569CD6"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding LineText}" FontSize="11"
+                                                   Foreground="#808080"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
 
                     <!-- Source Control Panel -->
                     <Grid Grid.Row="1" RowDefinitions="Auto,Auto,*,Auto,Auto,*"
