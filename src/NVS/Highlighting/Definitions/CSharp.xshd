@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="CSharp" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
+  <Color name="ContextKeyword" foreground="#569CD6" />
+  <Color name="Type" foreground="#4EC9B0" />
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Comment" foreground="#6A9955" />
+  <Color name="Number" foreground="#B5CEA8" />
+  <Color name="Preprocessor" foreground="#BD63C5" />
+  <Color name="Attribute" foreground="#DCDCAA" />
+
+  <RuleSet>
+    <Span color="Comment" begin="//" />
+    <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
+    <Span color="Preprocessor" begin="^\s*#" />
+    <Span color="String" begin="&quot;" end="&quot;" escape="\\" />
+    <Span color="String" begin="'" end="'" escape="\\" />
+    <Span color="String" multiline="true" begin="@&quot;" end="&quot;" />
+    <Span color="String" multiline="true" begin="\$&quot;" end="&quot;" escape="\\" />
+
+    <Keywords color="Keyword">
+      <Word>abstract</Word><Word>as</Word><Word>base</Word><Word>bool</Word>
+      <Word>break</Word><Word>byte</Word><Word>case</Word><Word>catch</Word>
+      <Word>char</Word><Word>checked</Word><Word>class</Word><Word>const</Word>
+      <Word>continue</Word><Word>decimal</Word><Word>default</Word><Word>delegate</Word>
+      <Word>do</Word><Word>double</Word><Word>else</Word><Word>enum</Word>
+      <Word>event</Word><Word>explicit</Word><Word>extern</Word><Word>false</Word>
+      <Word>finally</Word><Word>fixed</Word><Word>float</Word><Word>for</Word>
+      <Word>foreach</Word><Word>goto</Word><Word>if</Word><Word>implicit</Word>
+      <Word>in</Word><Word>int</Word><Word>interface</Word><Word>internal</Word>
+      <Word>is</Word><Word>lock</Word><Word>long</Word><Word>namespace</Word>
+      <Word>new</Word><Word>null</Word><Word>object</Word><Word>operator</Word>
+      <Word>out</Word><Word>override</Word><Word>params</Word><Word>private</Word>
+      <Word>protected</Word><Word>public</Word><Word>readonly</Word><Word>ref</Word>
+      <Word>return</Word><Word>sbyte</Word><Word>sealed</Word><Word>short</Word>
+      <Word>sizeof</Word><Word>stackalloc</Word><Word>static</Word><Word>string</Word>
+      <Word>struct</Word><Word>switch</Word><Word>this</Word><Word>throw</Word>
+      <Word>true</Word><Word>try</Word><Word>typeof</Word><Word>uint</Word>
+      <Word>ulong</Word><Word>unchecked</Word><Word>unsafe</Word><Word>ushort</Word>
+      <Word>using</Word><Word>virtual</Word><Word>void</Word><Word>volatile</Word>
+      <Word>while</Word><Word>record</Word><Word>required</Word>
+    </Keywords>
+
+    <Keywords color="ContextKeyword">
+      <Word>async</Word><Word>await</Word><Word>var</Word><Word>dynamic</Word>
+      <Word>get</Word><Word>set</Word><Word>init</Word><Word>value</Word>
+      <Word>add</Word><Word>remove</Word><Word>partial</Word><Word>where</Word>
+      <Word>select</Word><Word>from</Word><Word>join</Word><Word>on</Word>
+      <Word>equals</Word><Word>into</Word><Word>orderby</Word><Word>ascending</Word>
+      <Word>descending</Word><Word>group</Word><Word>by</Word><Word>let</Word>
+      <Word>when</Word><Word>global</Word><Word>alias</Word><Word>nameof</Word>
+      <Word>yield</Word><Word>not</Word><Word>and</Word><Word>or</Word>
+      <Word>with</Word><Word>managed</Word><Word>unmanaged</Word><Word>notnull</Word>
+      <Word>file</Word><Word>scoped</Word>
+    </Keywords>
+
+    <Keywords color="Type">
+      <Word>bool</Word><Word>byte</Word><Word>char</Word><Word>decimal</Word>
+      <Word>double</Word><Word>float</Word><Word>int</Word><Word>long</Word>
+      <Word>object</Word><Word>sbyte</Word><Word>short</Word><Word>string</Word>
+      <Word>uint</Word><Word>ulong</Word><Word>ushort</Word><Word>void</Word>
+      <Word>nint</Word><Word>nuint</Word>
+    </Keywords>
+
+    <Rule color="Attribute">\[[\w.]+\]</Rule>
+    <Rule color="Number">\b0[xX][0-9a-fA-F_]+[uUlL]*\b</Rule>
+    <Rule color="Number">\b0[bB][01_]+[uUlL]*\b</Rule>
+    <Rule color="Number">\b\d[\d_]*\.?\d*([eE][+-]?\d+)?[fFdDmMuUlL]*\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>

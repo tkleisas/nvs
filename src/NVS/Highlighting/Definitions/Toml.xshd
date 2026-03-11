@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="Toml" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" foreground="#6A9955" />
+  <Color name="Key" foreground="#9CDCFE" />
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Number" foreground="#B5CEA8" />
+  <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
+  <Color name="Section" foreground="#DCDCAA" />
+  <Color name="DateTime" foreground="#BD63C5" />
+
+  <RuleSet>
+    <Span color="Comment" begin="#" />
+    <Span color="String" multiline="true" begin="&quot;&quot;&quot;" end="&quot;&quot;&quot;" />
+    <Span color="String" multiline="true" begin="'''" end="'''" />
+    <Span color="String" begin="&quot;" end="&quot;" escape="\\" />
+    <Span color="String" begin="'" end="'" />
+
+    <Keywords color="Keyword">
+      <Word>true</Word><Word>false</Word>
+    </Keywords>
+
+    <Rule color="Section">\[[\w."-]+\]</Rule>
+    <Rule color="Section">\[\[[\w."-]+\]\]</Rule>
+    <Rule color="Key">[\w-]+(?=\s*=)</Rule>
+    <Rule color="DateTime">\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?)?</Rule>
+    <Rule color="Number">[+-]?\b0[xX][0-9a-fA-F_]+\b</Rule>
+    <Rule color="Number">[+-]?\b0[oO][0-7_]+\b</Rule>
+    <Rule color="Number">[+-]?\b0[bB][01_]+\b</Rule>
+    <Rule color="Number">[+-]?\b\d[\d_]*\.?\d*([eE][+-]?\d+)?\b</Rule>
+    <Rule color="Number">[+-]?(inf|nan)\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>

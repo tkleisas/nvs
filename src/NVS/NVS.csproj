@@ -31,4 +31,12 @@
     <ProjectReference Include="..\NVS.Services\NVS.Services.csproj" />
     <ProjectReference Include="..\NVS.Plugins\NVS.Plugins.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Highlighting\Definitions\*.xshd" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="NVS.Tests" />
+  </ItemGroup>
 </Project>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="Markdown" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Heading" foreground="#569CD6" fontWeight="bold" />
+  <Color name="Bold" foreground="#D4D4D4" fontWeight="bold" />
+  <Color name="Code" foreground="#CE9178" />
+  <Color name="Link" foreground="#4EC9B0" />
+  <Color name="ListMarker" foreground="#569CD6" />
+  <Color name="Blockquote" foreground="#6A9955" />
+  <Color name="HorizontalRule" foreground="#808080" />
+
+  <RuleSet>
+    <Span color="Code" multiline="true" begin="```" end="```" />
+    <Span color="Code" begin="`" end="`" />
+
+    <Rule color="Heading">^#{1,6}\s.*$</Rule>
+    <Rule color="Bold">\*\*[^*]+\*\*</Rule>
+    <Rule color="Bold">__[^_]+__</Rule>
+    <Rule color="Link">\[([^\]]+)\]\([^\)]+\)</Rule>
+    <Rule color="Link">&lt;https?://[^&gt;]+&gt;</Rule>
+    <Rule color="ListMarker">^\s*[-*+]\s</Rule>
+    <Rule color="ListMarker">^\s*\d+\.\s</Rule>
+    <Rule color="Blockquote">^\s*&gt;\s.*$</Rule>
+    <Rule color="HorizontalRule">^[-*_]{3,}\s*$</Rule>
+  </RuleSet>
+</SyntaxDefinition>

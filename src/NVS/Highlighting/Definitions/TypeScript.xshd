@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="TypeScript" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
+  <Color name="Type" foreground="#4EC9B0" />
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Comment" foreground="#6A9955" />
+  <Color name="Number" foreground="#B5CEA8" />
+
+  <RuleSet>
+    <Span color="Comment" begin="//" />
+    <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
+    <Span color="String" begin="&quot;" end="&quot;" escape="\\" />
+    <Span color="String" begin="'" end="'" escape="\\" />
+    <Span color="String" begin="`" end="`" escape="\\" multiline="true" />
+
+    <Keywords color="Keyword">
+      <Word>abstract</Word><Word>as</Word><Word>async</Word><Word>await</Word>
+      <Word>break</Word><Word>case</Word><Word>catch</Word><Word>class</Word>
+      <Word>const</Word><Word>constructor</Word><Word>continue</Word><Word>debugger</Word>
+      <Word>declare</Word><Word>default</Word><Word>delete</Word><Word>do</Word>
+      <Word>else</Word><Word>enum</Word><Word>export</Word><Word>extends</Word>
+      <Word>false</Word><Word>finally</Word><Word>for</Word><Word>from</Word>
+      <Word>function</Word><Word>get</Word><Word>if</Word><Word>implements</Word>
+      <Word>import</Word><Word>in</Word><Word>infer</Word><Word>instanceof</Word>
+      <Word>interface</Word><Word>is</Word><Word>keyof</Word><Word>let</Word>
+      <Word>module</Word><Word>namespace</Word><Word>new</Word><Word>null</Word>
+      <Word>of</Word><Word>package</Word><Word>private</Word><Word>protected</Word>
+      <Word>public</Word><Word>readonly</Word><Word>require</Word><Word>return</Word>
+      <Word>set</Word><Word>static</Word><Word>super</Word><Word>switch</Word>
+      <Word>this</Word><Word>throw</Word><Word>true</Word><Word>try</Word>
+      <Word>type</Word><Word>typeof</Word><Word>undefined</Word><Word>unique</Word>
+      <Word>var</Word><Word>void</Word><Word>while</Word><Word>with</Word>
+      <Word>yield</Word><Word>satisfies</Word><Word>using</Word><Word>override</Word>
+    </Keywords>
+
+    <Keywords color="Type">
+      <Word>any</Word><Word>bigint</Word><Word>boolean</Word><Word>never</Word>
+      <Word>number</Word><Word>object</Word><Word>string</Word><Word>symbol</Word>
+      <Word>unknown</Word><Word>void</Word><Word>undefined</Word><Word>null</Word>
+      <Word>Array</Word><Word>Map</Word><Word>Set</Word><Word>Promise</Word>
+      <Word>Record</Word><Word>Partial</Word><Word>Required</Word><Word>Readonly</Word>
+      <Word>Pick</Word><Word>Omit</Word><Word>Exclude</Word><Word>Extract</Word>
+      <Word>ReturnType</Word><Word>Parameters</Word><Word>Awaited</Word>
+    </Keywords>
+
+    <Rule color="Number">\b0[xX][0-9a-fA-F_]+n?\b</Rule>
+    <Rule color="Number">\b0[oO][0-7_]+n?\b</Rule>
+    <Rule color="Number">\b0[bB][01_]+n?\b</Rule>
+    <Rule color="Number">\b\d[\d_]*\.?\d*([eE][+-]?\d+)?n?\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>

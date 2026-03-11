@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="Rust" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
+  <Color name="Type" foreground="#4EC9B0" />
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Comment" foreground="#6A9955" />
+  <Color name="Number" foreground="#B5CEA8" />
+  <Color name="Macro" foreground="#DCDCAA" />
+  <Color name="Lifetime" foreground="#BD63C5" />
+
+  <RuleSet>
+    <Span color="Comment" begin="//" />
+    <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
+    <Span color="String" begin="&quot;" end="&quot;" escape="\\" />
+    <Span color="String" multiline="true" begin="r#&quot;" end="&quot;#" />
+    <Span color="String" multiline="true" begin="r&quot;" end="&quot;" />
+    <Span color="String" begin="'" end="'" escape="\\" />
+    <Span color="String" begin="b&quot;" end="&quot;" escape="\\" />
+
+    <Keywords color="Keyword">
+      <Word>as</Word><Word>async</Word><Word>await</Word><Word>break</Word>
+      <Word>const</Word><Word>continue</Word><Word>crate</Word><Word>dyn</Word>
+      <Word>else</Word><Word>enum</Word><Word>extern</Word><Word>false</Word>
+      <Word>fn</Word><Word>for</Word><Word>if</Word><Word>impl</Word>
+      <Word>in</Word><Word>let</Word><Word>loop</Word><Word>match</Word>
+      <Word>mod</Word><Word>move</Word><Word>mut</Word><Word>pub</Word>
+      <Word>ref</Word><Word>return</Word><Word>self</Word><Word>Self</Word>
+      <Word>static</Word><Word>struct</Word><Word>super</Word><Word>trait</Word>
+      <Word>true</Word><Word>type</Word><Word>unsafe</Word><Word>use</Word>
+      <Word>where</Word><Word>while</Word><Word>yield</Word>
+    </Keywords>
+
+    <Keywords color="Type">
+      <Word>bool</Word><Word>char</Word><Word>f32</Word><Word>f64</Word>
+      <Word>i8</Word><Word>i16</Word><Word>i32</Word><Word>i64</Word>
+      <Word>i128</Word><Word>isize</Word><Word>u8</Word><Word>u16</Word>
+      <Word>u32</Word><Word>u64</Word><Word>u128</Word><Word>usize</Word>
+      <Word>str</Word><Word>String</Word><Word>Vec</Word><Word>Box</Word>
+      <Word>Option</Word><Word>Result</Word><Word>Some</Word><Word>None</Word>
+      <Word>Ok</Word><Word>Err</Word><Word>HashMap</Word><Word>HashSet</Word>
+      <Word>Rc</Word><Word>Arc</Word><Word>Mutex</Word><Word>Cell</Word>
+      <Word>RefCell</Word>
+    </Keywords>
+
+    <Rule color="Macro">\b\w+!</Rule>
+    <Rule color="Lifetime">'[a-zA-Z_]\w*</Rule>
+    <Rule color="Number">\b0[xX][0-9a-fA-F_]+\b</Rule>
+    <Rule color="Number">\b0[oO][0-7_]+\b</Rule>
+    <Rule color="Number">\b0[bB][01_]+\b</Rule>
+    <Rule color="Number">\b\d[\d_]*\.?\d*([eE][+-]?\d+)?([fiu]\d+)?\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>

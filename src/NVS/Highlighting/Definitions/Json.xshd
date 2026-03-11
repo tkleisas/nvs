@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="Json" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Key" foreground="#9CDCFE" />
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Number" foreground="#B5CEA8" />
+  <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
+
+  <RuleSet>
+    <Span color="String" begin="&quot;" end="&quot;" escape="\\" />
+
+    <Keywords color="Keyword">
+      <Word>true</Word><Word>false</Word><Word>null</Word>
+    </Keywords>
+
+    <Rule color="Number">-?\b\d+\.?\d*([eE][+-]?\d+)?\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>
