@@ -139,9 +139,10 @@
                             <TextBlock Text="{Binding Title}" FontSize="12"/>
                         </DataTemplate>
                     </TabControl.ItemTemplate>
-                    <TabControl.ContentTemplate>
+                        <TabControl.ContentTemplate>
                         <DataTemplate DataType="vm:DocumentViewModel">
                             <AvaloniaEdit:TextEditor
+                                behaviors:TextEditorSyntaxHighlighting.Language="{Binding Language}"
                                 ShowLineNumbers="True"
                                 FontFamily="Consolas,Courier New,monospace"
                                 FontSize="14"
@@ -151,7 +152,10 @@
                                 Padding="8"
                                 WordWrap="False">
                                 <i:Interaction.Behaviors>
-                                    <behaviors:DocumentTextBindingBehavior Text="{Binding Text, Mode=TwoWay}"/>
+                                    <behaviors:DocumentTextBindingBehavior
+                                        Text="{Binding Text, Mode=TwoWay}"
+                                        Line="{Binding CursorLine, Mode=OneWayToSource}"
+                                        Column="{Binding CursorColumn, Mode=OneWayToSource}"/>
                                 </i:Interaction.Behaviors>
                             </AvaloniaEdit:TextEditor>
                         </DataTemplate>
@@ -207,8 +211,8 @@
                 </StackPanel>
                 <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" HorizontalAlignment="Center" Foreground="White" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12">
-                    <TextBlock Text="Ln 1" Foreground="White" />
-                    <TextBlock Text="Col 1" Foreground="White" />
+                    <TextBlock Text="{Binding Editor.CursorLine, StringFormat='Ln {0}'}" Foreground="White" />
+                    <TextBlock Text="{Binding Editor.CursorColumn, StringFormat='Col {0}'}" Foreground="White" />
                     <TextBlock Text="Spaces: 4" Foreground="White" />
                     <TextBlock Text="UTF-8" Foreground="White" />
                 </StackPanel>

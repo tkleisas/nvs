@@ -161,13 +161,14 @@ public partial class MainViewModel : INotifyPropertyChanged
     }
 
     [RelayCommand]
-    private async Task NewFile()
+    private Task NewFile()
     {
         if (Editor != null)
         {
-            await Editor.NewFile();
+            Editor.NewFile();
             StatusMessage = "New file created";
         }
+        return Task.CompletedTask;
     }
 
     [RelayCommand]
@@ -191,11 +192,8 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     public async Task OpenFileAsync(string filePath)
     {
-        if (Editor != null)
-        {
-            await Editor.OpenFileAsync(filePath);
-            StatusMessage = $"Opened: {Path.GetFileName(filePath)}";
-        }
+        await _editorService.OpenDocumentAsync(filePath);
+        StatusMessage = $"Opened: {Path.GetFileName(filePath)}";
     }
 
     [RelayCommand]

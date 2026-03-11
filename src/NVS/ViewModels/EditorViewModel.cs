@@ -23,10 +23,22 @@ public partial class EditorViewModel : INotifyPropertyChanged
         get => _activeDocument;
         set
         {
+            if (_activeDocument != null)
+                _activeDocument.PropertyChanged -= OnActiveDocumentPropertyChanged;
+
             _activeDocument = value;
+
+            if (_activeDocument != null)
+                _activeDocument.PropertyChanged += OnActiveDocumentPropertyChanged;
+
             OnPropertyChanged();
+            OnPropertyChanged(nameof(CursorLine));
+            OnPropertyChanged(nameof(CursorColumn));
         }
     }
+
+    public int CursorLine => _activeDocument?.CursorLine ?? 1;
+    public int CursorColumn => _activeDocument?.CursorColumn ?? 1;
 
     public int ActiveTabIndex
     {
@@ -53,7 +65,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
     }
 
     [RelayCommand]
-    public async Task NewFile()
+    public void NewFile()
     {
         var document = new Document
         {
@@ -72,49 +84,25 @@ public partial class EditorViewModel : INotifyPropertyChanged
     }
 
     [RelayCommand]
-    public async Task OpenFile()
-    {
-        await Task.CompletedTask;
-        // TODO: Implement file dialog via Avalonia
-    }
-
-    public async Task OpenFileAsync(string filePath)
-    {
-        var existing = OpenDocuments.FirstOrDefault(d => d.Document.FilePath == filePath);
-        if (existing != null)
-        {
-            ActiveDocument = existing;
-            ActiveTabIndex = OpenDocuments.IndexOf(existing);
-            return;
-        }
-
-        try
-        {
-            var document = await _editorService.OpenDocumentAsync(filePath);
-            var docVm = new DocumentViewModel(document);
-            OpenDocuments.Add(docVm);
-            ActiveDocument = docVm;
-            ActiveTabIndex = OpenDocuments.Count - 1;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to open file: {ex.Message}");
-        }
-    }
-
-    [RelayCommand]
     public async Task SaveFile()
     {
         if (ActiveDocument?.Document == null) return;
-        await SaveDocumentAsync(ActiveDocument);
+
+        if (string.IsNullOrEmpty(ActiveDocument.Document.FilePath))
+        {
+            return;
+        }
+
+        ActiveDocument.Document.Content = ActiveDocument.Text;
+        await _editorService.SaveDocumentAsync(ActiveDocument.Document);
+        ActiveDocument.IsDirty = false;
     }
 
     [RelayCommand]
     public async Task SaveFileAs()
     {
         if (ActiveDocument?.Document == null) return;
-        // TODO: Implement save as dialog
-        await SaveDocumentAsync(ActiveDocument);
+        await SaveFile();
     }
 
     [RelayCommand]
@@ -204,6 +192,14 @@ public partial class EditorViewModel : INotifyPropertyChanged
         }
     }
 
+    private void OnActiveDocumentPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(DocumentViewModel.CursorLine))
+            OnPropertyChanged(nameof(CursorLine));
+        else if (e.PropertyName is nameof(DocumentViewModel.CursorColumn))
+            OnPropertyChanged(nameof(CursorColumn));
+    }
+
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -279,6 +275,7 @@ public class DocumentViewModel : INotifyPropertyChanged
 
     public string Title => IsDirty ? $"{Document.Name} *" : Document.Name;
     public string Tooltip => Document.FilePath ?? Document.Name;
+    public Language Language => Document.Language;
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
