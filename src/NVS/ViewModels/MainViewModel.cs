@@ -483,6 +483,15 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    [RelayCommand]
+    private async Task RefreshFileTree()
+    {
+        if (_workspacePath is not null)
+        {
+            await LoadFileTree(_workspacePath);
+        }
+    }
+
     private static List<FilePickerFileType> GetFileTypes()
     {
         return

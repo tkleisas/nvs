@@ -266,4 +266,14 @@ public class MainViewModelGitTerminalTests
 
         changed.Should().BeTrue();
     }
+
+    // --- RefreshFileTree ---
+
+    [Fact]
+    public async Task RefreshFileTreeCommand_WithNoWorkspace_DoesNotThrow()
+    {
+        var vm = CreateViewModel();
+        var act = () => vm.RefreshFileTreeCommand.ExecuteAsync(null);
+        await act.Should().NotThrowAsync();
+    }
 }

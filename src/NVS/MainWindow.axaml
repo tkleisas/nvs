@@ -25,13 +25,13 @@
                 <MenuItem Header="Open _Folder..." InputGesture="Ctrl+Shift+O" Command="{Binding OpenFolderCommand}" />
                 <Separator />
                 <MenuItem Header="_Save" InputGesture="Ctrl+S" Command="{Binding SaveFileCommand}" />
-                <MenuItem Header="Save _As..." InputGesture="Ctrl+Shift+S" />
+                <MenuItem Header="Save _As..." InputGesture="Ctrl+Shift+S" Command="{Binding SaveFileAsCommand}" />
                 <MenuItem Header="Save A_ll" Command="{Binding SaveAllCommand}" />
                 <Separator />
                 <MenuItem Header="_Close" InputGesture="Ctrl+W" Command="{Binding CloseFileCommand}" />
-                <MenuItem Header="Close All" />
+                <MenuItem Header="Close All" Command="{Binding CloseAllFilesCommand}" />
                 <Separator />
-                <MenuItem Header="E_xit" InputGesture="Alt+F4" />
+                <MenuItem Header="E_xit" InputGesture="Alt+F4" Click="OnExitClick" />
             </MenuItem>
             <MenuItem Header="_Edit">
                 <MenuItem Header="_Undo" InputGesture="Ctrl+Z" Command="{Binding Editor.UndoCommand}" />
@@ -43,33 +43,19 @@
                 <Separator />
                 <MenuItem Header="_Find" InputGesture="Ctrl+F" Command="{Binding Editor.FindCommand}" />
                 <MenuItem Header="_Replace" InputGesture="Ctrl+H" Command="{Binding Editor.FindCommand}" />
+                <MenuItem Header="Go to _Line..." InputGesture="Ctrl+G" Click="OnGoToLineClick" />
             </MenuItem>
             <MenuItem Header="_View">
-                <MenuItem Header="_Explorer" InputGesture="Ctrl+Shift+E" />
-                <MenuItem Header="_Search" InputGesture="Ctrl+Shift+F" />
-                <MenuItem Header="_Source Control" InputGesture="Ctrl+Shift+G" />
+                <MenuItem Header="_Explorer" InputGesture="Ctrl+Shift+E" Command="{Binding ShowExplorerCommand}" />
+                <MenuItem Header="_Source Control" InputGesture="Ctrl+Shift+G" Command="{Binding ShowSourceControlCommand}" />
                 <Separator />
-                <MenuItem Header="_Output" InputGesture="Ctrl+Shift+U" />
                 <MenuItem Header="_Terminal" Command="{Binding ToggleTerminalCommand}" InputGesture="Ctrl+OemTilde" />
             </MenuItem>
-            <MenuItem Header="_Go">
-                <MenuItem Header="Go to _File..." InputGesture="Ctrl+P" />
-                <MenuItem Header="Go to _Symbol..." InputGesture="Ctrl+Shift+O" />
-                <MenuItem Header="Go to _Line..." InputGesture="Ctrl+G" />
-            </MenuItem>
-            <MenuItem Header="_Run">
-                <MenuItem Header="_Start Debugging" InputGesture="F5" />
-                <MenuItem Header="Start _Without Debugging" InputGesture="Ctrl+F5" />
-                <MenuItem Header="_Stop" InputGesture="Shift+F5" />
-                <Separator />
-                <MenuItem Header="Toggle _Breakpoint" InputGesture="F9" />
-            </MenuItem>
             <MenuItem Header="_Terminal">
-                <MenuItem Header="_New Terminal" InputGesture="Ctrl+Shift+OemTilde" />
+                <MenuItem Header="_New Terminal" InputGesture="Ctrl+Shift+OemTilde" Command="{Binding NewTerminalCommand}" />
             </MenuItem>
             <MenuItem Header="_Help">
                 <MenuItem Header="_About NVS" Click="OnAboutClick" />
-                <MenuItem Header="_Report Issue" />
             </MenuItem>
             <MenuItem Header="_Settings" Click="OnSettingsClick" />
         </Menu>
@@ -131,10 +117,22 @@
                     <TreeView Grid.Row="1" Padding="4" Background="Transparent"
                               ItemsSource="{Binding FileTree}"
                               DoubleTapped="OnFileTreeDoubleTapped"
-                              IsVisible="{Binding IsSidebarShowingExplorer}">
+                              IsVisible="{Binding IsSidebarShowingExplorer}"
+                              x:Name="FileTreeView">
                         <TreeView.Resources>
                             <x:Double x:Key="TreeViewItemIndent">12</x:Double>
                         </TreeView.Resources>
+                        <TreeView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="New File..." Click="OnNewFileInExplorerClick" />
+                                <MenuItem Header="New Folder..." Click="OnNewFolderInExplorerClick" />
+                                <Separator />
+                                <MenuItem Header="Rename..." Click="OnRenameInExplorerClick" />
+                                <MenuItem Header="Delete" Click="OnDeleteInExplorerClick" />
+                                <Separator />
+                                <MenuItem Header="Refresh" Click="OnRefreshExplorerClick" />
+                            </ContextMenu>
+                        </TreeView.ContextMenu>
                         <TreeView.Styles>
                             <Style Selector="TreeViewItem">
                                 <Setter Property="Padding" Value="0"/>

@@ -8,82 +8,83 @@ public sealed class TerminalServiceTests : IDisposable
 {
     private readonly TerminalService _service = new();
 
-    [Fact(Timeout = 10_000)]
-    public async Task CreateTerminal_ReturnsInstance_AndSetsActive()
+    private static TerminalOptions NonInteractiveOptions(string name = "Test")
     {
-        var terminal = _service.CreateTerminal(new TerminalOptions { Name = "Test" });
+        // Use a command that exits immediately rather than an interactive shell
+        var shell = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        return new TerminalOptions { Name = name, Shell = shell };
+    }
+
+    [Fact]
+    public void CreateTerminal_ReturnsInstance_AndSetsActive()
+    {
+        var terminal = _service.CreateTerminal(NonInteractiveOptions());
 
         terminal.Should().NotBeNull();
         terminal.Name.Should().Be("Test");
         _service.ActiveTerminal.Should().Be(terminal);
         _service.Terminals.Should().HaveCount(1);
-        await Task.CompletedTask;
     }
 
-    [Fact(Timeout = 10_000)]
-    public async Task CreateTerminal_MultipleTerminals_SetsLastAsActive()
+    [Fact]
+    public void CreateTerminal_MultipleTerminals_SetsLastAsActive()
     {
-        var t1 = _service.CreateTerminal(new TerminalOptions { Name = "T1" });
-        var t2 = _service.CreateTerminal(new TerminalOptions { Name = "T2" });
+        _service.CreateTerminal(NonInteractiveOptions("T1"));
+        var t2 = _service.CreateTerminal(NonInteractiveOptions("T2"));
 
         _service.Terminals.Should().HaveCount(2);
         _service.ActiveTerminal.Should().Be(t2);
-        await Task.CompletedTask;
     }
 
-    [Fact(Timeout = 10_000)]
-    public async Task CloseTerminal_RemovesFromList()
+    [Fact]
+    public void CloseTerminal_RemovesFromList()
     {
-        var terminal = _service.CreateTerminal(new TerminalOptions { Name = "Test" });
+        var terminal = _service.CreateTerminal(NonInteractiveOptions());
 
         _service.CloseTerminal(terminal);
 
         _service.Terminals.Should().BeEmpty();
         _service.ActiveTerminal.Should().BeNull();
-        await Task.CompletedTask;
     }
 
-    [Fact(Timeout = 10_000)]
-    public async Task CloseTerminal_WithMultiple_SetsActiveToPrevious()
+    [Fact]
+    public void CloseTerminal_WithMultiple_SetsActiveToPrevious()
     {
-        var t1 = _service.CreateTerminal(new TerminalOptions { Name = "T1" });
-        var t2 = _service.CreateTerminal(new TerminalOptions { Name = "T2" });
+        var t1 = _service.CreateTerminal(NonInteractiveOptions("T1"));
+        var t2 = _service.CreateTerminal(NonInteractiveOptions("T2"));
 
         _service.CloseTerminal(t2);
 
         _service.ActiveTerminal.Should().Be(t1);
-        await Task.CompletedTask;
     }
 
-    [Fact(Timeout = 10_000)]
-    public async Task CloseAllTerminals_ClearsEverything()
+    [Fact]
+    public void CloseAllTerminals_ClearsEverything()
     {
-        _service.CreateTerminal(new TerminalOptions { Name = "T1" });
-        _service.CreateTerminal(new TerminalOptions { Name = "T2" });
+        _service.CreateTerminal(NonInteractiveOptions("T1"));
+        _service.CreateTerminal(NonInteractiveOptions("T2"));
 
         _service.CloseAllTerminals();
 
         _service.Terminals.Should().BeEmpty();
         _service.ActiveTerminal.Should().BeNull();
-        await Task.CompletedTask;
     }
 
-    [Fact(Timeout = 10_000)]
-    public async Task CreateTerminal_FiresTerminalCreatedEvent()
+    [Fact]
+    public void CreateTerminal_FiresTerminalCreatedEvent()
     {
         ITerminalInstance? created = null;
         _service.TerminalCreated += (_, t) => created = t;
 
-        var terminal = _service.CreateTerminal(new TerminalOptions { Name = "Test" });
+        var terminal = _service.CreateTerminal(NonInteractiveOptions());
 
         created.Should().Be(terminal);
-        await Task.CompletedTask;
     }
 
-    [Fact(Timeout = 10_000)]
-    public async Task CloseTerminal_FiresTerminalClosedEvent()
+    [Fact]
+    public void CloseTerminal_FiresTerminalClosedEvent()
     {
-        var terminal = _service.CreateTerminal(new TerminalOptions { Name = "Test" });
+        var terminal = _service.CreateTerminal(NonInteractiveOptions());
 
         ITerminalInstance? closed = null;
         _service.TerminalClosed += (_, t) => closed = t;
@@ -91,17 +92,15 @@ public sealed class TerminalServiceTests : IDisposable
         _service.CloseTerminal(terminal);
 
         closed.Should().Be(terminal);
-        await Task.CompletedTask;
     }
 
-    [Fact(Timeout = 10_000)]
-    public async Task CreateTerminal_DefaultOptions_StillWorks()
+    [Fact]
+    public void CreateTerminal_DefaultOptions_StillWorks()
     {
-        var terminal = _service.CreateTerminal();
+        var terminal = _service.CreateTerminal(NonInteractiveOptions());
 
         terminal.Should().NotBeNull();
         terminal.IsConnected.Should().BeTrue();
-        await Task.CompletedTask;
     }
 
     [Fact]
