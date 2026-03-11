@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:NVS.ViewModels"
+        xmlns:core="clr-namespace:NVS.Core.Interfaces;assembly=NVS.Core"
         xmlns:AvaloniaEdit="using:AvaloniaEdit"
         xmlns:i="using:Avalonia.Xaml.Interactivity"
         xmlns:behaviors="using:NVS.Behaviors"
@@ -108,14 +109,29 @@
             <Border Grid.Column="0" Width="250" Background="#252526"
                     BorderBrush="#3C3C3C" BorderThickness="0,0,1,0">
                 <Grid RowDefinitions="Auto,*">
-                    <!-- Sidebar Header -->
-                    <Border Grid.Row="0" Padding="8" Background="#2D2D30">
-                        <TextBlock Text="EXPLORER" FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
-                    </Border>
-                    <!-- Sidebar Content -->
+                    <!-- Sidebar Tab Buttons -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Background="#2D2D30">
+                        <Button Padding="12,8" Background="Transparent" BorderThickness="0"
+                                Command="{Binding ShowExplorerCommand}"
+                                ToolTip.Tip="Explorer (Ctrl+Shift+E)">
+                            <TextBlock Text="📁 EXPLORER" FontWeight="Bold" FontSize="11"
+                                       Foreground="#CCCCCC"
+                                       Opacity="{Binding IsSidebarShowingExplorer, Converter={x:Static vm:BoolToOpacityConverter.Instance}}" />
+                        </Button>
+                        <Button Padding="12,8" Background="Transparent" BorderThickness="0"
+                                Command="{Binding ShowSourceControlCommand}"
+                                ToolTip.Tip="Source Control (Ctrl+Shift+G)">
+                            <TextBlock Text="🔀 GIT" FontWeight="Bold" FontSize="11"
+                                       Foreground="#CCCCCC"
+                                       Opacity="{Binding IsSidebarShowingGit, Converter={x:Static vm:BoolToOpacityConverter.Instance}}" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Explorer Panel -->
                     <TreeView Grid.Row="1" Padding="4" Background="Transparent"
                               ItemsSource="{Binding FileTree}"
-                              DoubleTapped="OnFileTreeDoubleTapped">
+                              DoubleTapped="OnFileTreeDoubleTapped"
+                              IsVisible="{Binding IsSidebarShowingExplorer}">
                         <TreeView.ItemTemplate>
                             <DataTemplate DataType="vm:FileTreeNode">
                                 <TreeViewItem Header="{Binding Name}" 
@@ -124,6 +140,77 @@
                             </DataTemplate>
                         </TreeView.ItemTemplate>
                     </TreeView>
+
+                    <!-- Source Control Panel -->
+                    <Grid Grid.Row="1" RowDefinitions="Auto,Auto,*,Auto,Auto,*"
+                          IsVisible="{Binding IsSidebarShowingGit}"
+                          Margin="8,4">
+                        <!-- Commit message + button -->
+                        <TextBox Grid.Row="0"
+                                 Text="{Binding CommitMessage}"
+                                 Watermark="Commit message"
+                                 AcceptsReturn="True"
+                                 Height="60"
+                                 TextWrapping="Wrap"
+                                 FontSize="12"
+                                 Background="#3C3C3C"
+                                 Foreground="#CCCCCC"
+                                 BorderBrush="#555" />
+                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,4">
+                            <Button Grid.Column="0" Content="✓ Commit" 
+                                    Command="{Binding GitCommitCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Background="#007ACC" Foreground="White" Padding="8,4" />
+                            <Button Grid.Column="1" Content="⟳" Margin="4,0,0,0"
+                                    Command="{Binding GitRefreshCommand}"
+                                    ToolTip.Tip="Refresh"
+                                    Background="#3C3C3C" Foreground="#CCCCCC" Padding="8,4" />
+                        </Grid>
+
+                        <!-- Staged Changes -->
+                        <TextBlock Grid.Row="2" Text="STAGED CHANGES"
+                                   FontWeight="Bold" FontSize="11" Foreground="#CCCCCC"
+                                   Margin="0,8,0,4"
+                                   VerticalAlignment="Top" />
+                        <ItemsControl Grid.Row="3" ItemsSource="{Binding GitStagedFiles}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="core:GitFileStatus">
+                                    <Grid ColumnDefinitions="Auto,*" Margin="0,1">
+                                        <TextBlock Grid.Column="0" Text="{Binding Status}" FontSize="10"
+                                                   Foreground="#4EC9B0" Width="16" Margin="0,0,4,0" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Path}"
+                                                   FontSize="12" Foreground="#4EC9B0"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Changes -->
+                        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,8,0,4"
+                                    Spacing="4">
+                            <TextBlock Text="CHANGES"
+                                       FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
+                            <Button Content="+" FontSize="10" Padding="4,0"
+                                    Command="{Binding GitStageAllCommand}"
+                                    ToolTip.Tip="Stage All"
+                                    Background="Transparent" Foreground="#CCCCCC" />
+                        </StackPanel>
+                        <ItemsControl Grid.Row="5" ItemsSource="{Binding GitChangedFiles}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="core:GitFileStatus">
+                                    <Grid ColumnDefinitions="Auto,*" Margin="0,1">
+                                        <TextBlock Grid.Column="0" Text="{Binding Status}" FontSize="10"
+                                                   Foreground="#D7BA7D" Width="16" Margin="0,0,4,0" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Path}"
+                                                   FontSize="12" Foreground="#D7BA7D"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -194,20 +281,53 @@
             </Grid>
         </Grid>
 
-        <!-- Output Panel -->
-        <Expander Grid.Row="3" Header="Output" IsExpanded="True" MaxHeight="200" Background="#1E1E1E">
-            <Border Background="#1E1E1E" MinHeight="100" Padding="8">
-                <TextBox IsReadOnly="True"
+        <!-- Terminal Panel -->
+        <Border Grid.Row="3" IsVisible="{Binding IsTerminalVisible}"
+                Background="#1E1E1E" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0">
+            <Grid RowDefinitions="Auto,*,Auto" Height="200">
+                <!-- Terminal header -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Background="#2D2D30" Margin="0,0,0,0">
+                    <TextBlock Grid.Column="0" Text="TERMINAL" FontWeight="Bold" FontSize="11"
+                               Foreground="#CCCCCC" Padding="8,4" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="+" Padding="8,4"
+                            Command="{Binding NewTerminalCommand}"
+                            ToolTip.Tip="New Terminal"
+                            Background="Transparent" Foreground="#CCCCCC" FontSize="12" />
+                    <Button Grid.Column="2" Content="✕" Padding="8,4"
+                            Command="{Binding CloseTerminalCommand}"
+                            ToolTip.Tip="Close Terminal"
+                            Background="Transparent" Foreground="#CCCCCC" FontSize="12" />
+                </Grid>
+                <!-- Terminal output -->
+                <TextBox Grid.Row="1"
+                         Text="{Binding TerminalOutput}"
+                         IsReadOnly="True"
                          AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         Background="Transparent"
+                         TextWrapping="NoWrap"
+                         Background="#1E1E1E"
+                         Foreground="#CCCCCC"
                          BorderThickness="0"
                          FontFamily="Consolas,Courier New,monospace"
                          FontSize="12"
-                         Foreground="#CCCCCC"
-                         Text="Welcome to NVS - No Vim Substitute (We're Honest)&#x0a;Ready.&#x0a;" />
-            </Border>
-        </Expander>
+                         Padding="8,4" />
+                <!-- Terminal input -->
+                <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Background="#252526">
+                    <TextBox Grid.Column="0"
+                             Text="{Binding TerminalInput}"
+                             Watermark="Type a command..."
+                             Background="Transparent"
+                             Foreground="#CCCCCC"
+                             BorderThickness="0"
+                             FontFamily="Consolas,Courier New,monospace"
+                             FontSize="12"
+                             Padding="8,4"
+                             KeyDown="OnTerminalInputKeyDown" />
+                    <Button Grid.Column="1" Content="▶" Padding="8,4"
+                            Command="{Binding SendTerminalInputCommand}"
+                            Background="Transparent" Foreground="#4EC9B0" />
+                </Grid>
+            </Grid>
+        </Border>
 
         <!-- Status Bar -->
         <Border Grid.Row="4" Background="#007ACC" Padding="8,4">

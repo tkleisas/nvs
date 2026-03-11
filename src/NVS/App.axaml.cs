@@ -6,9 +6,11 @@ using NVS.Core.Interfaces;
 using NVS.Infrastructure.DependencyInjection;
 using NVS.Services.Editor;
 using NVS.Services.FileSystem;
+using NVS.Services.Git;
 using NVS.Services.Languages;
 using NVS.Services.Lsp;
 using NVS.Services.Settings;
+using NVS.Services.Terminal;
 using NVS.Services.Workspaces;
 using NVS.ViewModels;
 
@@ -58,6 +60,8 @@ public partial class App : Application
         services.AddSingleton<ILspClientFactory, LspClientFactory>();
         services.AddSingleton<ILspSessionManager, LspSessionManager>();
         services.AddSingleton<ILanguageServerManager, LanguageServerManager>();
+        services.AddSingleton<IGitService, GitService>();
+        services.AddSingleton<ITerminalService, TerminalService>();
         
         // ViewModels
         services.AddSingleton<EditorViewModel>();

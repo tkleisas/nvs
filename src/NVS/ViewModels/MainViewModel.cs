@@ -16,13 +16,20 @@ public partial class MainViewModel : INotifyPropertyChanged
     private readonly IWorkspaceService _workspaceService;
     private readonly IEditorService _editorService;
     private readonly IFileSystemService _fileSystemService;
+    private readonly IGitService _gitService;
+    private readonly ITerminalService _terminalService;
 
     private string _title = "NVS - No Vim Substitute";
     private bool _isWorkspaceOpen;
     private string? _workspacePath;
     private string _statusMessage = "Ready";
-    private string _currentBranch = "main";
+    private string _currentBranch = "";
     private EditorViewModel? _editor;
+    private bool _isSidebarShowingGit;
+    private bool _isTerminalVisible;
+    private string _terminalOutput = "";
+    private string _terminalInput = "";
+    private string _commitMessage = "";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -32,12 +39,18 @@ public partial class MainViewModel : INotifyPropertyChanged
         IWorkspaceService workspaceService,
         IEditorService editorService,
         IFileSystemService fileSystemService,
-        EditorViewModel editor)
+        EditorViewModel editor,
+        IGitService gitService,
+        ITerminalService terminalService)
     {
         _workspaceService = workspaceService;
         _editorService = editorService;
         _fileSystemService = fileSystemService;
+        _gitService = gitService;
+        _terminalService = terminalService;
         Editor = editor;
+
+        _gitService.StatusChanged += OnGitStatusChanged;
     }
 
     public string Title
@@ -78,6 +91,50 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<FileTreeNode> FileTree { get; } = [];
 
+    // Sidebar mode
+    public bool IsSidebarShowingGit
+    {
+        get => _isSidebarShowingGit;
+        set
+        {
+            if (SetProperty(ref _isSidebarShowingGit, value))
+            {
+                OnPropertyChanged(nameof(IsSidebarShowingExplorer));
+            }
+        }
+    }
+
+    public bool IsSidebarShowingExplorer => !_isSidebarShowingGit;
+
+    // Git properties
+    public ObservableCollection<GitFileStatus> GitChangedFiles { get; } = [];
+    public ObservableCollection<GitFileStatus> GitStagedFiles { get; } = [];
+
+    public string CommitMessage
+    {
+        get => _commitMessage;
+        set => SetProperty(ref _commitMessage, value);
+    }
+
+    // Terminal properties
+    public bool IsTerminalVisible
+    {
+        get => _isTerminalVisible;
+        set => SetProperty(ref _isTerminalVisible, value);
+    }
+
+    public string TerminalOutput
+    {
+        get => _terminalOutput;
+        set => SetProperty(ref _terminalOutput, value);
+    }
+
+    public string TerminalInput
+    {
+        get => _terminalInput;
+        set => SetProperty(ref _terminalInput, value);
+    }
+
     [RelayCommand]
     private async Task OpenFolder()
     {
@@ -104,6 +161,14 @@ public partial class MainViewModel : INotifyPropertyChanged
         Title = $"NVS - {Path.GetFileName(folderPath)}";
 
         await LoadFileTree(folderPath);
+        await InitializeGitAsync(folderPath);
+    }
+
+    private async Task InitializeGitAsync(string folderPath)
+    {
+        await _gitService.InitializeAsync(folderPath);
+        CurrentBranch = _gitService.CurrentBranch ?? "";
+        RefreshGitFiles();
     }
 
     private async Task LoadFileTree(string folderPath)
@@ -261,13 +326,152 @@ public partial class MainViewModel : INotifyPropertyChanged
     [RelayCommand]
     private void ToggleTerminal()
     {
-        StatusMessage = "Terminal toggled (not implemented)";
+        IsTerminalVisible = !IsTerminalVisible;
+        if (IsTerminalVisible && _terminalService.ActiveTerminal is null)
+        {
+            CreateNewTerminal();
+        }
     }
 
     [RelayCommand]
     private void ToggleSidebar()
     {
-        StatusMessage = "Sidebar toggled (not implemented)";
+        IsSidebarShowingGit = !IsSidebarShowingGit;
+    }
+
+    [RelayCommand]
+    private void ShowExplorer()
+    {
+        IsSidebarShowingGit = false;
+    }
+
+    [RelayCommand]
+    private void ShowSourceControl()
+    {
+        IsSidebarShowingGit = true;
+    }
+
+    [RelayCommand]
+    private async Task GitStageFile(GitFileStatus? file)
+    {
+        if (file is null) return;
+        await _gitService.StageAsync(file.Path);
+        StatusMessage = $"Staged: {file.Path}";
+    }
+
+    [RelayCommand]
+    private async Task GitUnstageFile(GitFileStatus? file)
+    {
+        if (file is null) return;
+        await _gitService.UnstageAsync(file.Path);
+        StatusMessage = $"Unstaged: {file.Path}";
+    }
+
+    [RelayCommand]
+    private async Task GitStageAll()
+    {
+        await _gitService.StageAllAsync();
+        StatusMessage = "Staged all changes";
+    }
+
+    [RelayCommand]
+    private async Task GitCommit()
+    {
+        if (string.IsNullOrWhiteSpace(CommitMessage)) return;
+
+        var result = await _gitService.CommitAsync(CommitMessage);
+        if (result.Success)
+        {
+            StatusMessage = $"Committed: {result.CommitHash?[..7]}";
+            CommitMessage = "";
+            CurrentBranch = _gitService.CurrentBranch ?? "";
+        }
+        else
+        {
+            StatusMessage = $"Commit failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitRefresh()
+    {
+        if (_workspacePath is not null)
+        {
+            await _gitService.InitializeAsync(_workspacePath);
+            CurrentBranch = _gitService.CurrentBranch ?? "";
+            RefreshGitFiles();
+        }
+    }
+
+    [RelayCommand]
+    private void SendTerminalInput()
+    {
+        if (string.IsNullOrEmpty(TerminalInput)) return;
+
+        var terminal = _terminalService.ActiveTerminal;
+        if (terminal is null) return;
+
+        terminal.WriteLine(TerminalInput);
+        TerminalOutput += $"> {TerminalInput}\n";
+        TerminalInput = "";
+    }
+
+    [RelayCommand]
+    private void NewTerminal()
+    {
+        CreateNewTerminal();
+    }
+
+    [RelayCommand]
+    private void CloseTerminal()
+    {
+        var active = _terminalService.ActiveTerminal;
+        if (active is not null)
+        {
+            _terminalService.CloseTerminal(active);
+        }
+
+        if (_terminalService.Terminals.Count == 0)
+        {
+            IsTerminalVisible = false;
+            TerminalOutput = "";
+        }
+    }
+
+    private void CreateNewTerminal()
+    {
+        var terminal = _terminalService.CreateTerminal(new TerminalOptions
+        {
+            Name = "Terminal",
+            WorkingDirectory = _workspacePath,
+        });
+
+        terminal.DataReceived += (_, e) =>
+        {
+            TerminalOutput += e.Data + "\n";
+        };
+
+        TerminalOutput = "";
+        StatusMessage = "Terminal opened";
+    }
+
+    private void OnGitStatusChanged(object? sender, Core.Interfaces.RepositoryStatus status)
+    {
+        RefreshGitFiles();
+    }
+
+    private void RefreshGitFiles()
+    {
+        GitChangedFiles.Clear();
+        GitStagedFiles.Clear();
+
+        foreach (var file in _gitService.Status.Files)
+        {
+            if (file.IsStaged)
+                GitStagedFiles.Add(file);
+            else
+                GitChangedFiles.Add(file);
+        }
     }
 
     [RelayCommand]

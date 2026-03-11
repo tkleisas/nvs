@@ -29,6 +29,15 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnTerminalInputKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && DataContext is MainViewModel vm)
+        {
+            vm.SendTerminalInputCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
     private async void OnAboutClick(object? sender, RoutedEventArgs e)
     {
         var about = new AboutWindow();
