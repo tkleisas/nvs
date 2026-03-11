@@ -33,15 +33,15 @@
                 <MenuItem Header="E_xit" InputGesture="Alt+F4" />
             </MenuItem>
             <MenuItem Header="_Edit">
-                <MenuItem Header="_Undo" InputGesture="Ctrl+Z" />
-                <MenuItem Header="_Redo" InputGesture="Ctrl+Y" />
+                <MenuItem Header="_Undo" InputGesture="Ctrl+Z" Command="{Binding Editor.UndoCommand}" />
+                <MenuItem Header="_Redo" InputGesture="Ctrl+Y" Command="{Binding Editor.RedoCommand}" />
                 <Separator />
                 <MenuItem Header="Cu_t" InputGesture="Ctrl+X" />
                 <MenuItem Header="_Copy" InputGesture="Ctrl+C" />
                 <MenuItem Header="_Paste" InputGesture="Ctrl+V" />
                 <Separator />
-                <MenuItem Header="_Find" InputGesture="Ctrl+F" />
-                <MenuItem Header="_Replace" InputGesture="Ctrl+H" />
+                <MenuItem Header="_Find" InputGesture="Ctrl+F" Command="{Binding Editor.FindCommand}" />
+                <MenuItem Header="_Replace" InputGesture="Ctrl+H" Command="{Binding Editor.FindCommand}" />
             </MenuItem>
             <MenuItem Header="_View">
                 <MenuItem Header="_Explorer" InputGesture="Ctrl+Shift+E" />
@@ -85,10 +85,10 @@
                     <TextBlock Text="&#x1F4BE;" FontSize="12" />
                 </Button>
                 <Border Width="1" Background="#555" Margin="4,2" />
-                <Button Width="28" Height="28" ToolTip.Tip="Undo">
+                <Button Width="28" Height="28" ToolTip.Tip="Undo" Command="{Binding Editor.UndoCommand}">
                     <TextBlock Text="&#x21B6;" FontSize="12" Foreground="#CCCCCC" />
                 </Button>
-                <Button Width="28" Height="28" ToolTip.Tip="Redo">
+                <Button Width="28" Height="28" ToolTip.Tip="Redo" Command="{Binding Editor.RedoCommand}">
                     <TextBlock Text="&#x21B7;" FontSize="12" Foreground="#CCCCCC" />
                 </Button>
                 <Border Width="1" Background="#555" Margin="4,2" />
@@ -155,7 +155,10 @@
                                     <behaviors:DocumentTextBindingBehavior
                                         Text="{Binding Text, Mode=TwoWay}"
                                         Line="{Binding CursorLine, Mode=OneWayToSource}"
-                                        Column="{Binding CursorColumn, Mode=OneWayToSource}"/>
+                                        Column="{Binding CursorColumn, Mode=OneWayToSource}"
+                                        UndoCommand="{Binding UndoCommand, Mode=OneWayToSource}"
+                                        RedoCommand="{Binding RedoCommand, Mode=OneWayToSource}"
+                                        OpenSearchCommand="{Binding OpenSearchCommand, Mode=OneWayToSource}"/>
                                 </i:Interaction.Behaviors>
                             </AvaloniaEdit:TextEditor>
                         </DataTemplate>

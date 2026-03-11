@@ -10,5 +10,6 @@
     <Project Path="tests/NVS.Core.Tests/NVS.Core.Tests.csproj" />
     <Project Path="tests/NVS.Plugins.Tests/NVS.Plugins.Tests.csproj" />
     <Project Path="tests/NVS.Services.Tests/NVS.Services.Tests.csproj" />
+    <Project Path="tests/NVS.Tests/NVS.Tests.csproj" />
   </Folder>
 </Solution>

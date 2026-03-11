@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using NVS.Core.Enums;
 using NVS.Core.Interfaces;
@@ -130,6 +131,15 @@ public partial class EditorViewModel : INotifyPropertyChanged
         }
     }
 
+    [RelayCommand]
+    public void Undo() => ActiveDocument?.UndoCommand?.Execute(null);
+
+    [RelayCommand]
+    public void Redo() => ActiveDocument?.RedoCommand?.Execute(null);
+
+    [RelayCommand]
+    public void Find() => ActiveDocument?.OpenSearchCommand?.Execute(null);
+
     private async Task SaveDocumentAsync(DocumentViewModel docVm)
     {
         if (string.IsNullOrEmpty(docVm.Document.FilePath))
@@ -214,6 +224,9 @@ public class DocumentViewModel : INotifyPropertyChanged
     private bool _isDirty;
     private int _cursorLine = 1;
     private int _cursorColumn = 1;
+    private ICommand? _undoCommand;
+    private ICommand? _redoCommand;
+    private ICommand? _openSearchCommand;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -276,6 +289,36 @@ public class DocumentViewModel : INotifyPropertyChanged
     public string Title => IsDirty ? $"{Document.Name} *" : Document.Name;
     public string Tooltip => Document.FilePath ?? Document.Name;
     public Language Language => Document.Language;
+
+    public ICommand? UndoCommand
+    {
+        get => _undoCommand;
+        set
+        {
+            _undoCommand = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public ICommand? RedoCommand
+    {
+        get => _redoCommand;
+        set
+        {
+            _redoCommand = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public ICommand? OpenSearchCommand
+    {
+        get => _openSearchCommand;
+        set
+        {
+            _openSearchCommand = value;
+            OnPropertyChanged();
+        }
+    }
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
