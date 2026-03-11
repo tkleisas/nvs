@@ -32,10 +32,10 @@
             </Border>
 
             <!-- Content area -->
-            <ScrollViewer Grid.Column="1" Padding="24,16"
+            <ScrollViewer Grid.Column="1"
                          VerticalScrollBarVisibility="Auto"
                          HorizontalScrollBarVisibility="Disabled">
-                <Grid>
+                <Grid Margin="24,16,24,16">
 
                     <!-- General Section -->
                     <StackPanel Spacing="16" IsVisible="{Binding IsGeneralVisible}">
