@@ -5,65 +5,53 @@ using NVS.Core.Models.Settings;
 namespace NVS.Services.Lsp;
 
 /// <summary>
-/// Default factory that creates LspClient instances based on language server configurations
-/// from the LanguageService and workspace settings.
+/// Factory that creates LspClient instances using the language server registry
+/// and optional user configuration overrides from settings.
 /// </summary>
 public sealed class LspClientFactory : ILspClientFactory
 {
     private readonly ILanguageService _languageService;
+    private readonly ISettingsService _settingsService;
 
-    public LspClientFactory(ILanguageService languageService)
+    public LspClientFactory(ILanguageService languageService, ISettingsService settingsService)
     {
         _languageService = languageService ?? throw new ArgumentNullException(nameof(languageService));
+        _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
     }
 
     public async Task<ILspClient?> CreateClientAsync(Language language, string rootPath, CancellationToken cancellationToken = default)
     {
-        var serverName = _languageService.GetLanguageServer(language);
-        if (serverName is null)
+        var definition = LanguageServerRegistry.GetForLanguage(language);
+        if (definition is null)
             return null;
 
-        // Build a default config based on the server name.
-        // In production, this could be overridden by workspace settings.
-        var config = GetDefaultConfig(serverName);
-        if (config is null)
+        // Check user config for overrides or disabled state
+        var userConfig = _settingsService.AppSettings.LanguageServers
+            .GetValueOrDefault(definition.Id);
+
+        if (userConfig is { Enabled: false })
             return null;
+
+        var config = BuildConfig(definition, userConfig);
 
         var client = new LspClient(language, config, _languageService);
         await client.InitializeAsync(rootPath, cancellationToken).ConfigureAwait(false);
         return client;
     }
 
-    private static LanguageServerConfig? GetDefaultConfig(string serverName) => serverName switch
+    private static LanguageServerConfig BuildConfig(
+        LanguageServerDefinition definition,
+        LanguageServerUserConfig? userConfig)
     {
-        "omnisharp" => new LanguageServerConfig
+        var command = userConfig?.CustomCommand ?? definition.BinaryName;
+        var args = userConfig?.CustomArgs is { Count: > 0 }
+            ? userConfig.CustomArgs
+            : definition.DefaultArgs;
+
+        return new LanguageServerConfig
         {
-            Command = "OmniSharp",
-            Args = ["--languageserver"],
-        },
-        "clangd" => new LanguageServerConfig
-        {
-            Command = "clangd",
-        },
-        "typescript-language-server" => new LanguageServerConfig
-        {
-            Command = "typescript-language-server",
-            Args = ["--stdio"],
-        },
-        "pyright" => new LanguageServerConfig
-        {
-            Command = "pyright-langserver",
-            Args = ["--stdio"],
-        },
-        "rust-analyzer" => new LanguageServerConfig
-        {
-            Command = "rust-analyzer",
-        },
-        "gopls" => new LanguageServerConfig
-        {
-            Command = "gopls",
-            Args = ["serve"],
-        },
-        _ => null,
-    };
+            Command = command,
+            Args = args,
+        };
+    }
 }

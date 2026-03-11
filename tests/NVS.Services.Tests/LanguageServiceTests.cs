@@ -69,15 +69,25 @@ public class LanguageServiceTests
     [Fact]
     public void GetLanguageServer_ShouldReturnServerForSupportedLanguage()
     {
-        _service.GetLanguageServer(Language.CSharp).Should().Be("omnisharp");
+        _service.GetLanguageServer(Language.CSharp).Should().Be("csharp-ls");
         _service.GetLanguageServer(Language.TypeScript).Should().Be("typescript-language-server");
-        _service.GetLanguageServer(Language.Python).Should().Be("pyright");
+        _service.GetLanguageServer(Language.Python).Should().Be("pylsp");
     }
 
     [Fact]
     public void GetLanguageServer_ShouldReturnNullForUnsupportedLanguage()
     {
-        _service.GetLanguageServer(Language.Json).Should().BeNull();
         _service.GetLanguageServer(Language.Unknown).Should().BeNull();
+    }
+
+    [Fact]
+    public void GetLanguageServer_ShouldReturnServerForAllRegisteredLanguages()
+    {
+        _service.GetLanguageServer(Language.Json).Should().Be("vscode-json-language-server");
+        _service.GetLanguageServer(Language.Html).Should().Be("vscode-html-language-server");
+        _service.GetLanguageServer(Language.Css).Should().Be("vscode-css-language-server");
+        _service.GetLanguageServer(Language.Yaml).Should().Be("yaml-language-server");
+        _service.GetLanguageServer(Language.Markdown).Should().Be("marksman");
+        _service.GetLanguageServer(Language.Toml).Should().Be("taplo");
     }
 }

@@ -70,6 +70,7 @@
                 <MenuItem Header="_About NVS" Click="OnAboutClick" />
                 <MenuItem Header="_Report Issue" />
             </MenuItem>
+            <MenuItem Header="_Settings" Click="OnSettingsClick" />
         </Menu>
 
         <!-- Toolbar -->

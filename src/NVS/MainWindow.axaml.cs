@@ -34,4 +34,20 @@ public partial class MainWindow : Window
         var about = new AboutWindow();
         await about.ShowDialog(this);
     }
+
+    private async void OnSettingsClick(object? sender, RoutedEventArgs e)
+    {
+        var app = App.Current;
+        if (app?.Services is null) return;
+
+        var settingsService = app.Services.GetService(typeof(NVS.Core.Interfaces.ISettingsService)) as NVS.Core.Interfaces.ISettingsService;
+        var serverManager = app.Services.GetService(typeof(NVS.Core.Interfaces.ILanguageServerManager)) as NVS.Core.Interfaces.ILanguageServerManager;
+        if (settingsService is null || serverManager is null) return;
+
+        var vm = new ViewModels.SettingsViewModel(settingsService, serverManager);
+        await vm.InitializeAsync();
+
+        var window = new SettingsWindow { DataContext = vm };
+        await window.ShowDialog(this);
+    }
 }

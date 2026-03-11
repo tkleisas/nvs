@@ -57,6 +57,7 @@ public partial class App : Application
         services.AddSingleton<ILanguageService, LanguageService>();
         services.AddSingleton<ILspClientFactory, LspClientFactory>();
         services.AddSingleton<ILspSessionManager, LspSessionManager>();
+        services.AddSingleton<ILanguageServerManager, LanguageServerManager>();
         
         // ViewModels
         services.AddSingleton<EditorViewModel>();

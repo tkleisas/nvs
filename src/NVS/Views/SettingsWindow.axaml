@@ -1,0 +1,170 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:NVS.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="550"
+        x:Class="NVS.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Title="Settings"
+        Width="700" Height="550"
+        MinWidth="600" MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E">
+
+    <Grid RowDefinitions="*,Auto">
+        <!-- Main content: sidebar + panels -->
+        <Grid Grid.Row="0" ColumnDefinitions="160,*">
+
+            <!-- Section sidebar -->
+            <Border Grid.Column="0" Background="#252526" BorderBrush="#3C3C3C" BorderThickness="0,0,1,0">
+                <ListBox ItemsSource="{Binding Sections}"
+                         SelectedIndex="{Binding SelectedSectionIndex}"
+                         Background="Transparent"
+                         Padding="0"
+                         Margin="0,8">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" Padding="16,8" FontSize="13" Foreground="#CCCCCC" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <!-- Content area -->
+            <ScrollViewer Grid.Column="1" Padding="24,16">
+                <Panel>
+
+                    <!-- General Section -->
+                    <StackPanel Spacing="16" IsVisible="{Binding IsGeneralVisible}">
+                        <TextBlock Text="General" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                        <Separator Background="#3F3F46" />
+
+                        <CheckBox IsChecked="{Binding RestorePreviousSession}"
+                                  Content="Restore previous session on startup"
+                                  Foreground="#CCCCCC" />
+                        <CheckBox IsChecked="{Binding CheckUpdatesOnStartup}"
+                                  Content="Check for updates on startup"
+                                  Foreground="#CCCCCC" />
+                    </StackPanel>
+
+                    <!-- Editor Section -->
+                    <StackPanel Spacing="12" IsVisible="{Binding IsEditorVisible}">
+                        <TextBlock Text="Editor" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                        <Separator Background="#3F3F46" />
+
+                        <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Font Family" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                            <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding FontFamily}" MaxWidth="200" HorizontalAlignment="Left" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Font Size" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding FontSize}" Minimum="8" Maximum="72" MaxWidth="120" HorizontalAlignment="Left" Margin="0,8,0,0" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Tab Size" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding TabSize}" Minimum="1" Maximum="16" MaxWidth="120" HorizontalAlignment="Left" Margin="0,8,0,0" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Auto-Save Delay (ms)" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding AutoSaveDelay}" Minimum="100" Maximum="60000" Increment="100" MaxWidth="120" HorizontalAlignment="Left" Margin="0,8,0,0" />
+                        </Grid>
+
+                        <CheckBox IsChecked="{Binding InsertSpaces}" Content="Insert spaces instead of tabs" Foreground="#CCCCCC" />
+                        <CheckBox IsChecked="{Binding WordWrap}" Content="Word wrap" Foreground="#CCCCCC" />
+                        <CheckBox IsChecked="{Binding LineNumbers}" Content="Show line numbers" Foreground="#CCCCCC" />
+                        <CheckBox IsChecked="{Binding HighlightCurrentLine}" Content="Highlight current line" Foreground="#CCCCCC" />
+                        <CheckBox IsChecked="{Binding ShowWhitespace}" Content="Show whitespace" Foreground="#CCCCCC" />
+                        <CheckBox IsChecked="{Binding AutoSave}" Content="Auto-save" Foreground="#CCCCCC" />
+                    </StackPanel>
+
+                    <!-- Language Servers Section -->
+                    <StackPanel Spacing="12" IsVisible="{Binding IsLanguageServersVisible}">
+                        <TextBlock Text="Language Servers" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                        <TextBlock Text="Configure open-source language servers for IntelliSense, diagnostics, and code navigation."
+                                   FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
+                        <Separator Background="#3F3F46" />
+
+                        <ItemsControl ItemsSource="{Binding LanguageServers}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="vm:LanguageServerItemViewModel">
+                                    <Border Margin="0,2" Padding="8" Background="#2D2D30"
+                                            CornerRadius="4" BorderBrush="#3C3C3C" BorderThickness="1">
+                                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                            <!-- Row 0: Name + status -->
+                                            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                                <CheckBox IsChecked="{Binding IsEnabled}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Definition.Name}" FontWeight="SemiBold"
+                                                           Foreground="#CCCCCC" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding StatusIcon}" FontSize="14" VerticalAlignment="Center"
+                                                           Foreground="#4EC9B0" />
+                                                <TextBlock Text="{Binding LanguageDisplay}" FontSize="11"
+                                                           Foreground="#888888" VerticalAlignment="Center" />
+                                            </StackPanel>
+
+                                            <!-- Install button -->
+                                            <Button Grid.Row="0" Grid.Column="1"
+                                                    Content="Install" Padding="12,4"
+                                                    IsVisible="{Binding CanInstall}"
+                                                    Command="{Binding $parent[ItemsControl].((vm:SettingsViewModel)DataContext).InstallServerCommand}"
+                                                    CommandParameter="{Binding}" />
+
+                                            <!-- Row 1: Description -->
+                                            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                        Orientation="Horizontal" Spacing="8" Margin="28,2,0,0">
+                                                <TextBlock Text="{Binding Definition.Description}" FontSize="11"
+                                                           Foreground="#888888" />
+                                                <TextBlock Text="|" Foreground="#555555" FontSize="11" />
+                                                <TextBlock Text="{Binding Definition.License}" FontSize="11"
+                                                           Foreground="#569CD6" />
+                                                <TextBlock Text="|" Foreground="#555555" FontSize="11" />
+                                                <TextBlock Text="{Binding InstallMethodDisplay}" FontSize="11"
+                                                           Foreground="#888888" />
+                                            </StackPanel>
+
+                                            <!-- Row 2: Status text (during install) -->
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                                       Text="{Binding StatusText}" FontSize="11"
+                                                       Foreground="#DCDCAA" Margin="28,2,0,0"
+                                                       IsVisible="{Binding IsInstalling}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- LLM Section -->
+                    <StackPanel Spacing="12" IsVisible="{Binding IsLlmVisible}">
+                        <TextBlock Text="LLM / AI Assistance" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                        <TextBlock Text="Configure a local or remote LLM endpoint for code completion and chat."
+                                   FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
+                        <Separator Background="#3F3F46" />
+
+                        <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Endpoint" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                            <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding LlmEndpoint}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Model" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBox   Grid.Row="1" Grid.Column="1" Text="{Binding LlmModel}" Margin="0,8,0,0" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Max Tokens" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding LlmMaxTokens}" Minimum="128" Maximum="16384" Increment="256" MaxWidth="160" HorizontalAlignment="Left" Margin="0,8,0,0" />
+                        </Grid>
+
+                        <CheckBox IsChecked="{Binding LlmEnableAutoComplete}" Content="Enable AI auto-complete" Foreground="#CCCCCC" />
+                        <CheckBox IsChecked="{Binding LlmEnableChat}" Content="Enable AI chat" Foreground="#CCCCCC" />
+                    </StackPanel>
+
+                </Panel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Bottom buttons -->
+        <Border Grid.Row="1" Background="#2D2D30" Padding="16,8" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="Save" Command="{Binding SaveCommand}" Width="80" HorizontalContentAlignment="Center"
+                        Click="OnSaveClick" />
+                <Button Content="Cancel" Width="80" HorizontalContentAlignment="Center"
+                        Click="OnCancelClick" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

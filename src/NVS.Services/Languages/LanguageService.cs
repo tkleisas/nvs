@@ -21,6 +21,7 @@ public sealed class LanguageService : ILanguageService
         [Language.Yaml] = [".yaml", ".yml"],
         [Language.Html] = [".html", ".htm"],
         [Language.Css] = [".css", ".scss", ".sass", ".less"],
+        [Language.Toml] = [".toml"],
     };
 
     private static readonly Dictionary<Language, string> LanguageIds = new()
@@ -39,19 +40,26 @@ public sealed class LanguageService : ILanguageService
         [Language.Yaml] = "yaml",
         [Language.Html] = "html",
         [Language.Css] = "css",
+        [Language.Toml] = "toml",
         [Language.Unknown] = "plaintext",
     };
 
     private static readonly Dictionary<Language, string> LanguageServers = new()
     {
-        [Language.CSharp] = "omnisharp",
+        [Language.CSharp] = "csharp-ls",
         [Language.C] = "clangd",
         [Language.Cpp] = "clangd",
         [Language.JavaScript] = "typescript-language-server",
         [Language.TypeScript] = "typescript-language-server",
-        [Language.Python] = "pyright",
+        [Language.Python] = "pylsp",
         [Language.Rust] = "rust-analyzer",
         [Language.Go] = "gopls",
+        [Language.Json] = "vscode-json-language-server",
+        [Language.Html] = "vscode-html-language-server",
+        [Language.Css] = "vscode-css-language-server",
+        [Language.Yaml] = "yaml-language-server",
+        [Language.Markdown] = "marksman",
+        [Language.Toml] = "taplo",
     };
 
     public Language DetectLanguage(string filePath)
