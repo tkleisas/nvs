@@ -527,13 +527,25 @@ public class FileTreeNode
         var ext = System.IO.Path.GetExtension(Name).ToLowerInvariant();
         return ext switch
         {
-            ".cs" => "📄",
-            ".cpp" or ".c" or ".h" => "📄",
-            ".js" or ".ts" => "📄",
-            ".py" => "📄",
-            ".json" => "📄",
-            ".md" => "📄",
-            ".xml" or ".xaml" or ".axaml" => "📄",
+            ".cs" => "🟢",
+            ".cpp" or ".c" or ".h" or ".hpp" => "🔵",
+            ".js" or ".jsx" => "🟡",
+            ".ts" or ".tsx" => "🔷",
+            ".py" => "🐍",
+            ".rs" => "🦀",
+            ".go" => "🔹",
+            ".json" => "{ }",
+            ".xml" or ".xaml" or ".axaml" => "📐",
+            ".html" or ".htm" => "🌐",
+            ".css" or ".scss" or ".less" => "🎨",
+            ".md" => "📝",
+            ".txt" or ".log" => "📃",
+            ".yaml" or ".yml" => "⚙️",
+            ".toml" => "⚙️",
+            ".sln" or ".slnx" or ".csproj" => "🔧",
+            ".gitignore" or ".editorconfig" => "⚙️",
+            ".png" or ".jpg" or ".jpeg" or ".gif" or ".svg" or ".ico" => "🖼️",
+            ".sh" or ".bash" or ".ps1" or ".bat" or ".cmd" => "⚡",
             _ => "📄"
         };
     }

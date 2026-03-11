@@ -132,12 +132,22 @@
                               ItemsSource="{Binding FileTree}"
                               DoubleTapped="OnFileTreeDoubleTapped"
                               IsVisible="{Binding IsSidebarShowingExplorer}">
+                        <TreeView.Resources>
+                            <x:Double x:Key="TreeViewItemIndent">12</x:Double>
+                        </TreeView.Resources>
+                        <TreeView.Styles>
+                            <Style Selector="TreeViewItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="MinHeight" Value="22"/>
+                            </Style>
+                        </TreeView.Styles>
                         <TreeView.ItemTemplate>
-                            <DataTemplate DataType="vm:FileTreeNode">
-                                <TreeViewItem Header="{Binding Name}" 
-                                             IsExpanded="True"
-                                             ItemsSource="{Binding Children}" />
-                            </DataTemplate>
+                            <TreeDataTemplate DataType="vm:FileTreeNode" ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,1">
+                                    <TextBlock Text="{Binding Icon}" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </TreeDataTemplate>
                         </TreeView.ItemTemplate>
                     </TreeView>
 

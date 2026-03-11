@@ -8,8 +8,8 @@ public sealed class TerminalServiceTests : IDisposable
 {
     private readonly TerminalService _service = new();
 
-    [Fact]
-    public void CreateTerminal_ReturnsInstance_AndSetsActive()
+    [Fact(Timeout = 10_000)]
+    public async Task CreateTerminal_ReturnsInstance_AndSetsActive()
     {
         var terminal = _service.CreateTerminal(new TerminalOptions { Name = "Test" });
 
@@ -17,20 +17,22 @@ public sealed class TerminalServiceTests : IDisposable
         terminal.Name.Should().Be("Test");
         _service.ActiveTerminal.Should().Be(terminal);
         _service.Terminals.Should().HaveCount(1);
+        await Task.CompletedTask;
     }
 
-    [Fact]
-    public void CreateTerminal_MultipleTerminals_SetsLastAsActive()
+    [Fact(Timeout = 10_000)]
+    public async Task CreateTerminal_MultipleTerminals_SetsLastAsActive()
     {
         var t1 = _service.CreateTerminal(new TerminalOptions { Name = "T1" });
         var t2 = _service.CreateTerminal(new TerminalOptions { Name = "T2" });
 
         _service.Terminals.Should().HaveCount(2);
         _service.ActiveTerminal.Should().Be(t2);
+        await Task.CompletedTask;
     }
 
-    [Fact]
-    public void CloseTerminal_RemovesFromList()
+    [Fact(Timeout = 10_000)]
+    public async Task CloseTerminal_RemovesFromList()
     {
         var terminal = _service.CreateTerminal(new TerminalOptions { Name = "Test" });
 
@@ -38,10 +40,11 @@ public sealed class TerminalServiceTests : IDisposable
 
         _service.Terminals.Should().BeEmpty();
         _service.ActiveTerminal.Should().BeNull();
+        await Task.CompletedTask;
     }
 
-    [Fact]
-    public void CloseTerminal_WithMultiple_SetsActiveToPrevious()
+    [Fact(Timeout = 10_000)]
+    public async Task CloseTerminal_WithMultiple_SetsActiveToPrevious()
     {
         var t1 = _service.CreateTerminal(new TerminalOptions { Name = "T1" });
         var t2 = _service.CreateTerminal(new TerminalOptions { Name = "T2" });
@@ -49,10 +52,11 @@ public sealed class TerminalServiceTests : IDisposable
         _service.CloseTerminal(t2);
 
         _service.ActiveTerminal.Should().Be(t1);
+        await Task.CompletedTask;
     }
 
-    [Fact]
-    public void CloseAllTerminals_ClearsEverything()
+    [Fact(Timeout = 10_000)]
+    public async Task CloseAllTerminals_ClearsEverything()
     {
         _service.CreateTerminal(new TerminalOptions { Name = "T1" });
         _service.CreateTerminal(new TerminalOptions { Name = "T2" });
@@ -61,10 +65,11 @@ public sealed class TerminalServiceTests : IDisposable
 
         _service.Terminals.Should().BeEmpty();
         _service.ActiveTerminal.Should().BeNull();
+        await Task.CompletedTask;
     }
 
-    [Fact]
-    public void CreateTerminal_FiresTerminalCreatedEvent()
+    [Fact(Timeout = 10_000)]
+    public async Task CreateTerminal_FiresTerminalCreatedEvent()
     {
         ITerminalInstance? created = null;
         _service.TerminalCreated += (_, t) => created = t;
@@ -72,10 +77,11 @@ public sealed class TerminalServiceTests : IDisposable
         var terminal = _service.CreateTerminal(new TerminalOptions { Name = "Test" });
 
         created.Should().Be(terminal);
+        await Task.CompletedTask;
     }
 
-    [Fact]
-    public void CloseTerminal_FiresTerminalClosedEvent()
+    [Fact(Timeout = 10_000)]
+    public async Task CloseTerminal_FiresTerminalClosedEvent()
     {
         var terminal = _service.CreateTerminal(new TerminalOptions { Name = "Test" });
 
@@ -85,15 +91,17 @@ public sealed class TerminalServiceTests : IDisposable
         _service.CloseTerminal(terminal);
 
         closed.Should().Be(terminal);
+        await Task.CompletedTask;
     }
 
-    [Fact]
-    public void CreateTerminal_DefaultOptions_StillWorks()
+    [Fact(Timeout = 10_000)]
+    public async Task CreateTerminal_DefaultOptions_StillWorks()
     {
         var terminal = _service.CreateTerminal();
 
         terminal.Should().NotBeNull();
         terminal.IsConnected.Should().BeTrue();
+        await Task.CompletedTask;
     }
 
     [Fact]
