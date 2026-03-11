@@ -25,7 +25,7 @@ public interface ILspClient
     void NotifyDocumentClosed(Document document);
     void NotifyDocumentSaved(Document document);
     
-    event EventHandler<IReadOnlyList<Diagnostic>>? DiagnosticsReceived;
+    event EventHandler<DocumentDiagnosticsEventArgs>? DiagnosticsReceived;
 }
 
 public sealed record CompletionItem

@@ -13,6 +13,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
 {
     private readonly IEditorService _editorService;
     private readonly IFileSystemService _fileSystemService;
+    private readonly ILspSessionManager? _lspSessionManager;
 
     private DocumentViewModel? _activeDocument;
     private int _activeTabIndex = -1;
@@ -41,6 +42,19 @@ public partial class EditorViewModel : INotifyPropertyChanged
     public int CursorLine => _activeDocument?.CursorLine ?? 1;
     public int CursorColumn => _activeDocument?.CursorColumn ?? 1;
 
+    public int TotalErrors => OpenDocuments.Sum(d => d.ErrorCount);
+    public int TotalWarnings => OpenDocuments.Sum(d => d.WarningCount);
+
+    public string DiagnosticSummary
+    {
+        get
+        {
+            var errors = TotalErrors;
+            var warnings = TotalWarnings;
+            return $"{errors} error{(errors != 1 ? "s" : "")}, {warnings} warning{(warnings != 1 ? "s" : "")}";
+        }
+    }
+
     public int ActiveTabIndex
     {
         get => _activeTabIndex;
@@ -55,14 +69,18 @@ public partial class EditorViewModel : INotifyPropertyChanged
 
     public ObservableCollection<DocumentViewModel> OpenDocuments { get; } = [];
 
-    public EditorViewModel(IEditorService editorService, IFileSystemService fileSystemService)
+    public EditorViewModel(IEditorService editorService, IFileSystemService fileSystemService, ILspSessionManager? lspSessionManager = null)
     {
         _editorService = editorService;
         _fileSystemService = fileSystemService;
+        _lspSessionManager = lspSessionManager;
 
         _editorService.DocumentOpened += OnDocumentOpened;
         _editorService.DocumentClosed += OnDocumentClosed;
         _editorService.ActiveDocumentChanged += OnActiveDocumentChanged;
+
+        if (_lspSessionManager is not null)
+            _lspSessionManager.DiagnosticsChanged += OnLspDiagnosticsChanged;
     }
 
     [RelayCommand]
@@ -140,6 +158,35 @@ public partial class EditorViewModel : INotifyPropertyChanged
     [RelayCommand]
     public void Find() => ActiveDocument?.OpenSearchCommand?.Execute(null);
 
+    /// <summary>
+    /// Updates diagnostics for the document matching the given URI.
+    /// Called by the LspSessionManager diagnostics relay.
+    /// </summary>
+    public void UpdateDiagnostics(string documentUri, IReadOnlyList<Diagnostic> diagnostics)
+    {
+        var filePath = LspUriToFilePath(documentUri);
+        var docVm = OpenDocuments.FirstOrDefault(d =>
+            string.Equals(d.Document.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+
+        if (docVm is not null)
+        {
+            docVm.Diagnostics = diagnostics;
+            NotifyDiagnosticCountsChanged();
+        }
+    }
+
+    private static string LspUriToFilePath(string uri)
+    {
+        try
+        {
+            return new Uri(uri).LocalPath;
+        }
+        catch
+        {
+            return uri;
+        }
+    }
+
     private async Task SaveDocumentAsync(DocumentViewModel docVm)
     {
         if (string.IsNullOrEmpty(docVm.Document.FilePath))
@@ -177,10 +224,13 @@ public partial class EditorViewModel : INotifyPropertyChanged
     private void OnDocumentOpened(object? sender, Document document)
     {
         var docVm = new DocumentViewModel(document);
+        WireLspCommands(docVm);
         OpenDocuments.Add(docVm);
         ActiveDocument = docVm;
         ActiveTabIndex = OpenDocuments.Count - 1;
         OnPropertyChanged(nameof(HasNoOpenDocuments));
+
+        _lspSessionManager?.NotifyDocumentOpened(document);
     }
 
     private void OnDocumentClosed(object? sender, Document document)
@@ -190,6 +240,8 @@ public partial class EditorViewModel : INotifyPropertyChanged
         {
             CloseDocument(docVm);
         }
+
+        _lspSessionManager?.NotifyDocumentClosed(document);
     }
 
     private void OnActiveDocumentChanged(object? sender, Document document)
@@ -208,6 +260,43 @@ public partial class EditorViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CursorLine));
         else if (e.PropertyName is nameof(DocumentViewModel.CursorColumn))
             OnPropertyChanged(nameof(CursorColumn));
+        else if (e.PropertyName is nameof(DocumentViewModel.ErrorCount) or nameof(DocumentViewModel.WarningCount))
+            NotifyDiagnosticCountsChanged();
+    }
+
+    private void OnLspDiagnosticsChanged(object? sender, DocumentDiagnosticsEventArgs args)
+    {
+        UpdateDiagnostics(args.DocumentUri, args.Diagnostics);
+    }
+
+    private void WireLspCommands(DocumentViewModel docVm)
+    {
+        if (_lspSessionManager is null)
+            return;
+
+        docVm.GoToDefinitionCommand = new AsyncRelayCommand(async () =>
+        {
+            var pos = new Position { Line = docVm.CursorLine - 1, Column = docVm.CursorColumn - 1 };
+            var location = await _lspSessionManager.GetDefinitionAsync(docVm.Document, pos);
+            if (location is not null)
+            {
+                await _editorService.OpenDocumentAsync(location.FilePath);
+            }
+        });
+
+        docVm.RequestCompletionCommand = new AsyncRelayCommand(async () =>
+        {
+            var pos = new Position { Line = docVm.CursorLine - 1, Column = docVm.CursorColumn - 1 };
+            var completions = await _lspSessionManager.GetCompletionsAsync(docVm.Document, pos);
+            docVm.LastCompletionResults = completions;
+        });
+    }
+
+    internal void NotifyDiagnosticCountsChanged()
+    {
+        OnPropertyChanged(nameof(TotalErrors));
+        OnPropertyChanged(nameof(TotalWarnings));
+        OnPropertyChanged(nameof(DiagnosticSummary));
     }
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -227,6 +316,10 @@ public class DocumentViewModel : INotifyPropertyChanged
     private ICommand? _undoCommand;
     private ICommand? _redoCommand;
     private ICommand? _openSearchCommand;
+    private ICommand? _goToDefinitionCommand;
+    private ICommand? _requestCompletionCommand;
+    private IReadOnlyList<Diagnostic> _diagnostics = [];
+    private IReadOnlyList<CompletionItem>? _lastCompletionResults;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -286,9 +379,39 @@ public class DocumentViewModel : INotifyPropertyChanged
         }
     }
 
+    public IReadOnlyList<Diagnostic> Diagnostics
+    {
+        get => _diagnostics;
+        set
+        {
+            _diagnostics = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ErrorCount));
+            OnPropertyChanged(nameof(WarningCount));
+            OnPropertyChanged(nameof(InfoCount));
+        }
+    }
+
+    public int ErrorCount => _diagnostics.Count(d => d.Severity == DiagnosticSeverity.Error);
+    public int WarningCount => _diagnostics.Count(d => d.Severity == DiagnosticSeverity.Warning);
+    public int InfoCount => _diagnostics.Count(d => d.Severity is DiagnosticSeverity.Information or DiagnosticSeverity.Hint);
+
     public string Title => IsDirty ? $"{Document.Name} *" : Document.Name;
     public string Tooltip => Document.FilePath ?? Document.Name;
     public Language Language => Document.Language;
+
+    /// <summary>
+    /// Set by RequestCompletionCommand; the behavior reads this to show the CompletionWindow.
+    /// </summary>
+    public IReadOnlyList<CompletionItem>? LastCompletionResults
+    {
+        get => _lastCompletionResults;
+        set
+        {
+            _lastCompletionResults = value;
+            OnPropertyChanged();
+        }
+    }
 
     public ICommand? UndoCommand
     {
@@ -316,6 +439,26 @@ public class DocumentViewModel : INotifyPropertyChanged
         set
         {
             _openSearchCommand = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public ICommand? GoToDefinitionCommand
+    {
+        get => _goToDefinitionCommand;
+        set
+        {
+            _goToDefinitionCommand = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public ICommand? RequestCompletionCommand
+    {
+        get => _requestCompletionCommand;
+        set
+        {
+            _requestCompletionCommand = value;
             OnPropertyChanged();
         }
     }

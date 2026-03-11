@@ -4,6 +4,7 @@ using NVS.Core.Enums;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
 using NVS.ViewModels;
+using Range = NVS.Core.Models.Range;
 
 namespace NVS.Tests;
 
@@ -239,5 +240,136 @@ public class EditorViewModelTests
         vm.NewFile();
 
         vm.HasNoOpenDocuments.Should().BeFalse();
+    }
+
+    // --- Diagnostic counts ---
+
+    [Fact]
+    public void TotalErrors_ShouldSumAcrossAllDocuments()
+    {
+        var vm = CreateEditorViewModel();
+        var doc1 = CreateDocumentViewModel("a.cs");
+        var doc2 = CreateDocumentViewModel("b.cs");
+        vm.OpenDocuments.Add(doc1);
+        vm.OpenDocuments.Add(doc2);
+
+        doc1.Diagnostics = [new Diagnostic { Message = "e1", Severity = DiagnosticSeverity.Error, Range = Range.Empty }];
+        doc2.Diagnostics =
+        [
+            new Diagnostic { Message = "e2", Severity = DiagnosticSeverity.Error, Range = Range.Empty },
+            new Diagnostic { Message = "e3", Severity = DiagnosticSeverity.Error, Range = Range.Empty },
+        ];
+
+        vm.TotalErrors.Should().Be(3);
+    }
+
+    [Fact]
+    public void TotalWarnings_ShouldSumAcrossAllDocuments()
+    {
+        var vm = CreateEditorViewModel();
+        var doc1 = CreateDocumentViewModel("a.cs");
+        vm.OpenDocuments.Add(doc1);
+
+        doc1.Diagnostics =
+        [
+            new Diagnostic { Message = "w1", Severity = DiagnosticSeverity.Warning, Range = Range.Empty },
+            new Diagnostic { Message = "w2", Severity = DiagnosticSeverity.Warning, Range = Range.Empty },
+        ];
+
+        vm.TotalWarnings.Should().Be(2);
+    }
+
+    [Fact]
+    public void DiagnosticSummary_ShouldFormatCorrectly()
+    {
+        var vm = CreateEditorViewModel();
+        var doc = CreateDocumentViewModel("a.cs");
+        vm.OpenDocuments.Add(doc);
+
+        doc.Diagnostics =
+        [
+            new Diagnostic { Message = "e1", Severity = DiagnosticSeverity.Error, Range = Range.Empty },
+            new Diagnostic { Message = "w1", Severity = DiagnosticSeverity.Warning, Range = Range.Empty },
+            new Diagnostic { Message = "w2", Severity = DiagnosticSeverity.Warning, Range = Range.Empty },
+        ];
+
+        vm.DiagnosticSummary.Should().Be("1 error, 2 warnings");
+    }
+
+    [Fact]
+    public void DiagnosticSummary_WithNoIssues_ShouldShowZeros()
+    {
+        var vm = CreateEditorViewModel();
+
+        vm.DiagnosticSummary.Should().Be("0 errors, 0 warnings");
+    }
+
+    [Fact]
+    public void DiagnosticSummary_WithSingleErrorAndWarning_ShouldUseSingular()
+    {
+        var vm = CreateEditorViewModel();
+        var doc = CreateDocumentViewModel("a.cs");
+        vm.OpenDocuments.Add(doc);
+
+        doc.Diagnostics =
+        [
+            new Diagnostic { Message = "e1", Severity = DiagnosticSeverity.Error, Range = Range.Empty },
+            new Diagnostic { Message = "w1", Severity = DiagnosticSeverity.Warning, Range = Range.Empty },
+        ];
+
+        vm.DiagnosticSummary.Should().Be("1 error, 1 warning");
+    }
+
+    [Fact]
+    public void UpdateDiagnostics_ShouldMatchByFilePath()
+    {
+        var vm = CreateEditorViewModel();
+        var doc = new DocumentViewModel(new Document
+        {
+            Id = Guid.NewGuid(),
+            Path = @"C:\project\test.cs",
+            Name = "test.cs",
+            FilePath = @"C:\project\test.cs",
+            Language = Language.CSharp,
+        });
+        vm.OpenDocuments.Add(doc);
+        vm.ActiveDocument = doc;
+
+        vm.UpdateDiagnostics("file:///C:/project/test.cs",
+        [
+            new Diagnostic { Message = "err", Severity = DiagnosticSeverity.Error, Range = Range.Empty },
+        ]);
+
+        doc.Diagnostics.Should().HaveCount(1);
+        vm.TotalErrors.Should().Be(1);
+    }
+
+    [Fact]
+    public void UpdateDiagnostics_WithNoMatchingDocument_ShouldNotThrow()
+    {
+        var vm = CreateEditorViewModel();
+
+        var act = () => vm.UpdateDiagnostics("file:///C:/other/file.cs",
+            [new Diagnostic { Message = "err", Severity = DiagnosticSeverity.Error, Range = Range.Empty }]);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void ActiveDocumentDiagnosticsChange_ShouldRaiseTotalCountProperties()
+    {
+        var vm = CreateEditorViewModel();
+        var doc = CreateDocumentViewModel("a.cs");
+        vm.OpenDocuments.Add(doc);
+        vm.ActiveDocument = doc;
+
+        var changedProps = new List<string>();
+        vm.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName!);
+
+        doc.Diagnostics = [new Diagnostic { Message = "e1", Severity = DiagnosticSeverity.Error, Range = Range.Empty }];
+
+        changedProps.Should().Contain(nameof(EditorViewModel.TotalErrors));
+        changedProps.Should().Contain(nameof(EditorViewModel.TotalWarnings));
+        changedProps.Should().Contain(nameof(EditorViewModel.DiagnosticSummary));
     }
 }

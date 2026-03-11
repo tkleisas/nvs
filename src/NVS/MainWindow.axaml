@@ -158,7 +158,11 @@
                                         Column="{Binding CursorColumn, Mode=OneWayToSource}"
                                         UndoCommand="{Binding UndoCommand, Mode=OneWayToSource}"
                                         RedoCommand="{Binding RedoCommand, Mode=OneWayToSource}"
-                                        OpenSearchCommand="{Binding OpenSearchCommand, Mode=OneWayToSource}"/>
+                                        OpenSearchCommand="{Binding OpenSearchCommand, Mode=OneWayToSource}"
+                                        Diagnostics="{Binding Diagnostics}"
+                                        GoToDefinitionCommand="{Binding GoToDefinitionCommand}"
+                                        RequestCompletionCommand="{Binding RequestCompletionCommand}"
+                                        CompletionResults="{Binding LastCompletionResults}"/>
                                 </i:Interaction.Behaviors>
                             </AvaloniaEdit:TextEditor>
                         </DataTemplate>
@@ -210,7 +214,7 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
                     <TextBlock Text="{Binding CurrentBranch}" FontWeight="Bold" Foreground="White" />
                     <TextBlock Text="|" Foreground="#80FFFFFF" />
-                    <TextBlock Text="0 problems" Foreground="White" />
+                    <TextBlock Text="{Binding Editor.DiagnosticSummary}" Foreground="White" />
                 </StackPanel>
                 <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" HorizontalAlignment="Center" Foreground="White" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12">

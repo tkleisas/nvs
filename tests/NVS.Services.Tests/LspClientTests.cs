@@ -322,8 +322,8 @@ public sealed class LspClientTests : IAsyncLifetime
     {
         await _client.InitializeAsync(@"C:\project");
 
-        var diagnosticsReceived = new TaskCompletionSource<IReadOnlyList<Diagnostic>>();
-        _client.DiagnosticsReceived += (_, diagnostics) => diagnosticsReceived.TrySetResult(diagnostics);
+        var diagnosticsReceived = new TaskCompletionSource<DocumentDiagnosticsEventArgs>();
+        _client.DiagnosticsReceived += (_, args) => diagnosticsReceived.TrySetResult(args);
 
         _mockServer.SendNotification("textDocument/publishDiagnostics", new
         {
@@ -344,10 +344,11 @@ public sealed class LspClientTests : IAsyncLifetime
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var result = await diagnosticsReceived.Task.WaitAsync(cts.Token);
 
-        result.Should().HaveCount(1);
-        result[0].Message.Should().Be("Use of undefined variable");
-        result[0].Severity.Should().Be(DiagnosticSeverity.Error);
-        result[0].Code.Should().Be("CS0103");
+        result.DocumentUri.Should().Be("file:///C:/project/test.cs");
+        result.Diagnostics.Should().HaveCount(1);
+        result.Diagnostics[0].Message.Should().Be("Use of undefined variable");
+        result.Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+        result.Diagnostics[0].Code.Should().Be("CS0103");
     }
 
     // ─── Document Notifications ─────────────────────────────────────────────

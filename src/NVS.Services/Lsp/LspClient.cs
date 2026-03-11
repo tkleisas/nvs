@@ -35,7 +35,7 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
     public Language Language { get; }
     public ServerCapabilities? ServerCapabilities { get; private set; }
 
-    public event EventHandler<IReadOnlyList<Diagnostic>>? DiagnosticsReceived;
+    public event EventHandler<DocumentDiagnosticsEventArgs>? DiagnosticsReceived;
 
     public LspClient(Language language, LanguageServerConfig config, ILanguageService languageService)
     {
@@ -442,7 +442,11 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
                 var diagnostics = param.Diagnostics
                     .Select(LspModelMapper.FromLspDiagnostic)
                     .ToList();
-                DiagnosticsReceived?.Invoke(this, diagnostics);
+                DiagnosticsReceived?.Invoke(this, new DocumentDiagnosticsEventArgs
+                {
+                    DocumentUri = param.Uri,
+                    Diagnostics = diagnostics,
+                });
             }
         }
     }

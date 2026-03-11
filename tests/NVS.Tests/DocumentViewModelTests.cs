@@ -5,6 +5,7 @@ using NVS.Core.Enums;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
 using NVS.ViewModels;
+using Range = NVS.Core.Models.Range;
 
 namespace NVS.Tests;
 
@@ -127,5 +128,74 @@ public class DocumentViewModelTests
         var vm = new DocumentViewModel(CreateDocument("hello.cs"));
 
         vm.Title.Should().Be("hello.cs");
+    }
+
+    // --- Diagnostics ---
+
+    [Fact]
+    public void Diagnostics_WhenSet_ShouldRaisePropertyChanged()
+    {
+        var vm = new DocumentViewModel(CreateDocument());
+        var changedProps = new List<string>();
+        vm.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName!);
+
+        vm.Diagnostics = [new Diagnostic { Message = "err", Severity = DiagnosticSeverity.Error, Range = Range.Empty }];
+
+        changedProps.Should().Contain(nameof(DocumentViewModel.Diagnostics));
+        changedProps.Should().Contain(nameof(DocumentViewModel.ErrorCount));
+        changedProps.Should().Contain(nameof(DocumentViewModel.WarningCount));
+        changedProps.Should().Contain(nameof(DocumentViewModel.InfoCount));
+    }
+
+    [Fact]
+    public void ErrorCount_ShouldCountOnlyErrors()
+    {
+        var vm = new DocumentViewModel(CreateDocument());
+        vm.Diagnostics =
+        [
+            new Diagnostic { Message = "e1", Severity = DiagnosticSeverity.Error, Range = Range.Empty },
+            new Diagnostic { Message = "w1", Severity = DiagnosticSeverity.Warning, Range = Range.Empty },
+            new Diagnostic { Message = "e2", Severity = DiagnosticSeverity.Error, Range = Range.Empty },
+        ];
+
+        vm.ErrorCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void WarningCount_ShouldCountOnlyWarnings()
+    {
+        var vm = new DocumentViewModel(CreateDocument());
+        vm.Diagnostics =
+        [
+            new Diagnostic { Message = "w1", Severity = DiagnosticSeverity.Warning, Range = Range.Empty },
+            new Diagnostic { Message = "e1", Severity = DiagnosticSeverity.Error, Range = Range.Empty },
+            new Diagnostic { Message = "w2", Severity = DiagnosticSeverity.Warning, Range = Range.Empty },
+        ];
+
+        vm.WarningCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void InfoCount_ShouldCountInfoAndHint()
+    {
+        var vm = new DocumentViewModel(CreateDocument());
+        vm.Diagnostics =
+        [
+            new Diagnostic { Message = "i1", Severity = DiagnosticSeverity.Information, Range = Range.Empty },
+            new Diagnostic { Message = "h1", Severity = DiagnosticSeverity.Hint, Range = Range.Empty },
+            new Diagnostic { Message = "e1", Severity = DiagnosticSeverity.Error, Range = Range.Empty },
+        ];
+
+        vm.InfoCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void Diagnostics_WhenEmpty_ShouldHaveZeroCounts()
+    {
+        var vm = new DocumentViewModel(CreateDocument());
+
+        vm.ErrorCount.Should().Be(0);
+        vm.WarningCount.Should().Be(0);
+        vm.InfoCount.Should().Be(0);
     }
 }
