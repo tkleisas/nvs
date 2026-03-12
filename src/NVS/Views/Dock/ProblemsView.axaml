@@ -13,19 +13,30 @@
                     Command="{Binding ClearProblemsCommand}" />
         </StackPanel>
 
-        <DataGrid ItemsSource="{Binding Problems}"
-                  IsReadOnly="True"
-                  CanUserResizeColumns="True"
-                  CanUserSortColumns="True"
-                  GridLinesVisibility="Horizontal"
-                  BorderThickness="0"
-                  HeadersVisibility="Column"
-                  FontSize="12">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="" Binding="{ReflectionBinding SeverityIcon}" Width="30" />
-                <DataGridTextColumn Header="Message" Binding="{ReflectionBinding Message}" Width="*" />
-                <DataGridTextColumn Header="Location" Binding="{ReflectionBinding Location}" Width="200" />
-            </DataGrid.Columns>
-        </DataGrid>
+        <!-- Header row -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="30,*,200" Margin="4,4,4,2">
+            <TextBlock Grid.Column="0" Text="" FontSize="11" Foreground="#808080" />
+            <TextBlock Grid.Column="1" Text="Message" FontSize="11" Foreground="#808080" Margin="4,0" />
+            <TextBlock Grid.Column="2" Text="Location" FontSize="11" Foreground="#808080" />
+        </Grid>
+
+        <ListBox ItemsSource="{Binding Problems}"
+                 Background="Transparent"
+                 Padding="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto">
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="dock:ProblemItem">
+                    <Grid ColumnDefinitions="30,*,200" Margin="0,1">
+                        <TextBlock Grid.Column="0" Text="{ReflectionBinding SeverityIcon}" FontSize="12"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{ReflectionBinding Message}" FontSize="12"
+                                   Foreground="#CCCCCC" VerticalAlignment="Center" Margin="4,0"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="2" Text="{ReflectionBinding Location}" FontSize="12"
+                                   Foreground="#808080" VerticalAlignment="Center" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
     </DockPanel>
 </UserControl>

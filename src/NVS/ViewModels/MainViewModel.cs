@@ -244,6 +244,50 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    [RelayCommand]
+    private async Task OpenSolution()
+    {
+        if (StorageProvider == null) return;
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Open Solution",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Solution Files") { Patterns = ["*.sln", "*.slnx"] },
+                new FilePickerFileType("All Files") { Patterns = ["*"] }
+            ]
+        });
+
+        if (files.Count > 0)
+        {
+            var solutionPath = files[0].Path.LocalPath;
+            var solutionDir = Path.GetDirectoryName(solutionPath);
+            if (solutionDir is null) return;
+
+            // Open the solution's directory as workspace
+            WorkspacePath = solutionDir;
+            IsWorkspaceOpen = true;
+            Title = $"NVS - {Path.GetFileNameWithoutExtension(solutionPath)}";
+
+            await LoadFileTree(solutionDir);
+            await InitializeGitAsync(solutionDir);
+
+            // Load the specific solution file
+            try
+            {
+                var solution = await _solutionService.LoadSolutionAsync(solutionPath);
+                LoadSolutionTree(solution);
+                StatusMessage = $"Solution loaded: {solution.Name} ({solution.Projects.Count} projects)";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Failed to load solution: {ex.Message}";
+            }
+        }
+    }
+
     private async Task OpenWorkspaceAsync(string folderPath)
     {
         WorkspacePath = folderPath;
