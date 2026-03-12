@@ -557,6 +557,8 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private const int MaxSearchResults = 200;
+
     [RelayCommand]
     private async Task SearchFiles()
     {
@@ -569,6 +571,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         IsSearching = true;
         SearchResults.Clear();
         var query = SearchQuery;
+        var resultsCapped = false;
 
         try
         {
@@ -580,9 +583,10 @@ public partial class MainViewModel : INotifyPropertyChanged
             catch (OperationCanceledException) { throw; }
             catch
             {
-                // Fallback: enumerate with error tolerance
                 files = await Task.Run(() => EnumerateFilesSafe(_workspacePath), token);
             }
+
+            var batch = new List<FileSearchResult>();
 
             foreach (var file in files)
             {
@@ -604,7 +608,7 @@ public partial class MainViewModel : INotifyPropertyChanged
                     {
                         if (lines[i].Contains(query, StringComparison.OrdinalIgnoreCase))
                         {
-                            SearchResults.Add(new FileSearchResult
+                            batch.Add(new FileSearchResult
                             {
                                 FilePath = file,
                                 RelativePath = System.IO.Path.GetRelativePath(_workspacePath, file),
@@ -612,10 +616,14 @@ public partial class MainViewModel : INotifyPropertyChanged
                                 LineText = lines[i].Trim(),
                             });
 
-                            if (SearchResults.Count >= 500) break;
+                            if (batch.Count >= MaxSearchResults)
+                            {
+                                resultsCapped = true;
+                                break;
+                            }
                         }
                     }
-                    if (SearchResults.Count >= 500) break;
+                    if (resultsCapped) break;
                 }
                 catch (OperationCanceledException) { throw; }
                 catch
@@ -624,7 +632,12 @@ public partial class MainViewModel : INotifyPropertyChanged
                 }
             }
 
-            StatusMessage = $"Search: {SearchResults.Count} result(s) for \"{query}\"";
+            foreach (var result in batch)
+                SearchResults.Add(result);
+
+            StatusMessage = resultsCapped
+                ? $"Search: showing first {MaxSearchResults} result(s) for \"{query}\" (refine your query for more)"
+                : $"Search: {SearchResults.Count} result(s) for \"{query}\"";
         }
         catch (OperationCanceledException)
         {
