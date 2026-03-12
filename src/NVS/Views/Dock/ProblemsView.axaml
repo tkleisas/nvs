@@ -20,19 +20,28 @@
             <TextBlock Grid.Column="2" Text="Location" FontSize="11" Foreground="#808080" />
         </Grid>
 
-        <ListBox ItemsSource="{Binding Problems}"
+        <ListBox x:Name="ProblemsList"
+                 ItemsSource="{Binding Problems}"
                  Background="Transparent"
                  Padding="0"
-                 ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto">
             <ListBox.ItemTemplate>
                 <DataTemplate DataType="dock:ProblemItem">
                     <Grid ColumnDefinitions="30,*,200" Margin="0,1">
+                        <Grid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copy Message"
+                                          Command="{ReflectionBinding $parent[UserControl].((dock:ProblemsToolViewModel)DataContext).CopyProblemCommand}"
+                                          CommandParameter="{ReflectionBinding}" />
+                            </ContextMenu>
+                        </Grid.ContextMenu>
                         <TextBlock Grid.Column="0" Text="{ReflectionBinding SeverityIcon}" FontSize="12"
                                    VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        <TextBlock Grid.Column="1" Text="{ReflectionBinding Message}" FontSize="12"
+                        <SelectableTextBlock Grid.Column="1" Text="{ReflectionBinding Message}" FontSize="12"
                                    Foreground="#CCCCCC" VerticalAlignment="Center" Margin="4,0"
-                                   TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="2" Text="{ReflectionBinding Location}" FontSize="12"
+                                   TextWrapping="NoWrap" />
+                        <SelectableTextBlock Grid.Column="2" Text="{ReflectionBinding Location}" FontSize="12"
                                    Foreground="#808080" VerticalAlignment="Center" />
                     </Grid>
                 </DataTemplate>

@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using Avalonia;
+using Avalonia.Input.Platform;
 using CommunityToolkit.Mvvm.Input;
 using Dock.Model.Mvvm.Controls;
 using NVS.Core.Interfaces;
@@ -60,6 +62,23 @@ public partial class ProblemsToolViewModel : Tool
     {
         Problems.Clear();
         Title = "⚠ Problems";
+    }
+
+    [RelayCommand]
+    private async Task CopyProblem(ProblemItem? problem)
+    {
+        if (problem is null) return;
+
+        var text = problem.FilePath is not null
+            ? $"{problem.Severity}: {problem.Message} [{problem.Location}]"
+            : $"{problem.Severity}: {problem.Message}";
+
+        var clipboard = (Application.Current?.ApplicationLifetime
+            as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)
+            ?.MainWindow?.Clipboard;
+
+        if (clipboard is not null)
+            await clipboard.SetTextAsync(text);
     }
 
     [RelayCommand]

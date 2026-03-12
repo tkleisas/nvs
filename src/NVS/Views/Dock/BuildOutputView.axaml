@@ -13,7 +13,8 @@
                     Command="{Binding ClearCommand}" />
         </StackPanel>
 
-        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+        <ScrollViewer x:Name="OutputScrollViewer"
+                      HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding OutputLines}"
                           Padding="4">
