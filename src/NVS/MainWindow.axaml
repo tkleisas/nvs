@@ -65,6 +65,8 @@
             </MenuItem>
             <MenuItem Header="_Build">
                 <MenuItem Header="_Build Solution" InputGesture="Ctrl+Shift+B" Command="{Binding BuildSolutionCommand}" />
+                <MenuItem Header="_Rebuild Solution" Command="{Binding RebuildSolutionCommand}" />
+                <MenuItem Header="_Clean Solution" Command="{Binding CleanSolutionCommand}" />
                 <Separator />
                 <MenuItem Header="_Run" InputGesture="F5" Command="{Binding RunProjectCommand}" />
                 <MenuItem Header="_Stop" InputGesture="Shift+F5" Command="{Binding StopExecutionCommand}" />

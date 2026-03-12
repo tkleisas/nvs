@@ -28,7 +28,7 @@ public partial class BuildOutputView : UserControl
             {
                 var scrollViewer = this.FindControl<ScrollViewer>("OutputScrollViewer");
                 scrollViewer?.ScrollToEnd();
-            });
+            }, Avalonia.Threading.DispatcherPriority.Background);
         }
     }
 }

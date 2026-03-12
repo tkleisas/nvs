@@ -395,14 +395,34 @@ public partial class MainViewModel : INotifyPropertyChanged
     [RelayCommand]
     private async Task BuildSolution()
     {
+        await RunBuildCommandAsync("Build Solution", "build");
+    }
+
+    [RelayCommand]
+    private async Task CleanSolution()
+    {
+        await RunBuildCommandAsync("Clean Solution", "clean");
+    }
+
+    [RelayCommand]
+    private async Task RebuildSolution()
+    {
+        await RunBuildCommandAsync("Clean Solution", "clean");
+        if (!IsBuilding)
+            await RunBuildCommandAsync("Build Solution", "build");
+    }
+
+    private async Task RunBuildCommandAsync(string name, string dotnetVerb)
+    {
         if (!CanBuild || WorkspacePath is null) return;
 
         IsBuilding = true;
-        StatusMessage = "Building...";
+        StatusMessage = dotnetVerb == "clean" ? "Cleaning..." : "Building...";
 
         var buildOutput = FindBuildOutputTool();
         var problemsTool = FindProblemsTool();
-        buildOutput?.ClearOutput();
+        if (dotnetVerb != "clean" || name.StartsWith("Clean"))
+            buildOutput?.ClearOutput();
 
         _buildCts = new CancellationTokenSource();
 
@@ -416,27 +436,35 @@ public partial class MainViewModel : INotifyPropertyChanged
 
         try
         {
+            var args = new List<string> { dotnetVerb };
+            if (_solutionService.CurrentSolution is { } sol)
+                args.Add(sol.FilePath);
+            args.Add("--nologo");
+
             var task = new Core.Interfaces.BuildTask
             {
-                Name = "Build Solution",
+                Name = name,
                 Command = "dotnet",
-                Args = _solutionService.CurrentSolution is { } sol
-                    ? ["build", sol.FilePath, "--nologo"]
-                    : ["build", "--nologo"],
+                Args = [.. args],
                 WorkingDirectory = WorkspacePath
             };
 
             var result = await _buildService.RunTaskAsync(task, _buildCts.Token);
 
-            problemsTool?.SetProblems(result.Errors, result.Warnings);
+            if (dotnetVerb != "clean")
+                problemsTool?.SetProblems(result.Errors, result.Warnings);
 
-            StatusMessage = result.Success
-                ? $"Build succeeded ({result.Duration.TotalSeconds:F1}s)"
-                : $"Build failed — {result.Errors.Count} error(s), {result.Warnings.Count} warning(s)";
+            StatusMessage = dotnetVerb switch
+            {
+                "clean" => result.Success ? "Clean succeeded" : "Clean failed",
+                _ => result.Success
+                    ? $"Build succeeded ({result.Duration.TotalSeconds:F1}s)"
+                    : $"Build failed — {result.Errors.Count} error(s), {result.Warnings.Count} warning(s)"
+            };
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Build error: {ex.Message}";
+            StatusMessage = $"{name} error: {ex.Message}";
         }
         finally
         {
@@ -507,6 +535,9 @@ public partial class MainViewModel : INotifyPropertyChanged
     [RelayCommand]
     private async Task StopExecution()
     {
+        // Kill the process tree immediately, then cancel the token
+        await _buildService.CancelAsync();
+
         if (_runCts is not null)
         {
             await _runCts.CancelAsync();
