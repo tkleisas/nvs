@@ -44,7 +44,11 @@
                      FontFamily="Consolas,Courier New,monospace"
                      FontSize="12"
                      Padding="8,4"
-                     KeyDown="OnTerminalInputKeyDown" />
+                     KeyDown="OnTerminalInputKeyDown">
+                <TextBox.KeyBindings>
+                    <KeyBinding Gesture="Enter" Command="{Binding Main.SendTerminalInputCommand}" />
+                </TextBox.KeyBindings>
+            </TextBox>
             <Button Grid.Column="1" Content="▶" Padding="8,4"
                     Command="{Binding Main.SendTerminalInputCommand}"
                     Background="Transparent" Foreground="#4EC9B0" />

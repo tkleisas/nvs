@@ -18,7 +18,11 @@
                      BorderBrush="#555"
                      FontSize="12"
                      Padding="6,4"
-                     KeyDown="OnSearchQueryKeyDown" />
+                     KeyDown="OnSearchQueryKeyDown">
+                <TextBox.KeyBindings>
+                    <KeyBinding Gesture="Enter" Command="{Binding Main.SearchFilesCommand}" />
+                </TextBox.KeyBindings>
+            </TextBox>
             <Button Grid.Column="1" Content="🔍" Padding="6,4" Margin="4,0,0,0"
                     Command="{Binding Main.SearchFilesCommand}"
                     Background="#3C3C3C" Foreground="#CCCCCC" />

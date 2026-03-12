@@ -23,13 +23,15 @@ public sealed class TerminalInstance : ITerminalInstance, IDisposable
         WorkingDirectory = options.WorkingDirectory;
 
         var shell = options.Shell ?? GetDefaultShell();
+        var args = GetShellArguments(shell);
 
         _process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = shell,
-                WorkingDirectory = options.WorkingDirectory ?? System.Environment.CurrentDirectory,
+                Arguments = args,
+                WorkingDirectory = options.WorkingDirectory ?? Environment.CurrentDirectory,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -47,14 +49,14 @@ public sealed class TerminalInstance : ITerminalInstance, IDisposable
             }
         }
 
-        _process.OutputDataReceived += OnOutputData;
-        _process.ErrorDataReceived += OnErrorData;
         _process.Exited += OnProcessExited;
 
         _process.Start();
         _isConnected = true;
-        _process.BeginOutputReadLine();
-        _process.BeginErrorReadLine();
+
+        // Character-based async reading captures prompts and partial output
+        _ = ReadStreamAsync(_process.StandardOutput);
+        _ = ReadStreamAsync(_process.StandardError);
     }
 
     public void Write(string data)
@@ -97,20 +99,20 @@ public sealed class TerminalInstance : ITerminalInstance, IDisposable
         }
     }
 
-    private void OnOutputData(object sender, DataReceivedEventArgs e)
+    private async Task ReadStreamAsync(StreamReader reader)
     {
-        if (e.Data is not null)
+        var buffer = new char[1024];
+        try
         {
-            DataReceived?.Invoke(this, new TerminalDataEventArgs { Data = e.Data });
+            int charsRead;
+            while ((charsRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            {
+                var text = new string(buffer, 0, charsRead);
+                DataReceived?.Invoke(this, new TerminalDataEventArgs { Data = text });
+            }
         }
-    }
-
-    private void OnErrorData(object sender, DataReceivedEventArgs e)
-    {
-        if (e.Data is not null)
-        {
-            DataReceived?.Invoke(this, new TerminalDataEventArgs { Data = e.Data });
-        }
+        catch (ObjectDisposedException) { }
+        catch (InvalidOperationException) { }
     }
 
     private void OnProcessExited(object? sender, EventArgs e)
@@ -123,7 +125,6 @@ public sealed class TerminalInstance : ITerminalInstance, IDisposable
     {
         if (OperatingSystem.IsWindows())
         {
-            // Prefer PowerShell Core, fall back to Windows PowerShell, then cmd
             var pwshPath = Lsp.LanguageServerManager.FindBinaryOnPath("pwsh");
             if (pwshPath is not null) return pwshPath;
 
@@ -133,14 +134,22 @@ public sealed class TerminalInstance : ITerminalInstance, IDisposable
             return "cmd.exe";
         }
 
-        return System.Environment.GetEnvironmentVariable("SHELL") ?? "/bin/bash";
+        return Environment.GetEnvironmentVariable("SHELL") ?? "/bin/bash";
+    }
+
+    private static string GetShellArguments(string shell)
+    {
+        var name = Path.GetFileNameWithoutExtension(shell).ToLowerInvariant();
+        return name switch
+        {
+            "pwsh" or "powershell" => "-NoProfile -NoLogo",
+            _ => "",
+        };
     }
 
     public void Dispose()
     {
         _isConnected = false;
-        _process.OutputDataReceived -= OnOutputData;
-        _process.ErrorDataReceived -= OnErrorData;
         _process.Exited -= OnProcessExited;
 
         if (!_process.HasExited)

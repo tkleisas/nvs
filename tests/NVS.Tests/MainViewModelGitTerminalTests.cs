@@ -234,7 +234,22 @@ public class MainViewModelGitTerminalTests
 
         instance.Received(1).WriteLine("echo hello");
         vm.TerminalInput.Should().BeEmpty();
-        vm.TerminalOutput.Should().Contain("> echo hello");
+    }
+
+    [Fact]
+    public void SendTerminalInput_NoActiveTerminal_CreatesTerminal()
+    {
+        var terminal = Substitute.For<ITerminalService>();
+        var instance = Substitute.For<ITerminalInstance>();
+        terminal.ActiveTerminal.Returns((ITerminalInstance?)null, instance);
+        terminal.CreateTerminal(Arg.Any<TerminalOptions>()).Returns(instance);
+        var vm = CreateViewModel(terminalService: terminal);
+
+        vm.TerminalInput = "dir";
+        vm.SendTerminalInputCommand.Execute(null);
+
+        terminal.Received(1).CreateTerminal(Arg.Any<TerminalOptions>());
+        instance.Received(1).WriteLine("dir");
     }
 
     // --- Property change notifications ---

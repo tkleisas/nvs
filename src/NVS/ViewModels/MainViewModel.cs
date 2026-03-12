@@ -460,10 +460,14 @@ public partial class MainViewModel : INotifyPropertyChanged
         if (string.IsNullOrEmpty(TerminalInput)) return;
 
         var terminal = _terminalService.ActiveTerminal;
+        if (terminal is null)
+        {
+            CreateNewTerminal();
+            terminal = _terminalService.ActiveTerminal;
+        }
         if (terminal is null) return;
 
         terminal.WriteLine(TerminalInput);
-        TerminalOutput += $"> {TerminalInput}\n";
         TerminalInput = "";
     }
 
@@ -499,10 +503,14 @@ public partial class MainViewModel : INotifyPropertyChanged
 
         terminal.DataReceived += (_, e) =>
         {
-            TerminalOutput += e.Data + "\n";
+            Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                TerminalOutput += e.Data;
+            });
         };
 
         TerminalOutput = "";
+        IsTerminalVisible = true;
         StatusMessage = "Terminal opened";
     }
 
@@ -562,7 +570,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             foreach (var file in files)
             {
                 if (token.IsCancellationRequested) break;
-                if (IsBinaryExtension(file)) continue;
+                if (IsInExcludedDirectory(file) || IsBinaryExtension(file)) continue;
 
                 try
                 {
@@ -615,13 +623,36 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private static bool IsBinaryExtension(string path)
+    private static readonly HashSet<string> ExcludedDirectories = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".git", "bin", "obj", "node_modules", "__pycache__", ".vs", ".idea",
+        "packages", "TestResults", ".nuget", "dist", "build", ".cache",
+    };
+
+    internal static bool IsInExcludedDirectory(string filePath)
+    {
+        var parts = filePath.Split(
+            System.IO.Path.DirectorySeparatorChar,
+            System.IO.Path.AltDirectorySeparatorChar);
+        return parts.Any(p => ExcludedDirectories.Contains(p));
+    }
+
+    internal static bool IsBinaryExtension(string path)
     {
         var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
-        return ext is ".exe" or ".dll" or ".pdb" or ".obj" or ".bin" or ".zip" or ".gz"
-            or ".tar" or ".7z" or ".rar" or ".png" or ".jpg" or ".jpeg" or ".gif"
-            or ".bmp" or ".ico" or ".mp3" or ".mp4" or ".avi" or ".mov" or ".pdf"
-            or ".nupkg" or ".snk" or ".woff" or ".woff2" or ".ttf" or ".eot";
+        return ext is ".exe" or ".dll" or ".pdb" or ".obj" or ".o" or ".a"
+            or ".so" or ".dylib" or ".lib" or ".bin" or ".class" or ".pyc"
+            or ".pyo" or ".wasm" or ".node"
+            or ".zip" or ".gz" or ".tar" or ".7z" or ".rar" or ".nupkg"
+            or ".png" or ".jpg" or ".jpeg" or ".gif" or ".bmp" or ".ico"
+            or ".svg" or ".webp" or ".tiff" or ".tif"
+            or ".mp3" or ".mp4" or ".avi" or ".mov" or ".wav" or ".flac"
+            or ".ogg" or ".webm" or ".mkv"
+            or ".pdf" or ".doc" or ".docx" or ".xls" or ".xlsx"
+            or ".snk" or ".pfx" or ".p12"
+            or ".woff" or ".woff2" or ".ttf" or ".eot" or ".otf"
+            or ".sqlite" or ".db" or ".mdb"
+            or ".suo" or ".user";
     }
 
     private static List<FilePickerFileType> GetFileTypes()

@@ -233,16 +233,66 @@ public class MainViewModelSearchTests
     [Fact]
     public void IsBinaryExtension_DetectsCommonBinaryFormats()
     {
-        // Use reflection to test the private static method
-        var method = typeof(MainViewModel).GetMethod("IsBinaryExtension",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        MainViewModel.IsBinaryExtension("test.exe").Should().BeTrue();
+        MainViewModel.IsBinaryExtension("test.dll").Should().BeTrue();
+        MainViewModel.IsBinaryExtension("test.png").Should().BeTrue();
+        MainViewModel.IsBinaryExtension("test.so").Should().BeTrue();
+        MainViewModel.IsBinaryExtension("test.o").Should().BeTrue();
+        MainViewModel.IsBinaryExtension("test.a").Should().BeTrue();
+        MainViewModel.IsBinaryExtension("test.dylib").Should().BeTrue();
+        MainViewModel.IsBinaryExtension("test.class").Should().BeTrue();
+        MainViewModel.IsBinaryExtension("test.pyc").Should().BeTrue();
+        MainViewModel.IsBinaryExtension("test.wasm").Should().BeTrue();
+        MainViewModel.IsBinaryExtension("test.sqlite").Should().BeTrue();
+        MainViewModel.IsBinaryExtension("test.pdf").Should().BeTrue();
 
-        method.Should().NotBeNull();
+        MainViewModel.IsBinaryExtension("test.cs").Should().BeFalse();
+        MainViewModel.IsBinaryExtension("test.txt").Should().BeFalse();
+        MainViewModel.IsBinaryExtension("test.json").Should().BeFalse();
+        MainViewModel.IsBinaryExtension("test.xml").Should().BeFalse();
+        MainViewModel.IsBinaryExtension("test.md").Should().BeFalse();
+    }
 
-        ((bool)method!.Invoke(null, ["test.exe"])!).Should().BeTrue();
-        ((bool)method!.Invoke(null, ["test.dll"])!).Should().BeTrue();
-        ((bool)method!.Invoke(null, ["test.png"])!).Should().BeTrue();
-        ((bool)method!.Invoke(null, ["test.cs"])!).Should().BeFalse();
-        ((bool)method!.Invoke(null, ["test.txt"])!).Should().BeFalse();
+    [Theory]
+    [InlineData("/workspace/.git/objects/abc123", true)]
+    [InlineData("/workspace/bin/Debug/net10.0/app.dll", true)]
+    [InlineData("/workspace/obj/Debug/net10.0/ref.dll", true)]
+    [InlineData("/workspace/node_modules/lodash/index.js", true)]
+    [InlineData("/workspace/__pycache__/mod.pyc", true)]
+    [InlineData("/workspace/.vs/settings.json", true)]
+    [InlineData("/workspace/src/Services/MyService.cs", false)]
+    [InlineData("/workspace/tests/UnitTests.cs", false)]
+    [InlineData("/workspace/README.md", false)]
+    public void IsInExcludedDirectory_CorrectlyFilters(string path, bool expected)
+    {
+        MainViewModel.IsInExcludedDirectory(path).Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task SearchFiles_SkipsExcludedDirectories()
+    {
+        var fs = Substitute.For<IFileSystemService>();
+        fs.GetFilesAsync(Arg.Any<string>(), "*", true, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<string>>(
+                new List<string>
+                {
+                    "/workspace/bin/Debug/app.cs",
+                    "/workspace/obj/ref.cs",
+                    "/workspace/.git/config",
+                    "/workspace/node_modules/pkg/index.js",
+                    "/workspace/src/Program.cs",
+                }));
+        fs.ReadAllTextAsync("/workspace/src/Program.cs", Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult("hello world"));
+
+        var vm = CreateViewModel(fs);
+        vm.WorkspacePath = "/workspace";
+        vm.IsWorkspaceOpen = true;
+        vm.SearchQuery = "hello";
+
+        await vm.SearchFilesCommand.ExecuteAsync(null);
+
+        vm.SearchResults.Should().HaveCount(1);
+        vm.SearchResults[0].RelativePath.Should().Contain("Program.cs");
     }
 }
