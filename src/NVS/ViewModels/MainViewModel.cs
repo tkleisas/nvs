@@ -45,6 +45,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     private bool _isRunning;
     private CancellationTokenSource? _buildCts;
     private CancellationTokenSource? _runCts;
+    private CancellationTokenSource? _pauseCts;
     private bool _isDebugging;
     private bool _isDebugPaused;
 
@@ -778,6 +779,10 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     private void OnDebuggingStopped(object? sender, DebugSession session)
     {
+        _pauseCts?.Cancel();
+        _pauseCts?.Dispose();
+        _pauseCts = null;
+
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             IsDebugging = false;
@@ -793,29 +798,47 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     private async void OnDebuggingPaused(object? sender, EventArgs e)
     {
-        IsDebugPaused = true;
-        StatusMessage = "Paused";
+        // Cancel any previous pause processing (rapid stepping)
+        _pauseCts?.Cancel();
+        _pauseCts?.Dispose();
+        var cts = _pauseCts = new CancellationTokenSource();
+
+        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            IsDebugPaused = true;
+            StatusMessage = "Paused";
+        });
 
         if (_debugService is null) return;
 
         try
         {
-            var threads = await _debugService.GetThreadsAsync();
+            var threads = await _debugService.GetThreadsAsync(cts.Token);
+            if (cts.Token.IsCancellationRequested) return;
+
             if (threads.Count > 0)
             {
-                var frames = await _debugService.GetStackTraceAsync(threads[0].Id);
-                FindToolInDock<CallStackToolViewModel>()?.UpdateFrames(frames);
+                var frames = await _debugService.GetStackTraceAsync(threads[0].Id, cts.Token);
+                if (cts.Token.IsCancellationRequested) return;
+
+                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    FindToolInDock<CallStackToolViewModel>()?.UpdateFrames(frames));
 
                 if (frames.Count > 0)
                 {
                     var topFrame = frames[0];
-                    var vars = await _debugService.GetVariablesAsync(topFrame.Id);
-                    var varsTool = FindToolInDock<VariablesToolViewModel>();
-                    if (varsTool is not null)
+                    var vars = await _debugService.GetVariablesAsync(topFrame.Id, cts.Token);
+                    if (cts.Token.IsCancellationRequested) return;
+
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        varsTool.SetDebugService(_debugService);
-                        varsTool.UpdateVariables(vars);
-                    }
+                        var varsTool = FindToolInDock<VariablesToolViewModel>();
+                        if (varsTool is not null)
+                        {
+                            varsTool.SetDebugService(_debugService);
+                            varsTool.UpdateVariables(vars);
+                        }
+                    });
 
                     // Navigate to the stopped location in the editor
                     if (!string.IsNullOrEmpty(topFrame.Source) && topFrame.Line > 0)
@@ -832,6 +855,10 @@ public partial class MainViewModel : INotifyPropertyChanged
                     }
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when a new pause event supersedes this one
         }
         catch
         {
