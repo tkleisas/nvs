@@ -9,7 +9,5 @@
              x:DataType="dock:TerminalToolViewModel">
 
     <terminal:TerminalControl x:Name="Terminal"
-                              FontFamily="{ReflectionBinding TerminalFontFamily}"
-                              FontSize="{ReflectionBinding TerminalFontSize}"
                               BufferSize="{ReflectionBinding TerminalBufferSize}" />
 </UserControl>
