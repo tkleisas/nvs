@@ -8,6 +8,14 @@ public sealed record CompletionParams
 {
     public required TextDocumentIdentifier TextDocument { get; init; }
     public required LspPosition Position { get; init; }
+    public CompletionContext? Context { get; init; }
+}
+
+public sealed record CompletionContext
+{
+    /// <summary>1 = Invoked, 2 = TriggerCharacter, 3 = TriggerForIncompleteCompletions</summary>
+    public int TriggerKind { get; init; }
+    public string? TriggerCharacter { get; init; }
 }
 
 public sealed record CompletionList

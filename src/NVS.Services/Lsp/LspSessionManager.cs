@@ -56,13 +56,13 @@ public sealed class LspSessionManager : ILspSessionManager
         }
     }
 
-    public async Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(Document document, Position position, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(Document document, Position position, string? triggerChar = null, CancellationToken cancellationToken = default)
     {
         var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
         if (client is null)
             return [];
 
-        return await client.GetCompletionsAsync(document, position, cancellationToken).ConfigureAwait(false);
+        return await client.GetCompletionsAsync(document, position, triggerChar, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<SignatureHelp?> GetSignatureHelpAsync(Document document, Position position, string? triggerChar = null, CancellationToken cancellationToken = default)
@@ -120,6 +120,12 @@ public sealed class LspSessionManager : ILspSessionManager
     {
         if (_activeClients.TryGetValue(document.Language, out var client))
             client.NotifyDocumentChanged(document, content);
+    }
+
+    public async Task NotifyDocumentChangedAsync(Document document, string content)
+    {
+        if (_activeClients.TryGetValue(document.Language, out var client))
+            await client.NotifyDocumentChangedAsync(document, content).ConfigureAwait(false);
     }
 
     public void NotifyDocumentClosed(Document document)

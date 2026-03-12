@@ -12,6 +12,7 @@ using AvaloniaEdit.Search;
 using CommunityToolkit.Mvvm.Input;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
+using NVS.ViewModels;
 
 namespace NVS.Behaviors;
 
@@ -315,7 +316,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         if (e.Key == Key.Space && e.KeyModifiers == KeyModifiers.Control)
         {
             e.Handled = true;
-            RequestCompletionCommand?.Execute(null);
+            RequestCompletionCommand?.Execute(CreateLspContext());
         }
         // F12 → go to definition
         else if (e.Key == Key.F12 && e.KeyModifiers == KeyModifiers.None)
@@ -336,6 +337,21 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     }
 
     /// <summary>
+    /// Creates an LspRequestContext with fresh text and caret position
+    /// read directly from the TextEditor (not from bindings which may be stale).
+    /// </summary>
+    private LspRequestContext? CreateLspContext(string? triggerCharacter = null)
+    {
+        if (_textEditor is null) return null;
+        var caret = _textEditor.TextArea.Caret;
+        return new LspRequestContext(
+            caret.Line,
+            caret.Column,
+            _textEditor.Document.Text,
+            triggerCharacter);
+    }
+
+    /// <summary>
     /// Auto-triggers completion after typing trigger characters (., &lt;)
     /// or signature help after ( and ,
     /// or after a short delay when typing identifier characters.
@@ -351,7 +367,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         // Signature help trigger characters
         if (ch is '(' or ',')
         {
-            RequestSignatureHelpCommand?.Execute(ch.ToString());
+            RequestSignatureHelpCommand?.Execute(CreateLspContext(ch.ToString()));
             return;
         }
 
@@ -368,7 +384,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         // Completion trigger characters
         if (ch is '.' or '<' or ':')
         {
-            RequestCompletionCommand.Execute(null);
+            RequestCompletionCommand.Execute(CreateLspContext(ch.ToString()));
             return;
         }
 
@@ -387,7 +403,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
                         if (_completionWindow is null)
-                            RequestCompletionCommand?.Execute(null);
+                            RequestCompletionCommand?.Execute(CreateLspContext());
                     });
                 }
             }, TaskScheduler.Default);

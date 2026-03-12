@@ -12,7 +12,7 @@ public interface ILspClient
     Task InitializeAsync(string rootPath, CancellationToken cancellationToken = default);
     Task ShutdownAsync(CancellationToken cancellationToken = default);
     
-    Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(Document document, Position position, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(Document document, Position position, string? triggerChar = null, CancellationToken cancellationToken = default);
     Task<SignatureHelp?> GetSignatureHelpAsync(Document document, Position position, string? triggerChar = null, CancellationToken cancellationToken = default);
     Task<HoverInfo?> GetHoverAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<Location?> GetDefinitionAsync(Document document, Position position, CancellationToken cancellationToken = default);
@@ -23,6 +23,7 @@ public interface ILspClient
     
     void NotifyDocumentOpened(Document document);
     void NotifyDocumentChanged(Document document, string content);
+    Task NotifyDocumentChangedAsync(Document document, string content);
     void NotifyDocumentClosed(Document document);
     void NotifyDocumentSaved(Document document);
     

@@ -139,12 +139,15 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
 
     // ─── LSP Feature Methods ────────────────────────────────────────────────
 
-    public async Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(Document document, Position position, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(Document document, Position position, string? triggerChar = null, CancellationToken cancellationToken = default)
     {
         var param = new CompletionParams
         {
             TextDocument = LspModelMapper.ToTextDocumentIdentifier(document),
             Position = LspModelMapper.ToLspPosition(position),
+            Context = triggerChar is not null
+                ? new CompletionContext { TriggerKind = 2, TriggerCharacter = triggerChar }
+                : new CompletionContext { TriggerKind = 1 },
         };
 
         // Server may return CompletionItem[] or CompletionList
@@ -307,13 +310,18 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
 
     public void NotifyDocumentChanged(Document document, string content)
     {
+        _ = NotifyDocumentChangedAsync(document, content);
+    }
+
+    public Task NotifyDocumentChangedAsync(Document document, string content)
+    {
         var param = new DidChangeTextDocumentParams
         {
             TextDocument = LspModelMapper.ToVersionedTextDocumentIdentifier(document),
             ContentChanges = [new TextDocumentContentChangeEvent { Text = content }],
         };
 
-        _ = SendNotificationAsync("textDocument/didChange", param);
+        return SendNotificationAsync("textDocument/didChange", param);
     }
 
     public void NotifyDocumentClosed(Document document)

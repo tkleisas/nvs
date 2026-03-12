@@ -295,10 +295,10 @@ public partial class EditorViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Immediately sends didChange to the LSP server, cancelling any pending debounce.
+    /// Immediately sends didChange to the LSP server and waits for the write to complete.
     /// Called before completion/signature help requests so the server sees current text.
     /// </summary>
-    private void FlushLspDidChange(DocumentViewModel docVm)
+    private async Task FlushLspDidChangeAsync(DocumentViewModel docVm, string currentText)
     {
         if (_lspSessionManager is null) return;
 
@@ -306,7 +306,12 @@ public partial class EditorViewModel : INotifyPropertyChanged
         _didChangeCts?.Dispose();
         _didChangeCts = null;
 
-        _lspSessionManager.NotifyDocumentChanged(docVm.Document, docVm.Text);
+        // Update the document content/version to match what the editor has
+        docVm.Document.Content = currentText;
+        docVm.Document.Version++;
+
+        await _lspSessionManager.NotifyDocumentChangedAsync(docVm.Document, currentText)
+            .ConfigureAwait(false);
     }
 
     private void OnLspDiagnosticsChanged(object? sender, DocumentDiagnosticsEventArgs args)
@@ -329,19 +334,21 @@ public partial class EditorViewModel : INotifyPropertyChanged
             }
         });
 
-        docVm.RequestCompletionCommand = new AsyncRelayCommand(async () =>
+        docVm.RequestCompletionCommand = new AsyncRelayCommand<LspRequestContext?>(async (ctx) =>
         {
-            FlushLspDidChange(docVm);
-            var pos = new Position { Line = docVm.CursorLine - 1, Column = docVm.CursorColumn - 1 };
-            var completions = await _lspSessionManager.GetCompletionsAsync(docVm.Document, pos);
+            if (ctx is null) return;
+            await FlushLspDidChangeAsync(docVm, ctx.Text).ConfigureAwait(false);
+            var pos = new Position { Line = ctx.Line - 1, Column = ctx.Column - 1 };
+            var completions = await _lspSessionManager.GetCompletionsAsync(docVm.Document, pos, ctx.TriggerCharacter);
             docVm.LastCompletionResults = completions;
         });
 
-        docVm.RequestSignatureHelpCommand = new AsyncRelayCommand<string?>(async (triggerChar) =>
+        docVm.RequestSignatureHelpCommand = new AsyncRelayCommand<LspRequestContext?>(async (ctx) =>
         {
-            FlushLspDidChange(docVm);
-            var pos = new Position { Line = docVm.CursorLine - 1, Column = docVm.CursorColumn - 1 };
-            var sigHelp = await _lspSessionManager.GetSignatureHelpAsync(docVm.Document, pos, triggerChar);
+            if (ctx is null) return;
+            await FlushLspDidChangeAsync(docVm, ctx.Text).ConfigureAwait(false);
+            var pos = new Position { Line = ctx.Line - 1, Column = ctx.Column - 1 };
+            var sigHelp = await _lspSessionManager.GetSignatureHelpAsync(docVm.Document, pos, ctx.TriggerCharacter);
             docVm.LastSignatureHelp = sigHelp;
         });
     }
@@ -613,3 +620,9 @@ public class DocumentViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }
+
+/// <summary>
+/// Context passed from the editor behavior to LSP commands with fresh text and position
+/// read directly from the TextEditor, avoiding stale binding values.
+/// </summary>
+public record LspRequestContext(int Line, int Column, string Text, string? TriggerCharacter = null);

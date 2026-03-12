@@ -128,7 +128,7 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
         {
             new() { Label = "ToString", Kind = CompletionItemKind.Method },
         };
-        mockClient.GetCompletionsAsync(Arg.Any<Document>(), Arg.Any<Position>(), Arg.Any<CancellationToken>())
+        mockClient.GetCompletionsAsync(Arg.Any<Document>(), Arg.Any<Position>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(expectedCompletions);
         SetupFactory(Language.CSharp, mockClient);
 
