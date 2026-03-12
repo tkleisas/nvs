@@ -12,12 +12,14 @@ namespace NVS.ViewModels.Dock;
 public sealed class NvsDockFactory : Factory
 {
     private readonly MainViewModel _main;
+    private readonly NVS.Core.Models.Settings.DockLayoutSettings _dockSettings;
     private IRootDock? _rootDock;
     private IDocumentDock? _documentDock;
 
-    public NvsDockFactory(MainViewModel main)
+    public NvsDockFactory(MainViewModel main, NVS.Core.Models.Settings.DockLayoutSettings? dockSettings = null)
     {
         _main = main;
+        _dockSettings = dockSettings ?? new NVS.Core.Models.Settings.DockLayoutSettings();
     }
 
     public override IRootDock CreateLayout()
@@ -30,7 +32,7 @@ public sealed class NvsDockFactory : Factory
 
         var leftDock = new ProportionalDock
         {
-            Proportion = 0.22,
+            Proportion = _dockSettings.LeftPanelProportion,
             Orientation = Orientation.Vertical,
             VisibleDockables = CreateList<IDockable>
             (
@@ -46,7 +48,7 @@ public sealed class NvsDockFactory : Factory
 
         var bottomDock = new ProportionalDock
         {
-            Proportion = 0.25,
+            Proportion = _dockSettings.BottomPanelProportion,
             Orientation = Orientation.Horizontal,
             VisibleDockables = CreateList<IDockable>
             (

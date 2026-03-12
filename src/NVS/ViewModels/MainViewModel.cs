@@ -50,7 +50,8 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     public void InitializeDock()
     {
-        var factory = new NvsDockFactory(this);
+        var dockSettings = SettingsService.AppSettings.Dock;
+        var factory = new NvsDockFactory(this, dockSettings);
         var layout = factory.CreateLayout();
         factory.InitLayout(layout);
         DockLayout = layout as IRootDock;

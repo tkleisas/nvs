@@ -167,6 +167,25 @@ public class SettingsServiceTests : IDisposable
         loaded.Window.IsMaximized.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task DockLayoutSettings_ShouldRoundTrip()
+    {
+        var settings = new NVS.Core.Models.Settings.AppSettings
+        {
+            Dock = new NVS.Core.Models.Settings.DockLayoutSettings
+            {
+                LeftPanelProportion = 0.35,
+                BottomPanelProportion = 0.40,
+            }
+        };
+
+        await _service.SaveAppSettingsAsync(settings);
+        var loaded = await _service.LoadAppSettingsAsync();
+
+        loaded.Dock.LeftPanelProportion.Should().Be(0.35);
+        loaded.Dock.BottomPanelProportion.Should().Be(0.40);
+    }
+
     private class TempDirectory : IDisposable
     {
         public string Path { get; }

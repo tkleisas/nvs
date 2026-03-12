@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Dock.Model.Controls;
+using Dock.Model.Core;
 using NVS.Core.Interfaces;
 using NVS.Core.Models.Settings;
 using NVS.ViewModels;
@@ -97,7 +99,13 @@ public partial class MainWindow : Window
             Y = _restoreY,
         };
 
-        var newSettings = settingsService.AppSettings with { Window = windowSettings };
+        var dockSettings = ExtractDockProportions();
+
+        var newSettings = settingsService.AppSettings with
+        {
+            Window = windowSettings,
+            Dock = dockSettings,
+        };
         try
         {
             Task.Run(() => settingsService.SaveAppSettingsAsync(newSettings)).GetAwaiter().GetResult();
@@ -106,6 +114,49 @@ public partial class MainWindow : Window
         {
             // Best-effort: don't prevent window close if save fails
         }
+    }
+
+    private DockLayoutSettings ExtractDockProportions()
+    {
+        if (DataContext is MainViewModel vm && vm.DockLayout is IRootDock root)
+        {
+            try
+            {
+                // Navigate: RootDock → HomeViewModel → mainLayout (ProportionalDock)
+                if (root.ActiveDockable is IDock homeDock
+                    && homeDock.VisibleDockables?.Count > 0
+                    && homeDock.VisibleDockables[0] is IProportionalDock mainLayout
+                    && mainLayout.VisibleDockables?.Count >= 3)
+                {
+                    double leftProp = 0.22;
+                    double bottomProp = 0.25;
+
+                    if (mainLayout.VisibleDockables[0] is IProportionalDock leftDock)
+                    {
+                        leftProp = leftDock.Proportion;
+                    }
+
+                    if (mainLayout.VisibleDockables[2] is IProportionalDock centerWithBottom
+                        && centerWithBottom.VisibleDockables?.Count >= 3
+                        && centerWithBottom.VisibleDockables[2] is IProportionalDock bottomDock)
+                    {
+                        bottomProp = bottomDock.Proportion;
+                    }
+
+                    return new DockLayoutSettings
+                    {
+                        LeftPanelProportion = leftProp,
+                        BottomPanelProportion = bottomProp,
+                    };
+                }
+            }
+            catch
+            {
+                // Fall through to defaults
+            }
+        }
+
+        return new DockLayoutSettings();
     }
 
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
