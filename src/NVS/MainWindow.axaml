@@ -22,8 +22,13 @@
         <KeyBinding Gesture="Ctrl+Shift+G" Command="{Binding ShowSourceControlCommand}" />
         <KeyBinding Gesture="Ctrl+OemTilde" Command="{Binding ToggleTerminalCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+B" Command="{Binding BuildSolutionCommand}" />
-        <KeyBinding Gesture="F5" Command="{Binding RunProjectCommand}" />
-        <KeyBinding Gesture="Shift+F5" Command="{Binding StopExecutionCommand}" />
+        <KeyBinding Gesture="Ctrl+F5" Command="{Binding RunProjectCommand}" />
+        <KeyBinding Gesture="F5" Command="{Binding StartDebuggingCommand}" />
+        <KeyBinding Gesture="Shift+F5" Command="{Binding StopDebuggingCommand}" />
+        <KeyBinding Gesture="F10" Command="{Binding DebugStepOverCommand}" />
+        <KeyBinding Gesture="F11" Command="{Binding DebugStepIntoCommand}" />
+        <KeyBinding Gesture="Shift+F11" Command="{Binding DebugStepOutCommand}" />
+        <KeyBinding Gesture="F9" Command="{Binding ToggleBreakpointCommand}" />
     </Window.KeyBindings>
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
@@ -68,8 +73,21 @@
                 <MenuItem Header="_Rebuild Solution" Command="{Binding RebuildSolutionCommand}" />
                 <MenuItem Header="_Clean Solution" Command="{Binding CleanSolutionCommand}" />
                 <Separator />
-                <MenuItem Header="_Run" InputGesture="F5" Command="{Binding RunProjectCommand}" />
-                <MenuItem Header="_Stop" InputGesture="Shift+F5" Command="{Binding StopExecutionCommand}" />
+                <MenuItem Header="_Run Without Debugging" InputGesture="Ctrl+F5" Command="{Binding RunProjectCommand}" />
+                <MenuItem Header="_Stop" Command="{Binding StopExecutionCommand}" />
+            </MenuItem>
+            <MenuItem Header="_Debug">
+                <MenuItem Header="_Start Debugging" InputGesture="F5" Command="{Binding StartDebuggingCommand}" />
+                <MenuItem Header="S_top Debugging" InputGesture="Shift+F5" Command="{Binding StopDebuggingCommand}" />
+                <Separator />
+                <MenuItem Header="Step _Over" InputGesture="F10" Command="{Binding DebugStepOverCommand}" />
+                <MenuItem Header="Step _Into" InputGesture="F11" Command="{Binding DebugStepIntoCommand}" />
+                <MenuItem Header="Step O_ut" InputGesture="Shift+F11" Command="{Binding DebugStepOutCommand}" />
+                <Separator />
+                <MenuItem Header="_Continue" Command="{Binding DebugContinueCommand}" />
+                <MenuItem Header="_Pause" Command="{Binding DebugPauseCommand}" />
+                <Separator />
+                <MenuItem Header="Toggle _Breakpoint" InputGesture="F9" Command="{Binding ToggleBreakpointCommand}" />
             </MenuItem>
             <MenuItem Header="_Terminal">
                 <MenuItem Header="_New Terminal" InputGesture="Ctrl+Shift+OemTilde" Command="{Binding NewTerminalCommand}" />
@@ -107,13 +125,39 @@
                         Command="{Binding BuildSolutionCommand}">
                     <TextBlock Text="🔨" FontSize="14" />
                 </Button>
-                <Button Width="28" Height="28" ToolTip.Tip="Run (F5)"
+                <Button Width="28" Height="28" ToolTip.Tip="Run Without Debugging (Ctrl+F5)"
                         Command="{Binding RunProjectCommand}">
                     <PathIcon Width="14" Height="14" Foreground="#4EC9B0"
                               Data="M 3,1 L 13,7 L 3,13 Z" />
                 </Button>
-                <Button Width="28" Height="28" ToolTip.Tip="Stop (Shift+F5)"
+                <Button Width="28" Height="28" ToolTip.Tip="Stop"
                         Command="{Binding StopExecutionCommand}">
+                    <PathIcon Width="14" Height="14" Foreground="#F44747"
+                              Data="M 2,2 L 12,2 L 12,12 L 2,12 Z" />
+                </Button>
+                <Border Width="1" Background="#555" Margin="4,2" />
+                <Button Width="28" Height="28" ToolTip.Tip="Start Debugging (F5)"
+                        Command="{Binding StartDebuggingCommand}">
+                    <PathIcon Width="14" Height="14" Foreground="#89D185"
+                              Data="M 3,1 L 13,7 L 3,13 Z" />
+                </Button>
+                <Button Width="28" Height="28" ToolTip.Tip="Step Over (F10)"
+                        Command="{Binding DebugStepOverCommand}">
+                    <PathIcon Width="12" Height="12" Foreground="#75BEFF"
+                              Data="M 1,6 L 4,6 L 4,3 L 8,3 L 8,6 L 11,6 L 6,11 Z" />
+                </Button>
+                <Button Width="28" Height="28" ToolTip.Tip="Step Into (F11)"
+                        Command="{Binding DebugStepIntoCommand}">
+                    <PathIcon Width="12" Height="12" Foreground="#75BEFF"
+                              Data="M 3,1 L 9,1 L 9,4 L 12,4 L 6,10 L 0,4 L 3,4 Z" />
+                </Button>
+                <Button Width="28" Height="28" ToolTip.Tip="Step Out (Shift+F11)"
+                        Command="{Binding DebugStepOutCommand}">
+                    <PathIcon Width="12" Height="12" Foreground="#75BEFF"
+                              Data="M 3,10 L 9,10 L 9,7 L 12,7 L 6,1 L 0,7 L 3,7 Z" />
+                </Button>
+                <Button Width="28" Height="28" ToolTip.Tip="Stop Debugging (Shift+F5)"
+                        Command="{Binding StopDebuggingCommand}">
                     <PathIcon Width="14" Height="14" Foreground="#F44747"
                               Data="M 2,2 L 12,2 L 12,12 L 2,12 Z" />
                 </Button>

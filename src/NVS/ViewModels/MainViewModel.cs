@@ -23,6 +23,8 @@ public partial class MainViewModel : INotifyPropertyChanged
     private readonly ITerminalService _terminalService;
     private readonly ISolutionService _solutionService;
     private readonly IBuildService _buildService;
+    private readonly IDebugService? _debugService;
+    private readonly IBreakpointStore? _breakpointStore;
 
     private string _title = "NVS - No Vim Substitute";
     private bool _isWorkspaceOpen;
@@ -43,6 +45,8 @@ public partial class MainViewModel : INotifyPropertyChanged
     private bool _isRunning;
     private CancellationTokenSource? _buildCts;
     private CancellationTokenSource? _runCts;
+    private bool _isDebugging;
+    private bool _isDebugPaused;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -72,7 +76,9 @@ public partial class MainViewModel : INotifyPropertyChanged
         ITerminalService terminalService,
         ISettingsService settingsService,
         ISolutionService solutionService,
-        IBuildService buildService)
+        IBuildService buildService,
+        IDebugService? debugService = null,
+        IBreakpointStore? breakpointStore = null)
     {
         _workspaceService = workspaceService;
         _editorService = editorService;
@@ -81,16 +87,41 @@ public partial class MainViewModel : INotifyPropertyChanged
         _terminalService = terminalService;
         _solutionService = solutionService;
         _buildService = buildService;
+        _debugService = debugService;
+        _breakpointStore = breakpointStore;
         SettingsService = settingsService;
         Editor = editor;
 
         _gitService.StatusChanged += OnGitStatusChanged;
+
+        if (_debugService is not null)
+        {
+            _debugService.DebuggingStarted += OnDebuggingStarted;
+            _debugService.DebuggingStopped += OnDebuggingStopped;
+            _debugService.DebuggingPaused += OnDebuggingPaused;
+            _debugService.DebuggingContinued += OnDebuggingContinued;
+            _debugService.OutputReceived += OnDebugOutput;
+        }
     }
 
     public ISettingsService SettingsService { get; }
     public IEditorService EditorService => _editorService;
     public ISolutionService SolutionService => _solutionService;
     public IBuildService BuildService => _buildService;
+    public IDebugService? DebugService => _debugService;
+    public IBreakpointStore? BreakpointStore => _breakpointStore;
+
+    public bool IsDebugging
+    {
+        get => _isDebugging;
+        set => SetProperty(ref _isDebugging, value);
+    }
+
+    public bool IsDebugPaused
+    {
+        get => _isDebugPaused;
+        set => SetProperty(ref _isDebugPaused, value);
+    }
 
     public string Title
     {
@@ -548,6 +579,193 @@ public partial class MainViewModel : INotifyPropertyChanged
             await _buildCts.CancelAsync();
             StatusMessage = "Build cancelled";
         }
+    }
+
+    // ── Debug Commands ─────────────────────────────────────────────
+
+    [RelayCommand]
+    private async Task StartDebugging()
+    {
+        if (_debugService is null)
+        {
+            StatusMessage = "Debug service not available";
+            return;
+        }
+
+        if (_debugService.IsDebugging)
+        {
+            // If paused, continue; otherwise ignore
+            if (_debugService.IsPaused)
+                await _debugService.ContinueAsync();
+            return;
+        }
+
+        var solution = _solutionService.CurrentSolution;
+        if (solution is null)
+        {
+            StatusMessage = "No solution loaded — cannot debug";
+            return;
+        }
+
+        var startup = _solutionService.GetStartupProject();
+        if (startup is null)
+        {
+            StatusMessage = "No startup project set — cannot debug";
+            return;
+        }
+
+        try
+        {
+            StatusMessage = "Starting debugger...";
+            var projectDir = System.IO.Path.GetDirectoryName(startup.FilePath) ?? ".";
+            var config = new NVS.Core.Models.Settings.DebugConfiguration
+            {
+                Name = startup.Name,
+                Type = "coreclr",
+                Request = "launch",
+                Program = System.IO.Path.Combine(projectDir, "bin", "Debug", startup.TargetFramework, (startup.AssemblyName ?? startup.Name) + ".dll"),
+                Cwd = projectDir,
+            };
+
+            await _debugService.StartDebuggingAsync(config);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Debug error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task StopDebugging()
+    {
+        if (_debugService is null || !_debugService.IsDebugging) return;
+
+        try
+        {
+            await _debugService.StopDebuggingAsync();
+            StatusMessage = "Debug session ended";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Stop debug error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task DebugStepOver()
+    {
+        if (_debugService is null || !_debugService.IsPaused) return;
+        await _debugService.StepOverAsync();
+    }
+
+    [RelayCommand]
+    private async Task DebugStepInto()
+    {
+        if (_debugService is null || !_debugService.IsPaused) return;
+        await _debugService.StepIntoAsync();
+    }
+
+    [RelayCommand]
+    private async Task DebugStepOut()
+    {
+        if (_debugService is null || !_debugService.IsPaused) return;
+        await _debugService.StepOutAsync();
+    }
+
+    [RelayCommand]
+    private async Task DebugContinue()
+    {
+        if (_debugService is null || !_debugService.IsPaused) return;
+        await _debugService.ContinueAsync();
+    }
+
+    [RelayCommand]
+    private async Task DebugPause()
+    {
+        if (_debugService is null || !_debugService.IsDebugging || _debugService.IsPaused) return;
+        await _debugService.PauseAsync();
+    }
+
+    [RelayCommand]
+    private void ToggleBreakpoint()
+    {
+        if (_breakpointStore is null || Editor?.ActiveDocument is null) return;
+
+        var doc = Editor.ActiveDocument;
+        var filePath = doc.Document.FilePath;
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        _breakpointStore.ToggleBreakpoint(filePath, doc.CursorLine);
+        RefreshDocumentBreakpoints(doc);
+    }
+
+    private void RefreshDocumentBreakpoints(DocumentViewModel doc)
+    {
+        if (_breakpointStore is null || string.IsNullOrEmpty(doc.Document.FilePath)) return;
+
+        var bps = _breakpointStore.GetBreakpoints(doc.Document.FilePath);
+        doc.Breakpoints = bps.Select(b => (b.Line, b.IsVerified)).ToList();
+    }
+
+    // ── Debug Event Handlers ──────────────────────────────────────
+
+    private void OnDebuggingStarted(object? sender, DebugSession session)
+    {
+        IsDebugging = true;
+        IsDebugPaused = false;
+        StatusMessage = $"Debugging: {session.Name}";
+    }
+
+    private void OnDebuggingStopped(object? sender, DebugSession session)
+    {
+        IsDebugging = false;
+        IsDebugPaused = false;
+        StatusMessage = "Debug session ended";
+
+        // Clear call stack and variables
+        FindToolInDock<CallStackToolViewModel>()?.ClearFrames();
+        FindToolInDock<VariablesToolViewModel>()?.ClearVariables();
+    }
+
+    private async void OnDebuggingPaused(object? sender, EventArgs e)
+    {
+        IsDebugPaused = true;
+        StatusMessage = "Paused";
+
+        // Update call stack and variables panels
+        if (_debugService is null) return;
+
+        try
+        {
+            var threads = await _debugService.GetThreadsAsync();
+            if (threads.Count > 0)
+            {
+                var frames = await _debugService.GetStackTraceAsync(threads[0].Id);
+                FindToolInDock<CallStackToolViewModel>()?.UpdateFrames(frames);
+
+                if (frames.Count > 0)
+                {
+                    var vars = await _debugService.GetVariablesAsync(frames[0].Id);
+                    FindToolInDock<VariablesToolViewModel>()?.UpdateVariables(vars);
+                }
+            }
+        }
+        catch
+        {
+            // Best effort UI update
+        }
+    }
+
+    private void OnDebuggingContinued(object? sender, EventArgs e)
+    {
+        IsDebugPaused = false;
+        StatusMessage = "Running...";
+    }
+
+    private void OnDebugOutput(object? sender, OutputEvent evt)
+    {
+        var isError = evt.Category is OutputCategory.Stderr;
+        FindBuildOutputTool()?.AppendOutput(evt.Output, isError);
     }
 
     private BuildOutputToolViewModel? FindBuildOutputTool()

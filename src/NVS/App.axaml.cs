@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NVS.Core.Interfaces;
 using NVS.Infrastructure.DependencyInjection;
 using NVS.Services.Build;
+using NVS.Services.Debug;
 using NVS.Services.Editor;
 using NVS.Services.FileSystem;
 using NVS.Services.Git;
@@ -80,6 +81,9 @@ public partial class App : Application
         services.AddSingleton<ITerminalService, TerminalService>();
         services.AddSingleton<ISolutionService, SolutionService>();
         services.AddSingleton<IBuildService, BuildService>();
+        services.AddSingleton<IDebugService, DebugService>();
+        services.AddSingleton<IBreakpointStore, BreakpointStore>();
+        services.AddSingleton<DebugAdapterRegistry>();
         
         // ViewModels
         services.AddSingleton<EditorViewModel>();
