@@ -73,6 +73,8 @@
                                 GoToDefinitionCommand="{Binding GoToDefinitionCommand}"
                                 RequestCompletionCommand="{Binding RequestCompletionCommand}"
                                 CompletionResults="{Binding LastCompletionResults}"
+                                RequestSignatureHelpCommand="{Binding RequestSignatureHelpCommand}"
+                                SignatureHelpResult="{Binding LastSignatureHelp}"
                                 Breakpoints="{Binding Breakpoints}"
                                 ToggleBreakpointCommand="{Binding ToggleBreakpointCommand}"
                                 DebugCurrentLine="{Binding DebugCurrentLine}"/>

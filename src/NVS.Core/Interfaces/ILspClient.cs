@@ -13,6 +13,7 @@ public interface ILspClient
     Task ShutdownAsync(CancellationToken cancellationToken = default);
     
     Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(Document document, Position position, CancellationToken cancellationToken = default);
+    Task<SignatureHelp?> GetSignatureHelpAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<HoverInfo?> GetHoverAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<Location?> GetDefinitionAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Location>> GetReferencesAsync(Document document, Position position, CancellationToken cancellationToken = default);
@@ -77,6 +78,26 @@ public sealed record Diagnostic
     public required Range Range { get; init; }
     public string? Source { get; init; }
     public string? Code { get; init; }
+}
+
+public sealed record SignatureHelp
+{
+    public IReadOnlyList<SignatureInformation> Signatures { get; init; } = [];
+    public int ActiveSignature { get; init; }
+    public int ActiveParameter { get; init; }
+}
+
+public sealed record SignatureInformation
+{
+    public required string Label { get; init; }
+    public string? Documentation { get; init; }
+    public IReadOnlyList<ParameterInformation> Parameters { get; init; } = [];
+}
+
+public sealed record ParameterInformation
+{
+    public required string Label { get; init; }
+    public string? Documentation { get; init; }
 }
 
 public enum DiagnosticSeverity

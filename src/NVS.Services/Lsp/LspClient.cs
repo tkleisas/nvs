@@ -166,6 +166,20 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
         return [];
     }
 
+    public async Task<SignatureHelp?> GetSignatureHelpAsync(Document document, Position position, CancellationToken cancellationToken = default)
+    {
+        var param = new SignatureHelpParams
+        {
+            TextDocument = LspModelMapper.ToTextDocumentIdentifier(document),
+            Position = LspModelMapper.ToLspPosition(position),
+        };
+
+        var result = await SendRequestAsync<LspSignatureHelp>("textDocument/signatureHelp", param, cancellationToken)
+            .ConfigureAwait(false);
+
+        return result is not null ? LspModelMapper.FromSignatureHelp(result) : null;
+    }
+
     public async Task<HoverInfo?> GetHoverAsync(Document document, Position position, CancellationToken cancellationToken = default)
     {
         var param = new TextDocumentPositionParams

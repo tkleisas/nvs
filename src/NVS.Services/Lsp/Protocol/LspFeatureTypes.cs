@@ -129,6 +129,36 @@ public sealed record ReferenceContext
 
 // ─── Diagnostics (server → client notification) ─────────────────────────────
 
+// ─── Signature Help ─────────────────────────────────────────────────────────
+
+public sealed record SignatureHelpParams
+{
+    public required TextDocumentIdentifier TextDocument { get; init; }
+    public required LspPosition Position { get; init; }
+}
+
+public sealed record LspSignatureHelp
+{
+    public IReadOnlyList<LspSignatureInformation> Signatures { get; init; } = [];
+    public int? ActiveSignature { get; init; }
+    public int? ActiveParameter { get; init; }
+}
+
+public sealed record LspSignatureInformation
+{
+    public required string Label { get; init; }
+    public MarkupContent? Documentation { get; init; }
+    public IReadOnlyList<LspParameterInformation>? Parameters { get; init; }
+}
+
+public sealed record LspParameterInformation
+{
+    public required string Label { get; init; }
+    public MarkupContent? Documentation { get; init; }
+}
+
+// ─── Diagnostics (server → client notification) ─────────────────────────────
+
 public sealed record PublishDiagnosticsParams
 {
     public required string Uri { get; init; }

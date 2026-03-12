@@ -120,6 +120,24 @@ internal static class LspModelMapper
         Code = diagnostic.Code,
     };
 
+    public static SignatureHelp FromSignatureHelp(LspSignatureHelp lsp) => new()
+    {
+        Signatures = lsp.Signatures.Select(FromSignatureInformation).ToList(),
+        ActiveSignature = lsp.ActiveSignature ?? 0,
+        ActiveParameter = lsp.ActiveParameter ?? 0,
+    };
+
+    private static SignatureInformation FromSignatureInformation(LspSignatureInformation lsp) => new()
+    {
+        Label = lsp.Label,
+        Documentation = lsp.Documentation?.Value,
+        Parameters = lsp.Parameters?.Select(p => new ParameterInformation
+        {
+            Label = p.Label,
+            Documentation = p.Documentation?.Value,
+        }).ToList() ?? [],
+    };
+
     // ─── Kind Mapping ───────────────────────────────────────────────────────
 
     private static CompletionItemKind MapCompletionItemKind(LspCompletionItemKind? kind) => kind switch

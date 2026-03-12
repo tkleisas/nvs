@@ -23,6 +23,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private CurrentLineHighlightRenderer? _currentLineRenderer;
     private BreakpointMargin? _breakpointMargin;
     private CompletionWindow? _completionWindow;
+    private OverloadInsightWindow? _insightWindow;
     private CancellationTokenSource? _autoCompleteCts;
     private bool _updating;
 
@@ -67,6 +68,12 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
     public static readonly StyledProperty<int?> DebugCurrentLineProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, int?>(nameof(DebugCurrentLine));
+
+    public static readonly StyledProperty<ICommand?> RequestSignatureHelpCommandProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, ICommand?>(nameof(RequestSignatureHelpCommand));
+
+    public static readonly StyledProperty<SignatureHelp?> SignatureHelpResultProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, SignatureHelp?>(nameof(SignatureHelpResult));
 
     public string Text
     {
@@ -144,6 +151,18 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     {
         get => GetValue(DebugCurrentLineProperty);
         set => SetValue(DebugCurrentLineProperty, value);
+    }
+
+    public ICommand? RequestSignatureHelpCommand
+    {
+        get => GetValue(RequestSignatureHelpCommandProperty);
+        set => SetValue(RequestSignatureHelpCommandProperty, value);
+    }
+
+    public SignatureHelp? SignatureHelpResult
+    {
+        get => GetValue(SignatureHelpResultProperty);
+        set => SetValue(SignatureHelpResultProperty, value);
     }
 
     protected override void OnAttached()
@@ -259,6 +278,12 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
                 _textEditor.ScrollToLine(line.Value);
             }
         }
+        else if (change.Property == SignatureHelpResultProperty)
+        {
+            var sigHelp = change.GetNewValue<SignatureHelp?>();
+            if (sigHelp is { Signatures.Count: > 0 })
+                ShowSignatureHelp(sigHelp);
+        }
         else if (change.Property == LineProperty && !_updating)
         {
             var line = change.GetNewValue<int>();
@@ -311,22 +336,37 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     }
 
     /// <summary>
-    /// Auto-triggers completion after typing trigger characters (., (, &lt;)
+    /// Auto-triggers completion after typing trigger characters (., &lt;)
+    /// or signature help after ( and ,
     /// or after a short delay when typing identifier characters.
     /// </summary>
     private void OnTextEntered(object? sender, TextInputEventArgs e)
     {
-        if (_completionWindow is not null || RequestCompletionCommand is null)
-            return;
-
         var text = e.Text;
         if (string.IsNullOrEmpty(text))
             return;
 
         var ch = text[0];
 
-        // Immediate trigger characters (like VS/Rider)
-        if (ch is '.' or '(' or '<' or ':')
+        // Signature help trigger characters
+        if (ch is '(' or ',')
+        {
+            RequestSignatureHelpCommand?.Execute(null);
+            return;
+        }
+
+        // Close signature help on )
+        if (ch is ')')
+        {
+            _insightWindow?.Close();
+            return;
+        }
+
+        if (_completionWindow is not null || RequestCompletionCommand is null)
+            return;
+
+        // Completion trigger characters
+        if (ch is '.' or '<' or ':')
         {
             RequestCompletionCommand.Execute(null);
             return;
@@ -383,6 +423,19 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
         _completionWindow.Show();
         _completionWindow.Closed += (_, _) => _completionWindow = null;
+    }
+
+    public void ShowSignatureHelp(SignatureHelp sigHelp)
+    {
+        if (_textEditor is null || sigHelp.Signatures.Count == 0)
+            return;
+
+        _insightWindow?.Close();
+
+        _insightWindow = new OverloadInsightWindow(_textEditor.TextArea);
+        _insightWindow.Provider = new SignatureOverloadProvider(sigHelp);
+        _insightWindow.Show();
+        _insightWindow.Closed += (_, _) => _insightWindow = null;
     }
 
     private void OnBreakpointToggled(object? sender, int line)

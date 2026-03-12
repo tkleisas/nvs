@@ -16,6 +16,7 @@ public interface ILspSessionManager : IAsyncDisposable
     Task<ILspClient?> GetClientAsync(Document document, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(Document document, Position position, CancellationToken cancellationToken = default);
+    Task<SignatureHelp?> GetSignatureHelpAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<Location?> GetDefinitionAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Location>> GetReferencesAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<HoverInfo?> GetHoverAsync(Document document, Position position, CancellationToken cancellationToken = default);

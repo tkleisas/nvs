@@ -320,6 +320,13 @@ public partial class EditorViewModel : INotifyPropertyChanged
             var completions = await _lspSessionManager.GetCompletionsAsync(docVm.Document, pos);
             docVm.LastCompletionResults = completions;
         });
+
+        docVm.RequestSignatureHelpCommand = new AsyncRelayCommand(async () =>
+        {
+            var pos = new Position { Line = docVm.CursorLine - 1, Column = docVm.CursorColumn - 1 };
+            var sigHelp = await _lspSessionManager.GetSignatureHelpAsync(docVm.Document, pos);
+            docVm.LastSignatureHelp = sigHelp;
+        });
     }
 
     private void WireBreakpointCommand(DocumentViewModel docVm)
@@ -378,6 +385,8 @@ public class DocumentViewModel : INotifyPropertyChanged
     private IReadOnlyList<CompletionItem>? _lastCompletionResults;
     private IReadOnlyList<(int Line, bool Verified)> _breakpoints = [];
     private ICommand? _toggleBreakpointCommand;
+    private ICommand? _requestSignatureHelpCommand;
+    private SignatureHelp? _lastSignatureHelp;
     private int? _debugCurrentLine;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -521,6 +530,26 @@ public class DocumentViewModel : INotifyPropertyChanged
         set
         {
             _requestCompletionCommand = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public ICommand? RequestSignatureHelpCommand
+    {
+        get => _requestSignatureHelpCommand;
+        set
+        {
+            _requestSignatureHelpCommand = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public SignatureHelp? LastSignatureHelp
+    {
+        get => _lastSignatureHelp;
+        set
+        {
+            _lastSignatureHelp = value;
             OnPropertyChanged();
         }
     }
