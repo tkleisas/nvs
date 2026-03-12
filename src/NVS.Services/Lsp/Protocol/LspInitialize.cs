@@ -67,6 +67,7 @@ public sealed record PublishDiagnosticsClientCapabilities
 public sealed record SynchronizationClientCapabilities
 {
     public bool DidSave { get; init; }
+    public bool DidChange { get; init; }
     public bool WillSave { get; init; }
 }
 

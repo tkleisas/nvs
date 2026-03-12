@@ -15,6 +15,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
     private readonly IFileSystemService _fileSystemService;
     private readonly ILspSessionManager? _lspSessionManager;
     private readonly IBreakpointStore? _breakpointStore;
+    private CancellationTokenSource? _didChangeCts;
 
     private DocumentViewModel? _activeDocument;
     private int _activeTabIndex = -1;
@@ -270,6 +271,27 @@ public partial class EditorViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(CursorColumn));
         else if (e.PropertyName is nameof(DocumentViewModel.ErrorCount) or nameof(DocumentViewModel.WarningCount))
             NotifyDiagnosticCountsChanged();
+        else if (e.PropertyName is nameof(DocumentViewModel.Text))
+            DebounceLspDidChange(sender as DocumentViewModel);
+    }
+
+    private void DebounceLspDidChange(DocumentViewModel? docVm)
+    {
+        if (docVm is null || _lspSessionManager is null) return;
+
+        _didChangeCts?.Cancel();
+        _didChangeCts?.Dispose();
+        var cts = _didChangeCts = new CancellationTokenSource();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(300, cts.Token);
+                _lspSessionManager.NotifyDocumentChanged(docVm.Document, docVm.Text);
+            }
+            catch (OperationCanceledException) { }
+        });
     }
 
     private void OnLspDiagnosticsChanged(object? sender, DocumentDiagnosticsEventArgs args)
@@ -377,6 +399,7 @@ public class DocumentViewModel : INotifyPropertyChanged
             {
                 _text = value;
                 Document.Content = value;
+                Document.Version++;
                 IsDirty = true;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(Title));

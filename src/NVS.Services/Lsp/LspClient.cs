@@ -87,7 +87,7 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
                     DocumentSymbol = new DocumentSymbolClientCapabilities(),
                     Formatting = new FormattingClientCapabilities(),
                     PublishDiagnostics = new PublishDiagnosticsClientCapabilities { RelatedInformation = true },
-                    Synchronization = new SynchronizationClientCapabilities { DidSave = true },
+                    Synchronization = new SynchronizationClientCapabilities { DidSave = true, DidChange = true },
                 },
             },
         };
