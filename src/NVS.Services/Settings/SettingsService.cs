@@ -33,7 +33,7 @@ public sealed class SettingsService : ISettingsService
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        _appSettings = await LoadAppSettingsAsync(cancellationToken);
+        _appSettings = await LoadAppSettingsAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<AppSettings> LoadAppSettingsAsync(CancellationToken cancellationToken = default)
@@ -45,7 +45,7 @@ public sealed class SettingsService : ISettingsService
 
         try
         {
-            var json = await File.ReadAllTextAsync(_appSettingsPath, cancellationToken);
+            var json = await File.ReadAllTextAsync(_appSettingsPath, cancellationToken).ConfigureAwait(false);
             return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
         }
         catch
@@ -58,7 +58,7 @@ public sealed class SettingsService : ISettingsService
     {
         _appSettings = settings;
         var json = JsonSerializer.Serialize(settings, JsonOptions);
-        await File.WriteAllTextAsync(_appSettingsPath, json, cancellationToken);
+        await File.WriteAllTextAsync(_appSettingsPath, json, cancellationToken).ConfigureAwait(false);
         AppSettingsChanged?.Invoke(this, settings);
     }
 
@@ -73,7 +73,7 @@ public sealed class SettingsService : ISettingsService
 
         try
         {
-            var json = await File.ReadAllTextAsync(settingsPath, cancellationToken);
+            var json = await File.ReadAllTextAsync(settingsPath, cancellationToken).ConfigureAwait(false);
             _workspaceSettings = JsonSerializer.Deserialize<WorkspaceSettings>(json, JsonOptions) ?? new WorkspaceSettings();
             return _workspaceSettings;
         }
@@ -90,7 +90,7 @@ public sealed class SettingsService : ISettingsService
         
         var settingsPath = Path.Combine(nvsPath, "workspace.json");
         var json = JsonSerializer.Serialize(settings, JsonOptions);
-        await File.WriteAllTextAsync(settingsPath, json, cancellationToken);
+        await File.WriteAllTextAsync(settingsPath, json, cancellationToken).ConfigureAwait(false);
         
         _workspaceSettings = settings;
         WorkspaceSettingsChanged?.Invoke(this, settings);

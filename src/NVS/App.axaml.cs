@@ -36,7 +36,7 @@ public partial class App : Application
             var settingsService = Services?.GetService(typeof(ISettingsService)) as ISettingsService;
             if (settingsService is not null)
             {
-                try { settingsService.InitializeAsync().GetAwaiter().GetResult(); }
+                try { Task.Run(() => settingsService.InitializeAsync()).GetAwaiter().GetResult(); }
                 catch { /* Continue with defaults if settings fail to load */ }
             }
 
