@@ -72,7 +72,9 @@
                                 Diagnostics="{Binding Diagnostics}"
                                 GoToDefinitionCommand="{Binding GoToDefinitionCommand}"
                                 RequestCompletionCommand="{Binding RequestCompletionCommand}"
-                                CompletionResults="{Binding LastCompletionResults}"/>
+                                CompletionResults="{Binding LastCompletionResults}"
+                                Breakpoints="{Binding Breakpoints}"
+                                ToggleBreakpointCommand="{Binding ToggleBreakpointCommand}"/>
                         </i:Interaction.Behaviors>
                     </AvaloniaEdit:TextEditor>
                 </DataTemplate>

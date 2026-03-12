@@ -321,6 +321,8 @@ public class DocumentViewModel : INotifyPropertyChanged
     private ICommand? _requestCompletionCommand;
     private IReadOnlyList<Diagnostic> _diagnostics = [];
     private IReadOnlyList<CompletionItem>? _lastCompletionResults;
+    private IReadOnlyList<(int Line, bool Verified)> _breakpoints = [];
+    private ICommand? _toggleBreakpointCommand;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -462,6 +464,26 @@ public class DocumentViewModel : INotifyPropertyChanged
         set
         {
             _requestCompletionCommand = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public IReadOnlyList<(int Line, bool Verified)> Breakpoints
+    {
+        get => _breakpoints;
+        set
+        {
+            _breakpoints = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public ICommand? ToggleBreakpointCommand
+    {
+        get => _toggleBreakpointCommand;
+        set
+        {
+            _toggleBreakpointCommand = value;
             OnPropertyChanged();
         }
     }

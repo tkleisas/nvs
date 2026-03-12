@@ -18,6 +18,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private TextEditor? _textEditor;
     private SearchPanel? _searchPanel;
     private DiagnosticBackgroundRenderer? _diagnosticRenderer;
+    private BreakpointMargin? _breakpointMargin;
     private CompletionWindow? _completionWindow;
     private bool _updating;
 
@@ -53,6 +54,12 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
     public static readonly StyledProperty<IReadOnlyList<CompletionItem>?> CompletionResultsProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, IReadOnlyList<CompletionItem>?>(nameof(CompletionResults));
+
+    public static readonly StyledProperty<IReadOnlyList<(int Line, bool Verified)>?> BreakpointsProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, IReadOnlyList<(int Line, bool Verified)>?>(nameof(Breakpoints));
+
+    public static readonly StyledProperty<ICommand?> ToggleBreakpointCommandProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, ICommand?>(nameof(ToggleBreakpointCommand));
 
     public string Text
     {
@@ -114,6 +121,18 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         set => SetValue(CompletionResultsProperty, value);
     }
 
+    public IReadOnlyList<(int Line, bool Verified)>? Breakpoints
+    {
+        get => GetValue(BreakpointsProperty);
+        set => SetValue(BreakpointsProperty, value);
+    }
+
+    public ICommand? ToggleBreakpointCommand
+    {
+        get => GetValue(ToggleBreakpointCommandProperty);
+        set => SetValue(ToggleBreakpointCommandProperty, value);
+    }
+
     protected override void OnAttached()
     {
         base.OnAttached();
@@ -131,6 +150,11 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _diagnosticRenderer = new DiagnosticBackgroundRenderer();
             _diagnosticRenderer.SetDocument(_textEditor.Document);
             _textEditor.TextArea.TextView.BackgroundRenderers.Add(_diagnosticRenderer);
+
+            // Install breakpoint margin (left gutter)
+            _breakpointMargin = new BreakpointMargin();
+            _breakpointMargin.BreakpointToggled += OnBreakpointToggled;
+            _textEditor.TextArea.LeftMargins.Insert(0, _breakpointMargin);
 
             UndoCommand = new RelayCommand(
                 () => _textEditor?.Undo(),
@@ -154,6 +178,12 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
             if (_diagnosticRenderer != null)
                 _textEditor.TextArea.TextView.BackgroundRenderers.Remove(_diagnosticRenderer);
+
+            if (_breakpointMargin != null)
+            {
+                _breakpointMargin.BreakpointToggled -= OnBreakpointToggled;
+                _textEditor.TextArea.LeftMargins.Remove(_breakpointMargin);
+            }
         }
     }
 
@@ -186,6 +216,11 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             if (items is { Count: > 0 })
                 ShowCompletionWindow(items);
         }
+        else if (change.Property == BreakpointsProperty)
+        {
+            var breakpoints = change.GetNewValue<IReadOnlyList<(int Line, bool Verified)>?>() ?? [];
+            _breakpointMargin?.UpdateBreakpoints(breakpoints);
+        }
     }
 
     private void OnEditorTextChanged(object? sender, EventArgs e)
@@ -216,6 +251,16 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             e.Handled = true;
             GoToDefinitionCommand?.Execute(null);
         }
+        // F9 → toggle breakpoint at current line
+        else if (e.Key == Key.F9 && e.KeyModifiers == KeyModifiers.None)
+        {
+            e.Handled = true;
+            if (_textEditor is not null)
+            {
+                var line = _textEditor.TextArea.Caret.Line;
+                ToggleBreakpointCommand?.Execute(line);
+            }
+        }
     }
 
     /// <summary>
@@ -237,6 +282,11 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
         _completionWindow.Show();
         _completionWindow.Closed += (_, _) => _completionWindow = null;
+    }
+
+    private void OnBreakpointToggled(object? sender, int line)
+    {
+        ToggleBreakpointCommand?.Execute(line);
     }
 
     private void UpdateCaretPosition()
