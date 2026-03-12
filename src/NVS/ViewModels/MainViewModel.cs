@@ -768,21 +768,27 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     private void OnDebuggingStarted(object? sender, DebugSession session)
     {
-        IsDebugging = true;
-        IsDebugPaused = false;
-        StatusMessage = $"Debugging: {session.Name}";
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            IsDebugging = true;
+            IsDebugPaused = false;
+            StatusMessage = $"Debugging: {session.Name}";
+        });
     }
 
     private void OnDebuggingStopped(object? sender, DebugSession session)
     {
-        IsDebugging = false;
-        IsDebugPaused = false;
-        StatusMessage = "Debug session ended";
-        ClearDebugCurrentLine();
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            IsDebugging = false;
+            IsDebugPaused = false;
+            StatusMessage = "Debug session ended";
+            ClearDebugCurrentLine();
 
-        // Clear call stack and variables
-        FindToolInDock<CallStackToolViewModel>()?.ClearFrames();
-        FindToolInDock<VariablesToolViewModel>()?.ClearVariables();
+            // Clear call stack and variables
+            FindToolInDock<CallStackToolViewModel>()?.ClearFrames();
+            FindToolInDock<VariablesToolViewModel>()?.ClearVariables();
+        });
     }
 
     private async void OnDebuggingPaused(object? sender, EventArgs e)
@@ -830,9 +836,12 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     private void OnDebuggingContinued(object? sender, EventArgs e)
     {
-        IsDebugPaused = false;
-        StatusMessage = "Running...";
-        ClearDebugCurrentLine();
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            IsDebugPaused = false;
+            StatusMessage = "Running...";
+            ClearDebugCurrentLine();
+        });
     }
 
     private void OnDebugOutput(object? sender, OutputEvent evt)
