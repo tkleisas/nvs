@@ -224,6 +224,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
     private void OnDocumentOpened(object? sender, Document document)
     {
         var docVm = new DocumentViewModel(document);
+        docVm.CloseTabCommand = new RelayCommand(() => CloseDocument(docVm));
         WireLspCommands(docVm);
         OpenDocuments.Add(docVm);
         ActiveDocument = docVm;
@@ -328,6 +329,8 @@ public class DocumentViewModel : INotifyPropertyChanged
         Document = document;
         _text = document.Content;
     }
+
+    public ICommand? CloseTabCommand { get; set; }
 
     public string Text
     {

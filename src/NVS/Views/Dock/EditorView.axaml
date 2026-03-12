@@ -19,7 +19,20 @@
                     BorderThickness="0">
             <TabControl.ItemTemplate>
                 <DataTemplate DataType="vm:DocumentViewModel">
-                    <TextBlock Text="{Binding Title}" FontSize="12"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{Binding Title}" FontSize="12" VerticalAlignment="Center"/>
+                        <Button Command="{Binding CloseTabCommand}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="2"
+                                Cursor="Hand"
+                                VerticalAlignment="Center"
+                                Width="16" Height="16">
+                            <PathIcon Width="8" Height="8"
+                                      Foreground="#808080"
+                                      Data="M 0,0 L 8,8 M 8,0 L 0,8"/>
+                        </Button>
+                    </StackPanel>
                 </DataTemplate>
             </TabControl.ItemTemplate>
             <TabControl.ContentTemplate>
@@ -34,6 +47,21 @@
                         BorderThickness="0"
                         Padding="8"
                         WordWrap="False">
+                        <AvaloniaEdit:TextEditor.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Cut" InputGesture="Ctrl+X" Click="OnCutClick"/>
+                                <MenuItem Header="Copy" InputGesture="Ctrl+C" Click="OnCopyClick"/>
+                                <MenuItem Header="Paste" InputGesture="Ctrl+V" Click="OnPasteClick"/>
+                                <Separator/>
+                                <MenuItem Header="Select All" InputGesture="Ctrl+A" Click="OnSelectAllClick"/>
+                                <Separator/>
+                                <MenuItem Header="Undo" InputGesture="Ctrl+Z" Command="{Binding UndoCommand}"/>
+                                <MenuItem Header="Redo" InputGesture="Ctrl+Y" Command="{Binding RedoCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Find" InputGesture="Ctrl+F" Command="{Binding OpenSearchCommand}"/>
+                                <MenuItem Header="Go to Definition" InputGesture="F12" Command="{Binding GoToDefinitionCommand}"/>
+                            </ContextMenu>
+                        </AvaloniaEdit:TextEditor.ContextMenu>
                         <i:Interaction.Behaviors>
                             <behaviors:DocumentTextBindingBehavior
                                 Text="{Binding Text, Mode=TwoWay}"
