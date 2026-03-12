@@ -294,6 +294,21 @@ public partial class EditorViewModel : INotifyPropertyChanged
         });
     }
 
+    /// <summary>
+    /// Immediately sends didChange to the LSP server, cancelling any pending debounce.
+    /// Called before completion/signature help requests so the server sees current text.
+    /// </summary>
+    private void FlushLspDidChange(DocumentViewModel docVm)
+    {
+        if (_lspSessionManager is null) return;
+
+        _didChangeCts?.Cancel();
+        _didChangeCts?.Dispose();
+        _didChangeCts = null;
+
+        _lspSessionManager.NotifyDocumentChanged(docVm.Document, docVm.Text);
+    }
+
     private void OnLspDiagnosticsChanged(object? sender, DocumentDiagnosticsEventArgs args)
     {
         UpdateDiagnostics(args.DocumentUri, args.Diagnostics);
@@ -316,6 +331,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
 
         docVm.RequestCompletionCommand = new AsyncRelayCommand(async () =>
         {
+            FlushLspDidChange(docVm);
             var pos = new Position { Line = docVm.CursorLine - 1, Column = docVm.CursorColumn - 1 };
             var completions = await _lspSessionManager.GetCompletionsAsync(docVm.Document, pos);
             docVm.LastCompletionResults = completions;
@@ -323,6 +339,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
 
         docVm.RequestSignatureHelpCommand = new AsyncRelayCommand<string?>(async (triggerChar) =>
         {
+            FlushLspDidChange(docVm);
             var pos = new Position { Line = docVm.CursorLine - 1, Column = docVm.CursorColumn - 1 };
             var sigHelp = await _lspSessionManager.GetSignatureHelpAsync(docVm.Document, pos, triggerChar);
             docVm.LastSignatureHelp = sigHelp;
