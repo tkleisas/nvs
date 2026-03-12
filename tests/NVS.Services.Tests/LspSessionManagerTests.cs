@@ -375,10 +375,12 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
         _factory.CreateClientAsync(Language.CSharp, Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<ILspClient?>(mockClient));
 
-        var doc = CreateDocument("test.cs", Language.CSharp, @"C:\other\test.cs");
+        var docPath = Path.Combine(Path.GetTempPath(), "other", "test.cs");
+        var expectedRoot = Path.GetDirectoryName(docPath)!;
+        var doc = CreateDocument("test.cs", Language.CSharp, docPath);
         await manager.GetClientAsync(doc);
 
-        await _factory.Received(1).CreateClientAsync(Language.CSharp, @"C:\other", Arg.Any<CancellationToken>());
+        await _factory.Received(1).CreateClientAsync(Language.CSharp, expectedRoot, Arg.Any<CancellationToken>());
 
         await manager.DisposeAsync();
     }

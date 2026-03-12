@@ -118,11 +118,13 @@ public sealed partial class SolutionService : ISolutionService
             if (string.IsNullOrWhiteSpace(pathAttr))
                 continue;
 
-            var name = Path.GetFileNameWithoutExtension(pathAttr);
+            // Normalize backslashes to forward slashes for cross-platform Path operations
+            var normalizedPath = pathAttr.Replace('\\', '/');
+            var name = Path.GetFileNameWithoutExtension(normalizedPath);
             projects.Add(new ProjectReference
             {
                 Name = name,
-                RelativePath = pathAttr.Replace('/', Path.DirectorySeparatorChar),
+                RelativePath = pathAttr.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar),
                 ProjectGuid = Guid.NewGuid(),
                 TypeGuid = Guid.Empty
             });
@@ -146,7 +148,7 @@ public sealed partial class SolutionService : ISolutionService
         {
             var typeGuid = Guid.TryParse(match.Groups[1].Value, out var tg) ? tg : Guid.Empty;
             var name = match.Groups[2].Value;
-            var relativePath = match.Groups[3].Value.Replace('/', Path.DirectorySeparatorChar);
+            var relativePath = match.Groups[3].Value.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
             var projectGuid = Guid.TryParse(match.Groups[4].Value, out var pg) ? pg : Guid.NewGuid();
 
             // Skip solution folders (type GUID {2150E333-8FDC-42A3-9474-1A3956D46DE8})
