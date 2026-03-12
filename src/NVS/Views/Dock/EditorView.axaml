@@ -28,9 +28,8 @@
                                 Cursor="Hand"
                                 VerticalAlignment="Center"
                                 Width="16" Height="16">
-                            <PathIcon Width="8" Height="8"
-                                      Foreground="#808080"
-                                      Data="M 0,0 L 8,8 M 8,0 L 0,8"/>
+                            <TextBlock Text="✕" FontSize="10" Foreground="#808080"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
                     </StackPanel>
                 </DataTemplate>
