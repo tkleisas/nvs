@@ -100,7 +100,7 @@ public partial class MainWindow : Window
         var newSettings = settingsService.AppSettings with { Window = windowSettings };
         try
         {
-            settingsService.SaveAppSettingsAsync(newSettings).GetAwaiter().GetResult();
+            Task.Run(() => settingsService.SaveAppSettingsAsync(newSettings)).GetAwaiter().GetResult();
         }
         catch
         {
