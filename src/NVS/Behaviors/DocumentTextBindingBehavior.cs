@@ -366,6 +366,16 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         _completionWindow?.Close();
 
         _completionWindow = new CompletionWindow(_textEditor.TextArea);
+
+        // Move StartOffset back to the start of the partial word so the
+        // completion replaces the already-typed prefix instead of appending.
+        var caretOffset = _textEditor.TextArea.Caret.Offset;
+        var document = _textEditor.Document;
+        var wordStart = caretOffset;
+        while (wordStart > 0 && (char.IsLetterOrDigit(document.GetCharAt(wordStart - 1)) || document.GetCharAt(wordStart - 1) == '_'))
+            wordStart--;
+        _completionWindow.StartOffset = wordStart;
+
         foreach (var item in items)
         {
             _completionWindow.CompletionList.CompletionData.Add(new LspCompletionData(item));
