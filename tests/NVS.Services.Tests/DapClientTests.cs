@@ -741,11 +741,25 @@ public sealed class DebugAdapterRegistryTests
     }
 
     [Fact]
-    public void FindAdapterExecutable_WithCustomPath_ShouldReturnNullIfNotExists()
+    public void FindAdapterExecutable_WithInvalidCustomPath_ShouldIgnoreIt()
     {
         var registry = new DebugAdapterRegistry();
 
+        // Invalid custom path is ignored; may still find via PATH/tools fallback
         var result = registry.FindAdapterExecutable("coreclr", "/nonexistent/path/to/binary");
+
+        // Don't assert null — netcoredbg may be installed on this machine
+        // Just verify the invalid custom path was not returned
+        if (result is not null)
+            result.Should().NotBe("/nonexistent/path/to/binary");
+    }
+
+    [Fact]
+    public void FindAdapterExecutable_ForUnknownType_ShouldReturnNull()
+    {
+        var registry = new DebugAdapterRegistry();
+
+        var result = registry.FindAdapterExecutable("unknown-debugger");
 
         result.Should().BeNull();
     }

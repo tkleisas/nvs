@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace NVS.Services.Lsp.Protocol;
@@ -85,20 +86,86 @@ public sealed record ServerInfo
 
 public sealed record ServerCapabilities
 {
+    [JsonConverter(typeof(LspBoolOrObjectConverter<TextDocumentSyncOptions>))]
     public TextDocumentSyncOptions? TextDocumentSync { get; init; }
-    public bool? CompletionProvider { get; init; }
-    public bool? HoverProvider { get; init; }
-    public bool? DefinitionProvider { get; init; }
-    public bool? ReferencesProvider { get; init; }
-    public bool? DocumentSymbolProvider { get; init; }
-    public bool? DocumentFormattingProvider { get; init; }
+    public JsonElement? CompletionProvider { get; init; }
+    public JsonElement? HoverProvider { get; init; }
+    public JsonElement? DefinitionProvider { get; init; }
+    public JsonElement? ReferencesProvider { get; init; }
+    public JsonElement? DocumentSymbolProvider { get; init; }
+    public JsonElement? DocumentFormattingProvider { get; init; }
+
+    /// <summary>
+    /// Checks if a capability (which may be bool or object) is enabled.
+    /// </summary>
+    public static bool IsEnabled(JsonElement? capability) =>
+        capability?.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.Object => true,
+            _ => false,
+        };
 }
 
 public sealed record TextDocumentSyncOptions
 {
     public bool OpenClose { get; init; }
     public TextDocumentSyncKind Change { get; init; }
-    public bool Save { get; init; }
+
+    [JsonConverter(typeof(LspBoolOrObjectConverter<SaveOptions>))]
+    public SaveOptions? Save { get; init; }
+}
+
+public sealed record SaveOptions
+{
+    public bool IncludeText { get; init; }
+}
+
+/// <summary>
+/// Handles LSP union types where a field can be a boolean or a typed object.
+/// true → new T(), false/null → null.
+/// </summary>
+public sealed class LspBoolOrObjectConverter<T> : JsonConverter<T?> where T : class, new()
+{
+    public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return reader.TokenType switch
+        {
+            JsonTokenType.True => new T(),
+            JsonTokenType.False => null,
+            JsonTokenType.Null => null,
+            JsonTokenType.Number when reader.TryGetInt32(out var intVal) =>
+                intVal switch
+                {
+                    // TextDocumentSyncKind can be sent as a number (0=None, 1=Full, 2=Incremental)
+                    _ => CreateFromSyncKind(intVal),
+                },
+            JsonTokenType.StartObject => JsonSerializer.Deserialize<T>(ref reader, options),
+            _ => throw new JsonException($"Unexpected token {reader.TokenType} for {typeof(T).Name}"),
+        };
+    }
+
+    public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions options)
+    {
+        if (value is null)
+            writer.WriteNullValue();
+        else
+            JsonSerializer.Serialize(writer, value, options);
+    }
+
+    private static T? CreateFromSyncKind(int kind)
+    {
+        if (typeof(T) == typeof(TextDocumentSyncOptions))
+        {
+            var obj = new TextDocumentSyncOptions
+            {
+                Change = (TextDocumentSyncKind)kind,
+                OpenClose = kind > 0,
+            };
+            return obj as T;
+        }
+        return new T();
+    }
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]

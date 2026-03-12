@@ -83,8 +83,51 @@ public sealed class LspClientTests : IAsyncLifetime
         await _client.InitializeAsync(@"C:\project");
 
         _client.ServerCapabilities.Should().NotBeNull();
-        _client.ServerCapabilities!.CompletionProvider.Should().BeTrue();
-        _client.ServerCapabilities.HoverProvider.Should().BeTrue();
+        ServerCapabilities.IsEnabled(_client.ServerCapabilities!.CompletionProvider).Should().BeTrue();
+        ServerCapabilities.IsEnabled(_client.ServerCapabilities.HoverProvider).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WithSaveAsObject_ShouldDeserializeCorrectly()
+    {
+        // Some LSP servers send save as { includeText: true } instead of a boolean
+        _mockServer.OnRequest("initialize", _ => new
+        {
+            capabilities = new
+            {
+                textDocumentSync = new { openClose = true, change = 1, save = new { includeText = true } },
+                completionProvider = new { triggerCharacters = new[] { "." } },
+                hoverProvider = true,
+            }
+        });
+
+        await _client.InitializeAsync(@"C:\project");
+
+        _client.ServerCapabilities.Should().NotBeNull();
+        _client.ServerCapabilities!.TextDocumentSync.Should().NotBeNull();
+        _client.ServerCapabilities.TextDocumentSync!.Save.Should().NotBeNull();
+        _client.ServerCapabilities.TextDocumentSync.Save!.IncludeText.Should().BeTrue();
+        ServerCapabilities.IsEnabled(_client.ServerCapabilities.CompletionProvider).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WithSyncKindAsNumber_ShouldDeserializeCorrectly()
+    {
+        // Some servers send textDocumentSync as just a number (sync kind)
+        _mockServer.OnRequest("initialize", _ => new
+        {
+            capabilities = new
+            {
+                textDocumentSync = 2,
+                completionProvider = true,
+            }
+        });
+
+        await _client.InitializeAsync(@"C:\project");
+
+        _client.ServerCapabilities.Should().NotBeNull();
+        _client.ServerCapabilities!.TextDocumentSync.Should().NotBeNull();
+        _client.ServerCapabilities.TextDocumentSync!.Change.Should().Be(TextDocumentSyncKind.Incremental);
     }
 
     [Fact]
