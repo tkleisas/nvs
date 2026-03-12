@@ -3,56 +3,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             xmlns:terminal="using:Iciclecreek.Terminal"
              mc:Ignorable="d"
              x:Class="NVS.Views.Dock.TerminalView"
              x:DataType="dock:TerminalToolViewModel">
 
-    <Grid RowDefinitions="Auto,*,Auto">
-        <!-- Terminal header -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Background="#2D2D30">
-            <TextBlock Grid.Column="0" Text="TERMINAL" FontWeight="Bold" FontSize="11"
-                       Foreground="#CCCCCC" Padding="8,4" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Content="+" Padding="8,4"
-                    Command="{Binding Main.NewTerminalCommand}"
-                    ToolTip.Tip="New Terminal"
-                    Background="Transparent" Foreground="#CCCCCC" FontSize="12" />
-            <Button Grid.Column="2" Content="✕" Padding="8,4"
-                    Command="{Binding Main.CloseTerminalCommand}"
-                    ToolTip.Tip="Close Terminal"
-                    Background="Transparent" Foreground="#CCCCCC" FontSize="12" />
-        </Grid>
-        <!-- Terminal output -->
-        <ScrollViewer Grid.Row="1"
-                      x:Name="TerminalScrollViewer"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto"
-                      Background="#1E1E1E">
-            <TextBlock Text="{Binding Main.TerminalOutput}"
-                       Foreground="#CCCCCC"
-                       FontFamily="Consolas,Courier New,monospace"
-                       FontSize="12"
-                       Padding="8,4"
-                       TextWrapping="NoWrap" />
-        </ScrollViewer>
-        <!-- Terminal input -->
-        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Background="#252526">
-            <TextBox Grid.Column="0"
-                     Text="{Binding Main.TerminalInput}"
-                     Watermark="Type a command..."
-                     Background="Transparent"
-                     Foreground="#CCCCCC"
-                     BorderThickness="0"
-                     FontFamily="Consolas,Courier New,monospace"
-                     FontSize="12"
-                     Padding="8,4"
-                     KeyDown="OnTerminalInputKeyDown">
-                <TextBox.KeyBindings>
-                    <KeyBinding Gesture="Enter" Command="{Binding Main.SendTerminalInputCommand}" />
-                </TextBox.KeyBindings>
-            </TextBox>
-            <Button Grid.Column="1" Content="▶" Padding="8,4"
-                    Command="{Binding Main.SendTerminalInputCommand}"
-                    Background="Transparent" Foreground="#4EC9B0" />
-        </Grid>
-    </Grid>
+    <terminal:TerminalControl x:Name="Terminal"
+                              FontFamily="Cascadia Mono,Cascadia Code,Consolas,Courier New,monospace"
+                              FontSize="14"
+                              BufferSize="5000" />
 </UserControl>

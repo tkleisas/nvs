@@ -1,6 +1,5 @@
-using System.ComponentModel;
+using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using NVS.ViewModels.Dock;
 
 namespace NVS.Views.Dock;
@@ -15,26 +14,20 @@ public partial class TerminalView : UserControl
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (DataContext is TerminalToolViewModel tool)
+        if (DataContext is TerminalToolViewModel vm && Terminal != null)
         {
-            tool.Main.PropertyChanged += OnMainPropertyChanged;
-        }
-    }
+            Terminal.Process = vm.ShellPath;
+            var workDir = vm.WorkingDirectory;
+            if (string.IsNullOrEmpty(workDir))
+                workDir = vm.Main.WorkspacePath;
 
-    private void OnMainPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == "TerminalOutput")
-        {
-            TerminalScrollViewer.ScrollToEnd();
-        }
-    }
-
-    private void OnTerminalInputKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter && DataContext is TerminalToolViewModel tool)
-        {
-            tool.Main.SendTerminalInputCommand.Execute(null);
-            e.Handled = true;
+            if (!string.IsNullOrEmpty(workDir))
+            {
+                if (OperatingSystem.IsWindows())
+                    Terminal.Args = ["-NoExit", "-Command", $"Set-Location '{workDir}'"];
+                else
+                    Terminal.Args = ["-c", $"cd \"{workDir}\" && exec $SHELL"];
+            }
         }
     }
 }
