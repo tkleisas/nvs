@@ -27,6 +27,7 @@ public sealed record TextDocumentClientCapabilities
     public FormattingClientCapabilities? Formatting { get; init; }
     public PublishDiagnosticsClientCapabilities? PublishDiagnostics { get; init; }
     public SynchronizationClientCapabilities? Synchronization { get; init; }
+    public SignatureHelpClientCapabilities? SignatureHelp { get; init; }
 }
 
 public sealed record CompletionClientCapabilities
@@ -69,6 +70,18 @@ public sealed record SynchronizationClientCapabilities
     public bool DidSave { get; init; }
     public bool DidChange { get; init; }
     public bool WillSave { get; init; }
+}
+
+public sealed record SignatureHelpClientCapabilities
+{
+    public bool DynamicRegistration { get; init; }
+    public SignatureHelpSignatureInformation? SignatureInformation { get; init; }
+    public bool ContextSupport { get; init; }
+}
+
+public sealed record SignatureHelpSignatureInformation
+{
+    public bool ActiveParameterSupport { get; init; }
 }
 
 // ─── Initialize Result ──────────────────────────────────────────────────────

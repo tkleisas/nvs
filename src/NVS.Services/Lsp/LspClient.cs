@@ -88,6 +88,11 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
                     Formatting = new FormattingClientCapabilities(),
                     PublishDiagnostics = new PublishDiagnosticsClientCapabilities { RelatedInformation = true },
                     Synchronization = new SynchronizationClientCapabilities { DidSave = true, DidChange = true },
+                    SignatureHelp = new SignatureHelpClientCapabilities
+                    {
+                        ContextSupport = true,
+                        SignatureInformation = new SignatureHelpSignatureInformation { ActiveParameterSupport = true },
+                    },
                 },
             },
         };
@@ -166,12 +171,22 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
         return [];
     }
 
-    public async Task<SignatureHelp?> GetSignatureHelpAsync(Document document, Position position, CancellationToken cancellationToken = default)
+    public async Task<SignatureHelp?> GetSignatureHelpAsync(Document document, Position position, string? triggerChar = null, CancellationToken cancellationToken = default)
     {
         var param = new SignatureHelpParams
         {
             TextDocument = LspModelMapper.ToTextDocumentIdentifier(document),
             Position = LspModelMapper.ToLspPosition(position),
+            Context = triggerChar is not null
+                ? new SignatureHelpContext
+                {
+                    TriggerKind = 2, // TriggerCharacter
+                    TriggerCharacter = triggerChar,
+                }
+                : new SignatureHelpContext
+                {
+                    TriggerKind = 1, // Invoked
+                },
         };
 
         var result = await SendRequestAsync<LspSignatureHelp>("textDocument/signatureHelp", param, cancellationToken)

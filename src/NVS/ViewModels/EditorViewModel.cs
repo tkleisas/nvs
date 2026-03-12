@@ -321,10 +321,10 @@ public partial class EditorViewModel : INotifyPropertyChanged
             docVm.LastCompletionResults = completions;
         });
 
-        docVm.RequestSignatureHelpCommand = new AsyncRelayCommand(async () =>
+        docVm.RequestSignatureHelpCommand = new AsyncRelayCommand<string?>(async (triggerChar) =>
         {
             var pos = new Position { Line = docVm.CursorLine - 1, Column = docVm.CursorColumn - 1 };
-            var sigHelp = await _lspSessionManager.GetSignatureHelpAsync(docVm.Document, pos);
+            var sigHelp = await _lspSessionManager.GetSignatureHelpAsync(docVm.Document, pos, triggerChar);
             docVm.LastSignatureHelp = sigHelp;
         });
     }

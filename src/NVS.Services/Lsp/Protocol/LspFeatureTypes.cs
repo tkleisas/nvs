@@ -135,6 +135,14 @@ public sealed record SignatureHelpParams
 {
     public required TextDocumentIdentifier TextDocument { get; init; }
     public required LspPosition Position { get; init; }
+    public SignatureHelpContext? Context { get; init; }
+}
+
+public sealed record SignatureHelpContext
+{
+    public required int TriggerKind { get; init; }
+    public string? TriggerCharacter { get; init; }
+    public bool IsRetrigger { get; init; }
 }
 
 public sealed record LspSignatureHelp

@@ -351,7 +351,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         // Signature help trigger characters
         if (ch is '(' or ',')
         {
-            RequestSignatureHelpCommand?.Execute(null);
+            RequestSignatureHelpCommand?.Execute(ch.ToString());
             return;
         }
 

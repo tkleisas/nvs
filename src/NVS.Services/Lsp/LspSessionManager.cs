@@ -65,13 +65,13 @@ public sealed class LspSessionManager : ILspSessionManager
         return await client.GetCompletionsAsync(document, position, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<SignatureHelp?> GetSignatureHelpAsync(Document document, Position position, CancellationToken cancellationToken = default)
+    public async Task<SignatureHelp?> GetSignatureHelpAsync(Document document, Position position, string? triggerChar = null, CancellationToken cancellationToken = default)
     {
         var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
         if (client is null)
             return null;
 
-        return await client.GetSignatureHelpAsync(document, position, cancellationToken).ConfigureAwait(false);
+        return await client.GetSignatureHelpAsync(document, position, triggerChar, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Location?> GetDefinitionAsync(Document document, Position position, CancellationToken cancellationToken = default)
