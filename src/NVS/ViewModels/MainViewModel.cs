@@ -810,7 +810,12 @@ public partial class MainViewModel : INotifyPropertyChanged
                 {
                     var topFrame = frames[0];
                     var vars = await _debugService.GetVariablesAsync(topFrame.Id);
-                    FindToolInDock<VariablesToolViewModel>()?.UpdateVariables(vars);
+                    var varsTool = FindToolInDock<VariablesToolViewModel>();
+                    if (varsTool is not null)
+                    {
+                        varsTool.SetDebugService(_debugService);
+                        varsTool.UpdateVariables(vars);
+                    }
 
                     // Navigate to the stopped location in the editor
                     if (!string.IsNullOrEmpty(topFrame.Source) && topFrame.Line > 0)

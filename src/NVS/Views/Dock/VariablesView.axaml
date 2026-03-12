@@ -18,6 +18,11 @@
                   ItemsSource="{Binding Variables}"
                   Background="#1E1E1E"
                   BorderThickness="0">
+            <TreeView.Styles>
+                <Style Selector="TreeViewItem" x:DataType="vm:VariableNode">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                </Style>
+            </TreeView.Styles>
             <TreeView.ItemTemplate>
                 <TreeDataTemplate ItemsSource="{Binding Children}">
                     <Grid ColumnDefinitions="*,*,Auto" Margin="2">

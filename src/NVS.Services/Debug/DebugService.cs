@@ -256,6 +256,20 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         return allVariables;
     }
 
+    public async Task<IReadOnlyList<Variable>> GetChildVariablesAsync(int variablesReference, CancellationToken cancellationToken = default)
+    {
+        EnsureDebugging();
+
+        var result = await _client!.GetVariablesAsync(variablesReference, cancellationToken).ConfigureAwait(false);
+        return result.Variables.Select(v => new Variable
+        {
+            Name = v.Name,
+            Value = v.Value,
+            Type = v.Type ?? "unknown",
+            VariablesReference = v.VariablesReference > 0 ? v.VariablesReference : null,
+        }).ToList();
+    }
+
     public async Task<IReadOnlyList<Breakpoint>> SetBreakpointsAsync(string path, IReadOnlyList<int> lines, CancellationToken cancellationToken = default)
     {
         EnsureDebugging();
