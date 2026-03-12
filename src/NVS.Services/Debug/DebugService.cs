@@ -53,8 +53,31 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
 
         if (_client is null)
         {
-            var adapterPath = _adapterRegistry.FindAdapterExecutable(adapterType)
-                ?? throw new InvalidOperationException(
+            var adapterPath = _adapterRegistry.FindAdapterExecutable(adapterType);
+
+            // Auto-download if not found locally
+            if (adapterPath is null && adapterInfo.ExecutableName == "netcoredbg")
+            {
+                OutputReceived?.Invoke(this, new OutputEvent
+                {
+                    Output = "netcoredbg not found — downloading automatically...\n",
+                    Category = OutputCategory.Console,
+                });
+
+                var progress = new Progress<string>(msg =>
+                    OutputReceived?.Invoke(this, new OutputEvent
+                    {
+                        Output = msg + "\n",
+                        Category = OutputCategory.Console,
+                    }));
+
+                adapterPath = await _adapterRegistry.Downloader
+                    .EnsureNetcoredbgAsync(progress, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            if (adapterPath is null)
+                throw new InvalidOperationException(
                     $"Debug adapter '{adapterInfo.DisplayName}' not found. " +
                     $"Please install {adapterInfo.ExecutableName} and ensure it's on your PATH.");
 

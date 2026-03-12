@@ -6,9 +6,14 @@ namespace NVS.Services.Debug;
 public sealed class DebugAdapterRegistry
 {
     private readonly Dictionary<string, DebugAdapterInfo> _adapters = new(StringComparer.OrdinalIgnoreCase);
+    private readonly DebugAdapterDownloader _downloader;
 
-    public DebugAdapterRegistry()
+    public DebugAdapterRegistry() : this(new DebugAdapterDownloader()) { }
+
+    public DebugAdapterRegistry(DebugAdapterDownloader downloader)
     {
+        _downloader = downloader;
+
         // Register built-in adapters
         Register(new DebugAdapterInfo
         {
@@ -19,6 +24,8 @@ public sealed class DebugAdapterRegistry
             SupportedRuntimes = ["dotnet"],
         });
     }
+
+    public DebugAdapterDownloader Downloader => _downloader;
 
     public void Register(DebugAdapterInfo adapter)
     {
@@ -31,7 +38,7 @@ public sealed class DebugAdapterRegistry
     public IReadOnlyList<DebugAdapterInfo> GetAllAdapters() => [.. _adapters.Values];
 
     /// <summary>
-    /// Attempts to find the adapter executable on PATH or at a custom path.
+    /// Attempts to find the adapter executable on PATH, common locations, or the NVS tools directory.
     /// Returns the full path if found, null otherwise.
     /// </summary>
     public string? FindAdapterExecutable(string type, string? customPath = null)
@@ -62,6 +69,11 @@ public sealed class DebugAdapterRegistry
             if (File.Exists(path))
                 return path;
         }
+
+        // Check NVS tools directory (auto-downloaded adapters)
+        var toolsPath = _downloader.GetInstalledPath(adapter.ExecutableName);
+        if (toolsPath is not null)
+            return toolsPath;
 
         return null;
     }

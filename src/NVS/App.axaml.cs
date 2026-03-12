@@ -83,6 +83,7 @@ public partial class App : Application
         services.AddSingleton<IBuildService, BuildService>();
         services.AddSingleton<IDebugService, DebugService>();
         services.AddSingleton<IBreakpointStore, BreakpointStore>();
+        services.AddSingleton<DebugAdapterDownloader>();
         services.AddSingleton<DebugAdapterRegistry>();
         
         // ViewModels
