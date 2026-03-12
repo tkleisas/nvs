@@ -264,6 +264,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             if (solutionFile is not null)
             {
                 var solution = await _solutionService.LoadSolutionAsync(solutionFile);
+                LoadSolutionTree(solution);
                 StatusMessage = $"Solution loaded: {solution.Name} ({solution.Projects.Count} projects)";
             }
         }
@@ -271,6 +272,80 @@ public partial class MainViewModel : INotifyPropertyChanged
         {
             StatusMessage = $"Failed to load solution: {ex.Message}";
         }
+    }
+
+    private void LoadSolutionTree(Core.Models.SolutionModel solution)
+    {
+        FileTree.Clear();
+
+        var solutionDir = Path.GetDirectoryName(solution.FilePath)!;
+
+        var solutionNode = new FileTreeNode
+        {
+            Name = $"{solution.Name} ({Path.GetFileName(solution.FilePath)})",
+            Path = solution.FilePath,
+            IsDirectory = true
+        };
+
+        foreach (var projRef in solution.Projects)
+        {
+            var projectPath = Path.GetFullPath(Path.Combine(solutionDir, projRef.RelativePath));
+            var projectDir = Path.GetDirectoryName(projectPath);
+            var isStartup = solution.StartupProjectPath is not null
+                && Path.GetFullPath(solution.StartupProjectPath) == Path.GetFullPath(projectPath);
+
+            var projectNode = new FileTreeNode
+            {
+                Name = isStartup ? $"▶ {projRef.Name}" : projRef.Name,
+                Path = projectPath,
+                IsDirectory = true
+            };
+
+            if (projectDir is not null && Directory.Exists(projectDir))
+            {
+                LoadProjectFiles(projectNode, projectDir);
+            }
+
+            solutionNode.Children.Add(projectNode);
+        }
+
+        solutionNode.IsExpanded = true;
+        FileTree.Add(solutionNode);
+    }
+
+    private static void LoadProjectFiles(FileTreeNode projectNode, string projectDir)
+    {
+        try
+        {
+            foreach (var dir in Directory.GetDirectories(projectDir).OrderBy(d => d))
+            {
+                var dirName = Path.GetFileName(dir);
+                if (dirName.StartsWith('.') || IsInExcludedDirectory(dirName))
+                    continue;
+
+                var dirNode = new FileTreeNode
+                {
+                    Name = dirName,
+                    Path = dir,
+                    IsDirectory = true
+                };
+
+                LoadProjectFiles(dirNode, dir);
+                projectNode.Children.Add(dirNode);
+            }
+
+            foreach (var file in Directory.GetFiles(projectDir).OrderBy(f => f))
+            {
+                projectNode.Children.Add(new FileTreeNode
+                {
+                    Name = Path.GetFileName(file),
+                    Path = file,
+                    IsDirectory = false
+                });
+            }
+        }
+        catch (UnauthorizedAccessException) { }
+        catch (IOException) { }
     }
 
     [RelayCommand]
