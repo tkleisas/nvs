@@ -572,7 +572,18 @@ public partial class MainViewModel : INotifyPropertyChanged
 
         try
         {
-            var files = await _fileSystemService.GetFilesAsync(_workspacePath, "*", recursive: true, token);
+            IReadOnlyList<string> files;
+            try
+            {
+                files = await _fileSystemService.GetFilesAsync(_workspacePath, "*", recursive: true, token);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch
+            {
+                // Fallback: enumerate with error tolerance
+                files = await Task.Run(() => EnumerateFilesSafe(_workspacePath), token);
+            }
+
             foreach (var file in files)
             {
                 if (token.IsCancellationRequested) break;
@@ -580,17 +591,23 @@ public partial class MainViewModel : INotifyPropertyChanged
 
                 try
                 {
+                    try
+                    {
+                        var fileInfo = new FileInfo(file);
+                        if (fileInfo.Exists && fileInfo.Length > 5 * 1024 * 1024) continue;
+                    }
+                    catch { /* If we can't check size, try reading anyway */ }
+
                     var content = await _fileSystemService.ReadAllTextAsync(file, token);
                     var lines = content.Split('\n');
                     for (var i = 0; i < lines.Length; i++)
                     {
                         if (lines[i].Contains(query, StringComparison.OrdinalIgnoreCase))
                         {
-                            var relativePath = System.IO.Path.GetRelativePath(_workspacePath, file);
                             SearchResults.Add(new FileSearchResult
                             {
                                 FilePath = file,
-                                RelativePath = relativePath,
+                                RelativePath = System.IO.Path.GetRelativePath(_workspacePath, file),
                                 LineNumber = i + 1,
                                 LineText = lines[i].Trim(),
                             });
@@ -600,6 +617,7 @@ public partial class MainViewModel : INotifyPropertyChanged
                     }
                     if (SearchResults.Count >= 500) break;
                 }
+                catch (OperationCanceledException) { throw; }
                 catch
                 {
                     // Skip files that can't be read
@@ -612,10 +630,36 @@ public partial class MainViewModel : INotifyPropertyChanged
         {
             // Search was cancelled
         }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Search error: {ex.Message}";
+        }
         finally
         {
             IsSearching = false;
         }
+    }
+
+    private static List<string> EnumerateFilesSafe(string rootPath)
+    {
+        var results = new List<string>();
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(rootPath, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = true,
+                AttributesToSkip = FileAttributes.System | FileAttributes.ReparsePoint,
+            }))
+            {
+                results.Add(file);
+            }
+        }
+        catch
+        {
+            // Return whatever we collected
+        }
+        return results;
     }
 
     [RelayCommand]
