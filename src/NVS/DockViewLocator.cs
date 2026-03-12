@@ -1,0 +1,38 @@
+using System;
+using System.Collections.Generic;
+using Avalonia.Controls;
+using Avalonia.Controls.Templates;
+using Dock.Model.Core;
+using NVS.ViewModels.Dock;
+using NVS.Views.Dock;
+
+namespace NVS;
+
+public class DockViewLocator : IDataTemplate
+{
+    private static readonly Dictionary<Type, Func<Control>> ViewMap = new()
+    {
+        [typeof(ExplorerToolViewModel)] = () => new ExplorerView(),
+        [typeof(SearchToolViewModel)] = () => new SearchView(),
+        [typeof(GitToolViewModel)] = () => new GitView(),
+        [typeof(TerminalToolViewModel)] = () => new TerminalView(),
+        [typeof(EditorDocumentViewModel)] = () => new EditorView(),
+    };
+
+    public Control? Build(object? data)
+    {
+        if (data is null) return null;
+
+        if (ViewMap.TryGetValue(data.GetType(), out var factory))
+        {
+            return factory();
+        }
+
+        return new TextBlock { Text = $"No view for {data.GetType().Name}" };
+    }
+
+    public bool Match(object? data)
+    {
+        return data is IDockable;
+    }
+}

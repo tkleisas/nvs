@@ -37,6 +37,7 @@ public partial class App : Application
             if (mainViewModel != null)
             {
                 mainViewModel.StorageProvider = mainWindow.StorageProvider;
+                mainViewModel.InitializeDock();
             }
             mainWindow.DataContext = mainViewModel;
             desktop.MainWindow = mainWindow;

@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:NVS.ViewModels"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.ExplorerView"
+             x:DataType="dock:ExplorerToolViewModel">
+
+    <TreeView Padding="4" Background="Transparent"
+              ItemsSource="{Binding Main.FileTree}"
+              DoubleTapped="OnFileTreeDoubleTapped"
+              x:Name="FileTreeView">
+        <TreeView.Resources>
+            <x:Double x:Key="TreeViewItemIndent">12</x:Double>
+        </TreeView.Resources>
+        <TreeView.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="New File..." Click="OnNewFileInExplorerClick" />
+                <MenuItem Header="New Folder..." Click="OnNewFolderInExplorerClick" />
+                <Separator />
+                <MenuItem Header="Rename..." Click="OnRenameInExplorerClick" />
+                <MenuItem Header="Delete" Click="OnDeleteInExplorerClick" />
+                <Separator />
+                <MenuItem Header="Refresh" Click="OnRefreshExplorerClick" />
+            </ContextMenu>
+        </TreeView.ContextMenu>
+        <TreeView.Styles>
+            <Style Selector="TreeViewItem">
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="MinHeight" Value="22"/>
+            </Style>
+        </TreeView.Styles>
+        <TreeView.ItemTemplate>
+            <TreeDataTemplate DataType="vm:FileTreeNode" ItemsSource="{Binding Children}">
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,1">
+                    <TextBlock Text="{Binding Icon}" FontSize="12" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                </StackPanel>
+            </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+    </TreeView>
+</UserControl>

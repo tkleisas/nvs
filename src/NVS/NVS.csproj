@@ -19,6 +19,9 @@
     </PackageReference>
     <PackageReference Include="Avalonia.Xaml.Interactivity" Version="11.3.0.6" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Dock.Avalonia" Version="11.3.11.16" />
+    <PackageReference Include="Dock.Avalonia.Themes.Fluent" Version="11.3.11.16" />
+    <PackageReference Include="Dock.Model.Mvvm" Version="11.3.11.16" />
     <PackageReference Include="Serilog" Version="4.2.0" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />

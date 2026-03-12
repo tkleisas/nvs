@@ -6,8 +6,11 @@ using System.Windows.Input;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.Input;
+using Dock.Model.Controls;
+using Dock.Model.Core;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
+using NVS.ViewModels.Dock;
 
 namespace NVS.ViewModels;
 
@@ -33,10 +36,25 @@ public partial class MainViewModel : INotifyPropertyChanged
     private string _searchQuery = "";
     private bool _isSearching;
     private CancellationTokenSource? _searchCts;
+    private IRootDock? _dockLayout;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public IStorageProvider? StorageProvider { get; set; }
+
+    public IRootDock? DockLayout
+    {
+        get => _dockLayout;
+        set => SetProperty(ref _dockLayout, value);
+    }
+
+    public void InitializeDock()
+    {
+        var factory = new NvsDockFactory(this);
+        var layout = factory.CreateLayout();
+        factory.InitLayout(layout);
+        DockLayout = layout as IRootDock;
+    }
 
     public MainViewModel(
         IWorkspaceService workspaceService,

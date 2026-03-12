@@ -1,10 +1,16 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:NVS"
              x:Class="NVS.App"
              RequestedThemeVariant="Dark">
 
+    <Application.DataTemplates>
+        <local:DockViewLocator />
+    </Application.DataTemplates>
+
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Dock.Avalonia.Themes.Fluent/DockFluentTheme.axaml" />
         <StyleInclude Source="avares://NVS/Styles/Common.axaml" />
         <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
     </Application.Styles>

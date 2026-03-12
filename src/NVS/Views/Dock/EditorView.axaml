@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:NVS.ViewModels"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             xmlns:AvaloniaEdit="using:AvaloniaEdit"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:behaviors="using:NVS.Behaviors"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.EditorView"
+             x:DataType="dock:EditorDocumentViewModel">
+
+    <Grid>
+        <!-- Tabs -->
+        <TabControl ItemsSource="{Binding Main.Editor.OpenDocuments}"
+                    SelectedIndex="{Binding Main.Editor.ActiveTabIndex}"
+                    Background="#1E1E1E"
+                    BorderThickness="0">
+            <TabControl.ItemTemplate>
+                <DataTemplate DataType="vm:DocumentViewModel">
+                    <TextBlock Text="{Binding Title}" FontSize="12"/>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate DataType="vm:DocumentViewModel">
+                    <AvaloniaEdit:TextEditor
+                        behaviors:TextEditorSyntaxHighlighting.Language="{Binding Language}"
+                        ShowLineNumbers="True"
+                        FontFamily="Consolas,Courier New,monospace"
+                        FontSize="14"
+                        Background="#1E1E1E"
+                        Foreground="#D4D4D4"
+                        BorderThickness="0"
+                        Padding="8"
+                        WordWrap="False">
+                        <i:Interaction.Behaviors>
+                            <behaviors:DocumentTextBindingBehavior
+                                Text="{Binding Text, Mode=TwoWay}"
+                                Line="{Binding CursorLine, Mode=OneWayToSource}"
+                                Column="{Binding CursorColumn, Mode=OneWayToSource}"
+                                UndoCommand="{Binding UndoCommand, Mode=OneWayToSource}"
+                                RedoCommand="{Binding RedoCommand, Mode=OneWayToSource}"
+                                OpenSearchCommand="{Binding OpenSearchCommand, Mode=OneWayToSource}"
+                                Diagnostics="{Binding Diagnostics}"
+                                GoToDefinitionCommand="{Binding GoToDefinitionCommand}"
+                                RequestCompletionCommand="{Binding RequestCompletionCommand}"
+                                CompletionResults="{Binding LastCompletionResults}"/>
+                        </i:Interaction.Behaviors>
+                    </AvaloniaEdit:TextEditor>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
+
+        <!-- Empty State -->
+        <Border Background="#1E1E1E"
+                IsVisible="{Binding Main.Editor.HasNoOpenDocuments}">
+            <StackPanel HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Spacing="16">
+                <TextBlock Text="NVS"
+                          FontSize="48"
+                          FontWeight="Bold"
+                          Foreground="#007ACC"
+                          HorizontalAlignment="Center"/>
+                <TextBlock Text="No Vim Substitute (We're Honest)"
+                          FontSize="18"
+                          Foreground="#CCCCCC"
+                          HorizontalAlignment="Center"/>
+                <TextBlock Text="Press Ctrl+O to open a file or Ctrl+Shift+O to open a folder"
+                          FontSize="14"
+                          Foreground="#808080"
+                          HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.VisualTree;
 using NVS.ViewModels;
 using NVS.Views;
+using NVS.Views.Dock;
 
 namespace NVS;
 
@@ -68,30 +68,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnFileTreeDoubleTapped(object? sender, TappedEventArgs e)
-    {
-        if (sender is TreeView treeView)
-        {
-            var selectedItem = treeView.SelectedItem as FileTreeNode;
-            if (selectedItem != null && !selectedItem.IsDirectory)
-            {
-                if (DataContext is MainViewModel viewModel)
-                {
-                    viewModel.OpenFileFromTreeCommand.Execute(selectedItem);
-                }
-            }
-        }
-    }
-
-    private void OnTerminalInputKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter && DataContext is MainViewModel vm)
-        {
-            vm.SendTerminalInputCommand.Execute(null);
-            e.Handled = true;
-        }
-    }
-
     private void OnExitClick(object? sender, RoutedEventArgs e) => Close();
 
     private async void OnGoToLineClick(object? sender, RoutedEventArgs e)
@@ -147,197 +123,6 @@ public partial class MainWindow : Window
         dialog.Content = panel;
 
         await dialog.ShowDialog(this);
-    }
-
-    // --- Explorer file operations ---
-
-    private FileTreeNode? GetSelectedTreeNode()
-    {
-        return FileTreeView.SelectedItem as FileTreeNode;
-    }
-
-    private string GetContextDirectory()
-    {
-        var node = GetSelectedTreeNode();
-        if (node is null)
-        {
-            return (DataContext as MainViewModel)?.WorkspacePath ?? "";
-        }
-        return node.IsDirectory ? node.Path : Path.GetDirectoryName(node.Path) ?? "";
-    }
-
-    private async void OnNewFileInExplorerClick(object? sender, RoutedEventArgs e)
-    {
-        var dir = GetContextDirectory();
-        if (string.IsNullOrEmpty(dir)) return;
-
-        var name = await PromptForNameAsync("New File", "File name:");
-        if (string.IsNullOrWhiteSpace(name)) return;
-
-        var filePath = Path.Combine(dir, name);
-        await File.WriteAllTextAsync(filePath, "");
-        await RefreshExplorer();
-        if (DataContext is MainViewModel vm)
-            vm.StatusMessage = $"Created: {name}";
-    }
-
-    private async void OnNewFolderInExplorerClick(object? sender, RoutedEventArgs e)
-    {
-        var dir = GetContextDirectory();
-        if (string.IsNullOrEmpty(dir)) return;
-
-        var name = await PromptForNameAsync("New Folder", "Folder name:");
-        if (string.IsNullOrWhiteSpace(name)) return;
-
-        Directory.CreateDirectory(Path.Combine(dir, name));
-        await RefreshExplorer();
-        if (DataContext is MainViewModel vm)
-            vm.StatusMessage = $"Created folder: {name}";
-    }
-
-    private async void OnRenameInExplorerClick(object? sender, RoutedEventArgs e)
-    {
-        var node = GetSelectedTreeNode();
-        if (node is null) return;
-
-        var newName = await PromptForNameAsync("Rename", "New name:", node.Name);
-        if (string.IsNullOrWhiteSpace(newName) || newName == node.Name) return;
-
-        var parentDir = Path.GetDirectoryName(node.Path) ?? "";
-        var newPath = Path.Combine(parentDir, newName);
-
-        if (node.IsDirectory)
-            Directory.Move(node.Path, newPath);
-        else
-            File.Move(node.Path, newPath);
-
-        await RefreshExplorer();
-        if (DataContext is MainViewModel vm)
-            vm.StatusMessage = $"Renamed to: {newName}";
-    }
-
-    private async void OnDeleteInExplorerClick(object? sender, RoutedEventArgs e)
-    {
-        var node = GetSelectedTreeNode();
-        if (node is null) return;
-
-        // Simple confirmation
-        var dialog = new Window
-        {
-            Title = "Confirm Delete",
-            Width = 380, Height = 130,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = Avalonia.Media.Brush.Parse("#2D2D30"),
-            CanResize = false,
-        };
-
-        var confirmed = false;
-        var panel = new StackPanel { Margin = new Avalonia.Thickness(16), Spacing = 10 };
-        panel.Children.Add(new TextBlock
-        {
-            Text = $"Delete \"{node.Name}\"?",
-            Foreground = Avalonia.Media.Brush.Parse("#CCCCCC"),
-        });
-
-        var buttons = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right };
-        var delBtn = new Button { Content = "Delete", Background = Avalonia.Media.Brush.Parse("#F44747"), Foreground = Avalonia.Media.Brush.Parse("White"), Padding = new Avalonia.Thickness(16, 6) };
-        var cancelBtn = new Button { Content = "Cancel", Padding = new Avalonia.Thickness(16, 6) };
-        delBtn.Click += (_, _) => { confirmed = true; dialog.Close(); };
-        cancelBtn.Click += (_, _) => { dialog.Close(); };
-        buttons.Children.Add(delBtn);
-        buttons.Children.Add(cancelBtn);
-        panel.Children.Add(buttons);
-        dialog.Content = panel;
-
-        await dialog.ShowDialog(this);
-
-        if (confirmed)
-        {
-            if (node.IsDirectory)
-                Directory.Delete(node.Path, recursive: true);
-            else
-                File.Delete(node.Path);
-
-            await RefreshExplorer();
-            if (DataContext is MainViewModel vm)
-                vm.StatusMessage = $"Deleted: {node.Name}";
-        }
-    }
-
-    private async void OnRefreshExplorerClick(object? sender, RoutedEventArgs e)
-    {
-        await RefreshExplorer();
-    }
-
-    // --- Search ---
-
-    private void OnSearchQueryKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter && DataContext is MainViewModel vm)
-        {
-            vm.SearchFilesCommand.Execute(null);
-            e.Handled = true;
-        }
-    }
-
-    private async void OnSearchResultDoubleTapped(object? sender, TappedEventArgs e)
-    {
-        if (sender is ListBox listBox && listBox.SelectedItem is FileSearchResult result && DataContext is MainViewModel vm)
-        {
-            await vm.OpenSearchResultCommand.ExecuteAsync(result);
-        }
-    }
-
-    private async Task RefreshExplorer()
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            await vm.RefreshFileTreeCommand.ExecuteAsync(null);
-        }
-    }
-
-    private async Task<string?> PromptForNameAsync(string title, string label, string defaultValue = "")
-    {
-        var dialog = new Window
-        {
-            Title = title,
-            Width = 350, Height = 120,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = Avalonia.Media.Brush.Parse("#2D2D30"),
-            CanResize = false,
-        };
-
-        string? result = null;
-        var panel = new StackPanel { Margin = new Avalonia.Thickness(16), Spacing = 8 };
-        var input = new TextBox
-        {
-            Text = defaultValue,
-            Watermark = label,
-            Background = Avalonia.Media.Brush.Parse("#3C3C3C"),
-            Foreground = Avalonia.Media.Brush.Parse("#CCCCCC"),
-        };
-        var okBtn = new Button
-        {
-            Content = "OK",
-            Background = Avalonia.Media.Brush.Parse("#007ACC"),
-            Foreground = Avalonia.Media.Brush.Parse("White"),
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-            Padding = new Avalonia.Thickness(20, 6),
-        };
-
-        okBtn.Click += (_, _) => { result = input.Text; dialog.Close(); };
-        input.KeyDown += (_, ke) =>
-        {
-            if (ke.Key == Key.Enter) { result = input.Text; dialog.Close(); ke.Handled = true; }
-            if (ke.Key == Key.Escape) { dialog.Close(); ke.Handled = true; }
-        };
-
-        panel.Children.Add(input);
-        panel.Children.Add(okBtn);
-        dialog.Content = panel;
-
-        await dialog.ShowDialog(this);
-        return result;
     }
 
     private async void OnAboutClick(object? sender, RoutedEventArgs e)

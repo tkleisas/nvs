@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:NVS.Core.Interfaces;assembly=NVS.Core"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.GitView"
+             x:DataType="dock:GitToolViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,*" Margin="8,4">
+        <!-- Commit message -->
+        <TextBox Grid.Row="0"
+                 Text="{Binding Main.CommitMessage}"
+                 Watermark="Commit message"
+                 AcceptsReturn="True"
+                 Height="60"
+                 TextWrapping="Wrap"
+                 FontSize="12"
+                 Background="#3C3C3C"
+                 Foreground="#CCCCCC"
+                 BorderBrush="#555" />
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,4">
+            <Button Grid.Column="0" Content="✓ Commit"
+                    Command="{Binding Main.GitCommitCommand}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Background="#007ACC" Foreground="White" Padding="8,4" />
+            <Button Grid.Column="1" Content="⟳" Margin="4,0,0,0"
+                    Command="{Binding Main.GitRefreshCommand}"
+                    ToolTip.Tip="Refresh"
+                    Background="#3C3C3C" Foreground="#CCCCCC" Padding="8,4" />
+        </Grid>
+
+        <!-- Staged Changes -->
+        <TextBlock Grid.Row="2" Text="STAGED CHANGES"
+                   FontWeight="Bold" FontSize="11" Foreground="#CCCCCC"
+                   Margin="0,8,0,4" />
+        <ItemsControl Grid.Row="3" ItemsSource="{Binding Main.GitStagedFiles}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="core:GitFileStatus">
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,1">
+                        <TextBlock Grid.Column="0" Text="{Binding Status}" FontSize="10"
+                                   Foreground="#4EC9B0" Width="16" Margin="0,0,4,0" />
+                        <TextBlock Grid.Column="1" Text="{Binding Path}"
+                                   FontSize="12" Foreground="#4EC9B0"
+                                   TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Changes -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,8,0,4" Spacing="4">
+            <TextBlock Text="CHANGES"
+                       FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
+            <Button Content="+" FontSize="10" Padding="4,0"
+                    Command="{Binding Main.GitStageAllCommand}"
+                    ToolTip.Tip="Stage All"
+                    Background="Transparent" Foreground="#CCCCCC" />
+        </StackPanel>
+        <ItemsControl Grid.Row="6" ItemsSource="{Binding Main.GitChangedFiles}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="core:GitFileStatus">
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,1">
+                        <TextBlock Grid.Column="0" Text="{Binding Status}" FontSize="10"
+                                   Foreground="#D7BA7D" Width="16" Margin="0,0,4,0" />
+                        <TextBlock Grid.Column="1" Text="{Binding Path}"
+                                   FontSize="12" Foreground="#D7BA7D"
+                                   TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</UserControl>
