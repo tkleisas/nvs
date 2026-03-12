@@ -22,17 +22,18 @@
                     Background="Transparent" Foreground="#CCCCCC" FontSize="12" />
         </Grid>
         <!-- Terminal output -->
-        <TextBox Grid.Row="1"
-                 Text="{Binding Main.TerminalOutput}"
-                 IsReadOnly="True"
-                 AcceptsReturn="True"
-                 TextWrapping="NoWrap"
-                 Background="#1E1E1E"
-                 Foreground="#CCCCCC"
-                 BorderThickness="0"
-                 FontFamily="Consolas,Courier New,monospace"
-                 FontSize="12"
-                 Padding="8,4" />
+        <ScrollViewer Grid.Row="1"
+                      x:Name="TerminalScrollViewer"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      Background="#1E1E1E">
+            <TextBlock Text="{Binding Main.TerminalOutput}"
+                       Foreground="#CCCCCC"
+                       FontFamily="Consolas,Courier New,monospace"
+                       FontSize="12"
+                       Padding="8,4"
+                       TextWrapping="NoWrap" />
+        </ScrollViewer>
         <!-- Terminal input -->
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Background="#252526">
             <TextBox Grid.Column="0"
