@@ -420,7 +420,9 @@ public partial class MainViewModel : INotifyPropertyChanged
             {
                 Name = "Build Solution",
                 Command = "dotnet",
-                Args = ["build", "--nologo"],
+                Args = _solutionService.CurrentSolution is { } sol
+                    ? ["build", sol.FilePath, "--nologo"]
+                    : ["build", "--nologo"],
                 WorkingDirectory = WorkspacePath
             };
 
@@ -477,8 +479,10 @@ public partial class MainViewModel : INotifyPropertyChanged
             {
                 Name = "Run",
                 Command = "dotnet",
-                Args = ["run", "--nologo"],
-                WorkingDirectory = workDir
+                Args = startup is not null
+                    ? ["run", "--project", startup.FilePath, "--nologo"]
+                    : ["run", "--nologo"],
+                WorkingDirectory = WorkspacePath
             };
 
             var result = await _buildService.RunTaskAsync(task, _runCts.Token);
