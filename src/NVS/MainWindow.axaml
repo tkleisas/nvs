@@ -74,27 +74,32 @@
         <Border Grid.Row="1" Background="#2D2D30" Padding="4">
             <StackPanel Orientation="Horizontal" Spacing="2">
                 <Button Width="28" Height="28" ToolTip.Tip="New File" Command="{Binding NewFileCommand}">
-                    <TextBlock Text="+" FontSize="14" Foreground="#CCCCCC" />
+                    <PathIcon Width="14" Height="14" Foreground="#CCCCCC"
+                              Data="M 6,1 L 8,1 L 8,6 L 13,6 L 13,8 L 8,8 L 8,13 L 6,13 L 6,8 L 1,8 L 1,6 L 6,6 Z" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Open File" Command="{Binding OpenFileCommand}">
-                    <TextBlock Text="&#x1F4C2;" FontSize="12" />
+                    <PathIcon Width="14" Height="14" Foreground="#CCCCCC"
+                              Data="M 1,4 L 5,4 L 6.5,2 L 13,2 L 13,11 L 1,11 Z" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Save" Command="{Binding SaveFileCommand}">
-                    <TextBlock Text="&#x1F4BE;" FontSize="12" />
+                    <PathIcon Width="14" Height="14" Foreground="#CCCCCC"
+                              Data="M 1,1 L 10,1 L 13,4 L 13,13 L 1,13 Z M 4,1 L 4,5 L 9,5 L 9,1 M 3,8 L 11,8 L 11,12 L 3,12 Z" />
                 </Button>
                 <Border Width="1" Background="#555" Margin="4,2" />
                 <Button Width="28" Height="28" ToolTip.Tip="Undo" Command="{Binding Editor.UndoCommand}">
-                    <TextBlock Text="&#x21B6;" FontSize="12" Foreground="#CCCCCC" />
+                    <TextBlock Text="&#x21B6;" FontSize="14" Foreground="#CCCCCC" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Redo" Command="{Binding Editor.RedoCommand}">
-                    <TextBlock Text="&#x21B7;" FontSize="12" Foreground="#CCCCCC" />
+                    <TextBlock Text="&#x21B7;" FontSize="14" Foreground="#CCCCCC" />
                 </Button>
                 <Border Width="1" Background="#555" Margin="4,2" />
                 <Button Width="28" Height="28" ToolTip.Tip="Start Debugging">
-                    <TextBlock Text="&#x25B6;" FontSize="12" Foreground="#4EC9B0" />
+                    <PathIcon Width="14" Height="14" Foreground="#4EC9B0"
+                              Data="M 3,1 L 13,7 L 3,13 Z" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Stop">
-                    <TextBlock Text="&#x25A0;" FontSize="12" Foreground="#F44747" />
+                    <PathIcon Width="14" Height="14" Foreground="#F44747"
+                              Data="M 2,2 L 12,2 L 12,12 L 2,12 Z" />
                 </Button>
             </StackPanel>
         </Border>

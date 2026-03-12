@@ -35,7 +35,7 @@
         <TreeView.ItemTemplate>
             <TreeDataTemplate DataType="vm:FileTreeNode" ItemsSource="{Binding Children}">
                 <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,1">
-                    <TextBlock Text="{Binding Icon}" FontSize="12" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Icon}" FontSize="12" Foreground="{Binding IconColor}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#CCCCCC" VerticalAlignment="Center" />
                 </StackPanel>
             </TreeDataTemplate>

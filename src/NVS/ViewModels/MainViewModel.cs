@@ -222,7 +222,7 @@ public partial class MainViewModel : INotifyPropertyChanged
 
         var rootNode = new FileTreeNode
         {
-            Name = Path.GetFileName(folderPath),
+            Name = new DirectoryInfo(folderPath).Name,
             Path = folderPath,
             IsDirectory = true
         };
@@ -691,34 +691,35 @@ public class FileTreeNode
     public string Path { get; init; } = "";
     public bool IsDirectory { get; init; }
     public ObservableCollection<FileTreeNode> Children { get; } = [];
-    public string Icon => IsDirectory ? "📁" : GetFileIcon();
+    public string Icon => IsDirectory ? "▸" : "●";
+    public string IconColor => IsDirectory ? "#E8A848" : GetFileIconColor();
     public ICommand? OpenCommand { get; set; }
     
-    private string GetFileIcon()
+    private string GetFileIconColor()
     {
         var ext = System.IO.Path.GetExtension(Name).ToLowerInvariant();
         return ext switch
         {
-            ".cs" => "🟢",
-            ".cpp" or ".c" or ".h" or ".hpp" => "🔵",
-            ".js" or ".jsx" => "🟡",
-            ".ts" or ".tsx" => "🔷",
-            ".py" => "🐍",
-            ".rs" => "🦀",
-            ".go" => "🔹",
-            ".json" => "{ }",
-            ".xml" or ".xaml" or ".axaml" => "📐",
-            ".html" or ".htm" => "🌐",
-            ".css" or ".scss" or ".less" => "🎨",
-            ".md" => "📝",
-            ".txt" or ".log" => "📃",
-            ".yaml" or ".yml" => "⚙️",
-            ".toml" => "⚙️",
-            ".sln" or ".slnx" or ".csproj" => "🔧",
-            ".gitignore" or ".editorconfig" => "⚙️",
-            ".png" or ".jpg" or ".jpeg" or ".gif" or ".svg" or ".ico" => "🖼️",
-            ".sh" or ".bash" or ".ps1" or ".bat" or ".cmd" => "⚡",
-            _ => "📄"
+            ".cs" => "#57A64A",
+            ".cpp" or ".c" or ".h" or ".hpp" => "#569CD6",
+            ".js" or ".jsx" => "#DCDCAA",
+            ".ts" or ".tsx" => "#3178C6",
+            ".py" => "#3572A5",
+            ".rs" => "#DEA584",
+            ".go" => "#00ADD8",
+            ".json" => "#CBB886",
+            ".xml" or ".xaml" or ".axaml" => "#E06C75",
+            ".html" or ".htm" => "#E44D26",
+            ".css" or ".scss" or ".less" => "#C586C0",
+            ".md" => "#519ABA",
+            ".txt" or ".log" => "#9DA5B4",
+            ".yaml" or ".yml" => "#CB171E",
+            ".toml" => "#9C4121",
+            ".sln" or ".slnx" or ".csproj" => "#854CC7",
+            ".gitignore" or ".editorconfig" => "#6D8086",
+            ".png" or ".jpg" or ".jpeg" or ".gif" or ".svg" or ".ico" => "#A074C4",
+            ".sh" or ".bash" or ".ps1" or ".bat" or ".cmd" => "#89E051",
+            _ => "#9DA5B4"
         };
     }
 }
