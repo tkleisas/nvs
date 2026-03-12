@@ -17,6 +17,8 @@ public class DockViewLocator : IDataTemplate
         [typeof(SearchToolViewModel)] = () => new SearchView(),
         [typeof(GitToolViewModel)] = () => new GitView(),
         [typeof(TerminalToolViewModel)] = () => new TerminalView(),
+        [typeof(BuildOutputToolViewModel)] = () => new BuildOutputView(),
+        [typeof(ProblemsToolViewModel)] = () => new ProblemsView(),
         [typeof(EditorDocumentViewModel)] = () => new EditorView(),
     };
 

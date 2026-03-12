@@ -18,7 +18,8 @@ public class MainViewModelSearchTests
         var settings = Substitute.For<ISettingsService>();
         settings.AppSettings.Returns(new AppSettings());
 
-        return new MainViewModel(workspaceService, editorService, fs, editor, git, terminal, settings);
+        return new MainViewModel(workspaceService, editorService, fs, editor, git, terminal, settings,
+            Substitute.For<ISolutionService>(), Substitute.For<IBuildService>());
     }
 
     [Fact]

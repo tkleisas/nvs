@@ -21,6 +21,8 @@ public partial class MainViewModel : INotifyPropertyChanged
     private readonly IFileSystemService _fileSystemService;
     private readonly IGitService _gitService;
     private readonly ITerminalService _terminalService;
+    private readonly ISolutionService _solutionService;
+    private readonly IBuildService _buildService;
 
     private string _title = "NVS - No Vim Substitute";
     private bool _isWorkspaceOpen;
@@ -64,13 +66,17 @@ public partial class MainViewModel : INotifyPropertyChanged
         EditorViewModel editor,
         IGitService gitService,
         ITerminalService terminalService,
-        ISettingsService settingsService)
+        ISettingsService settingsService,
+        ISolutionService solutionService,
+        IBuildService buildService)
     {
         _workspaceService = workspaceService;
         _editorService = editorService;
         _fileSystemService = fileSystemService;
         _gitService = gitService;
         _terminalService = terminalService;
+        _solutionService = solutionService;
+        _buildService = buildService;
         SettingsService = settingsService;
         Editor = editor;
 
@@ -78,6 +84,9 @@ public partial class MainViewModel : INotifyPropertyChanged
     }
 
     public ISettingsService SettingsService { get; }
+    public IEditorService EditorService => _editorService;
+    public ISolutionService SolutionService => _solutionService;
+    public IBuildService BuildService => _buildService;
 
     public string Title
     {

@@ -28,6 +28,8 @@ public sealed class NvsDockFactory : Factory
         var search = new SearchToolViewModel(_main);
         var git = new GitToolViewModel(_main);
         var terminal = new TerminalToolViewModel(_main);
+        var buildOutput = new BuildOutputToolViewModel(_main);
+        var problems = new ProblemsToolViewModel(_main);
         var editor = new EditorDocumentViewModel(_main);
 
         var leftDock = new ProportionalDock
@@ -55,7 +57,7 @@ public sealed class NvsDockFactory : Factory
                 new ToolDock
                 {
                     ActiveDockable = terminal,
-                    VisibleDockables = CreateList<IDockable>(terminal),
+                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems),
                     Alignment = Alignment.Bottom,
                     GripMode = GripMode.Visible,
                 }
@@ -135,6 +137,8 @@ public sealed class NvsDockFactory : Factory
             ["Search"] = () => _main,
             ["Git"] = () => _main,
             ["Terminal"] = () => _main,
+            ["BuildOutput"] = () => _main,
+            ["Problems"] = () => _main,
             ["Editor"] = () => _main,
             ["Home"] = () => _main,
         };

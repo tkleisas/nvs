@@ -4,12 +4,14 @@ using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using NVS.Core.Interfaces;
 using NVS.Infrastructure.DependencyInjection;
+using NVS.Services.Build;
 using NVS.Services.Editor;
 using NVS.Services.FileSystem;
 using NVS.Services.Git;
 using NVS.Services.Languages;
 using NVS.Services.Lsp;
 using NVS.Services.Settings;
+using NVS.Services.Solution;
 using NVS.Services.Terminal;
 using NVS.Services.Workspaces;
 using NVS.ViewModels;
@@ -76,6 +78,8 @@ public partial class App : Application
         services.AddSingleton<ILanguageServerManager, LanguageServerManager>();
         services.AddSingleton<IGitService, GitService>();
         services.AddSingleton<ITerminalService, TerminalService>();
+        services.AddSingleton<ISolutionService, SolutionService>();
+        services.AddSingleton<IBuildService, BuildService>();
         
         // ViewModels
         services.AddSingleton<EditorViewModel>();

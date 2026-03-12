@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.ProblemsView"
+             x:DataType="dock:ProblemsToolViewModel">
+
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="4" Margin="4,2">
+            <Button Content="Clear" FontSize="11" Padding="6,2"
+                    Command="{Binding ClearProblemsCommand}" />
+        </StackPanel>
+
+        <DataGrid ItemsSource="{Binding Problems}"
+                  IsReadOnly="True"
+                  CanUserResizeColumns="True"
+                  CanUserSortColumns="True"
+                  GridLinesVisibility="Horizontal"
+                  BorderThickness="0"
+                  HeadersVisibility="Column"
+                  FontSize="12">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="" Binding="{ReflectionBinding SeverityIcon}" Width="30" />
+                <DataGridTextColumn Header="Message" Binding="{ReflectionBinding Message}" Width="*" />
+                <DataGridTextColumn Header="Location" Binding="{ReflectionBinding Location}" Width="200" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>
