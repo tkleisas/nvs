@@ -240,17 +240,24 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         // Get scopes for the frame, then variables for each scope
         var scopesResult = await _client!.GetScopesAsync(frameId, cancellationToken).ConfigureAwait(false);
 
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         var allVariables = new List<Variable>();
         foreach (var scope in scopesResult.Scopes)
         {
             var varsResult = await _client.GetVariablesAsync(scope.VariablesReference, cancellationToken).ConfigureAwait(false);
-            allVariables.AddRange(varsResult.Variables.Select(v => new Variable
+            foreach (var v in varsResult.Variables)
             {
-                Name = v.Name,
-                Value = v.Value,
-                Type = v.Type ?? "unknown",
-                VariablesReference = v.VariablesReference > 0 ? v.VariablesReference : null,
-            }));
+                if (!seen.Add(v.Name))
+                    continue;
+
+                allVariables.Add(new Variable
+                {
+                    Name = v.Name,
+                    Value = v.Value,
+                    Type = v.Type ?? "unknown",
+                    VariablesReference = v.VariablesReference > 0 ? v.VariablesReference : null,
+                });
+            }
         }
 
         return allVariables;
