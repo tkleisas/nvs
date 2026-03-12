@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Input;
@@ -21,6 +23,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private CurrentLineHighlightRenderer? _currentLineRenderer;
     private BreakpointMargin? _breakpointMargin;
     private CompletionWindow? _completionWindow;
+    private CancellationTokenSource? _autoCompleteCts;
     private bool _updating;
 
     public static readonly StyledProperty<string> TextProperty =
@@ -151,6 +154,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _textEditor = textEditor;
             _textEditor.TextChanged += OnEditorTextChanged;
             _textEditor.TextArea.Caret.PositionChanged += OnCaretPositionChanged;
+            _textEditor.TextArea.TextEntered += OnTextEntered;
             _textEditor.KeyDown += OnKeyDown;
             UpdateCaretPosition();
 
@@ -188,7 +192,10 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         {
             _textEditor.TextChanged -= OnEditorTextChanged;
             _textEditor.TextArea.Caret.PositionChanged -= OnCaretPositionChanged;
+            _textEditor.TextArea.TextEntered -= OnTextEntered;
             _textEditor.KeyDown -= OnKeyDown;
+            _autoCompleteCts?.Cancel();
+            _autoCompleteCts?.Dispose();
 
             if (_diagnosticRenderer != null)
                 _textEditor.TextArea.TextView.BackgroundRenderers.Remove(_diagnosticRenderer);
@@ -300,6 +307,50 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
                 var line = _textEditor.TextArea.Caret.Line;
                 ToggleBreakpointCommand?.Execute(line);
             }
+        }
+    }
+
+    /// <summary>
+    /// Auto-triggers completion after typing trigger characters (., (, &lt;)
+    /// or after a short delay when typing identifier characters.
+    /// </summary>
+    private void OnTextEntered(object? sender, TextInputEventArgs e)
+    {
+        if (_completionWindow is not null || RequestCompletionCommand is null)
+            return;
+
+        var text = e.Text;
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        var ch = text[0];
+
+        // Immediate trigger characters (like VS/Rider)
+        if (ch is '.' or '(' or '<' or ':')
+        {
+            RequestCompletionCommand.Execute(null);
+            return;
+        }
+
+        // Debounced trigger for identifier characters
+        if (char.IsLetterOrDigit(ch) || ch == '_')
+        {
+            _autoCompleteCts?.Cancel();
+            _autoCompleteCts?.Dispose();
+            _autoCompleteCts = new CancellationTokenSource();
+            var token = _autoCompleteCts.Token;
+
+            _ = Task.Delay(300, token).ContinueWith(t =>
+            {
+                if (!t.IsCanceled)
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        if (_completionWindow is null)
+                            RequestCompletionCommand?.Execute(null);
+                    });
+                }
+            }, TaskScheduler.Default);
         }
     }
 

@@ -22,12 +22,24 @@ public sealed class EditorService : IEditorService
 
     public async Task<Document> OpenDocumentAsync(string path, CancellationToken cancellationToken = default)
     {
+        var fullPath = Path.GetFullPath(path);
+
+        // If the file is already open, just activate it
+        var existing = _openDocumentsList.FirstOrDefault(d =>
+            string.Equals(Path.GetFullPath(d.FilePath ?? ""), fullPath, StringComparison.OrdinalIgnoreCase));
+
+        if (existing is not null)
+        {
+            SetActiveDocument(existing);
+            return existing;
+        }
+
         var document = new Document
         {
             Id = Guid.NewGuid(),
             Path = path,
             Name = Path.GetFileName(path),
-            FilePath = path,
+            FilePath = fullPath,
             State = DocumentState.Loading,
             Language = DetectLanguage(path)
         };
@@ -37,10 +49,10 @@ public sealed class EditorService : IEditorService
 
         try
         {
-            var content = await File.ReadAllTextAsync(path, cancellationToken);
+            var content = await File.ReadAllTextAsync(fullPath, cancellationToken);
             document.Content = content;
             document.State = DocumentState.Loaded;
-            document.LastModified = File.GetLastWriteTimeUtc(path);
+            document.LastModified = File.GetLastWriteTimeUtc(fullPath);
         }
         catch (Exception)
         {

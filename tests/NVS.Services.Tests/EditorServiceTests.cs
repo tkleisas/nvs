@@ -276,4 +276,46 @@ public class EditorServiceTests : IDisposable
         content1.Should().Be("modified1");
         content2.Should().Be("original2");
     }
+
+    // --- Duplicate tab prevention ---
+
+    [Fact]
+    public async Task OpenDocumentAsync_WhenFileAlreadyOpen_ShouldReturnSameDocument()
+    {
+        var path = CreateTempFile("test.cs", "class Foo {}");
+
+        var doc1 = await _service.OpenDocumentAsync(path);
+        var doc2 = await _service.OpenDocumentAsync(path);
+
+        doc2.Should().BeSameAs(doc1);
+        _service.OpenDocuments.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task OpenDocumentAsync_WhenFileAlreadyOpen_ShouldNotFireDocumentOpenedEvent()
+    {
+        var path = CreateTempFile("test.cs", "class Foo {}");
+        await _service.OpenDocumentAsync(path);
+
+        var openedCount = 0;
+        _service.DocumentOpened += (_, _) => openedCount++;
+
+        await _service.OpenDocumentAsync(path);
+
+        openedCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task OpenDocumentAsync_WhenFileAlreadyOpen_ShouldActivateIt()
+    {
+        var path1 = CreateTempFile("a.cs", "");
+        var path2 = CreateTempFile("b.cs", "");
+        var doc1 = await _service.OpenDocumentAsync(path1);
+        await _service.OpenDocumentAsync(path2);
+
+        // Re-open first file — should activate it
+        await _service.OpenDocumentAsync(path1);
+
+        _service.ActiveDocument.Should().BeSameAs(doc1);
+    }
 }
