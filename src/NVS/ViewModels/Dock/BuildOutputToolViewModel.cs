@@ -25,10 +25,15 @@ public partial class BuildOutputToolViewModel : Tool
         OutputLines.Add(new BuildOutputLine(text, isError));
     }
 
+    public void ClearOutput()
+    {
+        OutputLines.Clear();
+    }
+
     [RelayCommand]
     private void Clear()
     {
-        OutputLines.Clear();
+        ClearOutput();
     }
 }
 

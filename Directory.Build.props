@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>0.0.28</Version>
+    <Version>0.0.29</Version>
     <Authors>NVS Contributors</Authors>
     <Product>NVS - No Vim Substitute</Product>
     <Copyright>Copyright (c) 2025 NVS Contributors</Copyright>

@@ -39,6 +39,10 @@ public partial class MainViewModel : INotifyPropertyChanged
     private bool _isSearching;
     private CancellationTokenSource? _searchCts;
     private IRootDock? _dockLayout;
+    private bool _isBuilding;
+    private bool _isRunning;
+    private CancellationTokenSource? _buildCts;
+    private CancellationTokenSource? _runCts;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -194,6 +198,34 @@ public partial class MainViewModel : INotifyPropertyChanged
         set => SetProperty(ref _terminalInput, value);
     }
 
+    // Build properties
+    public bool IsBuilding
+    {
+        get => _isBuilding;
+        set
+        {
+            if (SetProperty(ref _isBuilding, value))
+                OnPropertyChanged(nameof(CanBuild));
+        }
+    }
+
+    public bool IsRunning
+    {
+        get => _isRunning;
+        set
+        {
+            if (SetProperty(ref _isRunning, value))
+            {
+                OnPropertyChanged(nameof(CanRun));
+                OnPropertyChanged(nameof(CanStop));
+            }
+        }
+    }
+
+    public bool CanBuild => !IsBuilding && IsWorkspaceOpen;
+    public bool CanRun => !IsRunning && IsWorkspaceOpen;
+    public bool CanStop => IsRunning || IsBuilding;
+
     [RelayCommand]
     private async Task OpenFolder()
     {
@@ -221,6 +253,180 @@ public partial class MainViewModel : INotifyPropertyChanged
 
         await LoadFileTree(folderPath);
         await InitializeGitAsync(folderPath);
+        await DetectAndLoadSolutionAsync(folderPath);
+    }
+
+    private async Task DetectAndLoadSolutionAsync(string folderPath)
+    {
+        try
+        {
+            var solutionFile = await _solutionService.DetectSolutionFileAsync(folderPath);
+            if (solutionFile is not null)
+            {
+                var solution = await _solutionService.LoadSolutionAsync(solutionFile);
+                StatusMessage = $"Solution loaded: {solution.Name} ({solution.Projects.Count} projects)";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to load solution: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task BuildSolution()
+    {
+        if (!CanBuild || WorkspacePath is null) return;
+
+        IsBuilding = true;
+        StatusMessage = "Building...";
+
+        var buildOutput = FindBuildOutputTool();
+        var problemsTool = FindProblemsTool();
+        buildOutput?.ClearOutput();
+
+        _buildCts = new CancellationTokenSource();
+
+        void OnOutput(object? sender, BuildOutputEventArgs e)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                buildOutput?.AppendOutput(e.Output, e.IsError));
+        }
+
+        _buildService.OutputReceived += OnOutput;
+
+        try
+        {
+            var task = new Core.Interfaces.BuildTask
+            {
+                Name = "Build Solution",
+                Command = "dotnet",
+                Args = ["build", "--nologo"],
+                WorkingDirectory = WorkspacePath
+            };
+
+            var result = await _buildService.RunTaskAsync(task, _buildCts.Token);
+
+            problemsTool?.SetProblems(result.Errors, result.Warnings);
+
+            StatusMessage = result.Success
+                ? $"Build succeeded ({result.Duration.TotalSeconds:F1}s)"
+                : $"Build failed — {result.Errors.Count} error(s), {result.Warnings.Count} warning(s)";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Build error: {ex.Message}";
+        }
+        finally
+        {
+            _buildService.OutputReceived -= OnOutput;
+            IsBuilding = false;
+            _buildCts?.Dispose();
+            _buildCts = null;
+        }
+    }
+
+    [RelayCommand]
+    private async Task RunProject()
+    {
+        if (!CanRun || WorkspacePath is null) return;
+
+        IsRunning = true;
+        StatusMessage = "Running...";
+
+        var buildOutput = FindBuildOutputTool();
+        buildOutput?.ClearOutput();
+
+        _runCts = new CancellationTokenSource();
+
+        void OnOutput(object? sender, BuildOutputEventArgs e)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                buildOutput?.AppendOutput(e.Output, e.IsError));
+        }
+
+        _buildService.OutputReceived += OnOutput;
+
+        try
+        {
+            var startup = _solutionService.GetStartupProject();
+            var workDir = startup is not null
+                ? Path.GetDirectoryName(startup.FilePath) ?? WorkspacePath
+                : WorkspacePath;
+
+            var task = new Core.Interfaces.BuildTask
+            {
+                Name = "Run",
+                Command = "dotnet",
+                Args = ["run", "--nologo"],
+                WorkingDirectory = workDir
+            };
+
+            var result = await _buildService.RunTaskAsync(task, _runCts.Token);
+
+            StatusMessage = result.Success
+                ? "Application exited successfully"
+                : $"Application exited with code {result.ExitCode}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Run error: {ex.Message}";
+        }
+        finally
+        {
+            _buildService.OutputReceived -= OnOutput;
+            IsRunning = false;
+            _runCts?.Dispose();
+            _runCts = null;
+        }
+    }
+
+    [RelayCommand]
+    private async Task StopExecution()
+    {
+        if (_runCts is not null)
+        {
+            await _runCts.CancelAsync();
+            StatusMessage = "Stopped";
+        }
+        else if (_buildCts is not null)
+        {
+            await _buildCts.CancelAsync();
+            StatusMessage = "Build cancelled";
+        }
+    }
+
+    private BuildOutputToolViewModel? FindBuildOutputTool()
+    {
+        return FindToolInDock<BuildOutputToolViewModel>();
+    }
+
+    private ProblemsToolViewModel? FindProblemsTool()
+    {
+        return FindToolInDock<ProblemsToolViewModel>();
+    }
+
+    private T? FindToolInDock<T>() where T : class
+    {
+        if (DockLayout is null) return null;
+
+        return FindDockableRecursive<T>(DockLayout);
+    }
+
+    private static T? FindDockableRecursive<T>(IDockable dockable) where T : class
+    {
+        if (dockable is T match) return match;
+
+        if (dockable is IDock dock && dock.VisibleDockables is not null)
+        {
+            foreach (var child in dock.VisibleDockables)
+            {
+                var found = FindDockableRecursive<T>(child);
+                if (found is not null) return found;
+            }
+        }
+
+        return null;
     }
 
     private async Task InitializeGitAsync(string folderPath)
