@@ -4,11 +4,12 @@
 
 A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled using **AI-Sloptronic™** technology, where every line of code was generated with the unwavering confidence of a machine that has never once questioned whether a `PatchEntryChanges` type actually has a `Hunks` property. (It didn't.)
 
+[![Build](https://github.com/tkleisas/nvs/actions/workflows/build.yml/badge.svg)](https://github.com/tkleisas/nvs/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
-![Version](https://img.shields.io/badge/version-0.1.0-green)
-![Tests](https://img.shields.io/badge/tests-529%20passing-brightgreen)
+![Version](https://img.shields.io/badge/version-0.1.4-green)
+![Tests](https://img.shields.io/badge/tests-535%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -19,7 +20,7 @@ NVS is a code editor / IDE that:
 
 - **Does not replace Vim.** We cannot stress this enough.
 - Runs on Windows, macOS, and Linux (thanks Avalonia).
-- Has language server support for 12+ languages.
+- Has language server support for 12+ languages with auto-completion and signature help.
 - Has a built-in PTY terminal that actually works.
 - Has git integration that will absolutely let you force-push to main.
 - Has .NET solution/project loading with full build integration.
@@ -38,9 +39,11 @@ NVS is a code editor / IDE that:
 
 ### 🧠 Language Server Protocol (LSP)
 - Full JSON-RPC 2.0 transport layer
-- Auto-completion (Ctrl+Space)
+- Auto-completion with trigger characters (`.`, `<`, `:`) and debounced identifier completion
+- Signature help / parameter info on `(` and `,`
 - Go to Definition (F12)
 - Inline diagnostics with squiggly underlines
+- Incremental document sync (`textDocument/didChange`)
 - 12 open-source language servers, installable from Settings:
 
 | Server | Languages | Install |
@@ -87,7 +90,7 @@ NVS is a code editor / IDE that:
 - Step Over (F10), Step Into (F11), Step Out (Shift+F11)
 - Toggle Breakpoint (F9) with red gutter markers
 - Call Stack panel with frame navigation
-- Variables panel with expandable tree view
+- Variables panel with expandable tree view (lazy-loaded children)
 - Debug output streamed to Build Output panel
 - Debug toolbar with visual step controls
 
@@ -133,7 +136,7 @@ dotnet build NVS.slnx
 # Run
 dotnet run --project src/NVS
 
-# Run tests (529 of them)
+# Run tests (535 of them)
 dotnet test NVS.slnx
 ```
 
@@ -143,6 +146,26 @@ There is no separate lint command. Code style is enforced at build time via `Tre
 
 ```bash
 dotnet test NVS.slnx --filter "FullyQualifiedName~GitServiceParsePatchTests.ParsePatch_MixedChanges"
+```
+
+## Downloads
+
+Self-contained builds (no .NET runtime needed) are published on each tagged release:
+
+| Platform | Archive |
+|----------|---------|
+| Windows x64 | `nvs-win-x64.zip` |
+| Linux x64 | `nvs-linux-x64.tar.gz` |
+| macOS x64 | `nvs-osx-x64.tar.gz` |
+| macOS ARM64 | `nvs-osx-arm64.tar.gz` |
+
+See [Releases](https://github.com/tkleisas/nvs/releases) for downloads.
+
+To create a release, tag a commit and push:
+
+```bash
+git tag v0.1.4
+git push origin v0.1.4
 ```
 
 ## Tech Stack
@@ -163,7 +186,7 @@ dotnet test NVS.slnx --filter "FullyQualifiedName~GitServiceParsePatchTests.Pars
 
 ## Testing
 
-529 tests across 4 test projects:
+535 tests across 4 test projects:
 
 - **NVS.Core.Tests** — Core model tests
 - **NVS.Plugins.Tests** — Plugin system tests
@@ -183,7 +206,7 @@ public void ParsePatch_MixedChanges_ParsesAllLineTypes()
 ## Versioning
 
 - Version lives in `Directory.Build.props`
-- Informational version appends the short git commit hash (e.g., `0.1.0+a3f72b1`)
+- Informational version appends the short git commit hash (e.g., `0.1.4+a3f72b1`)
 - Patch bumps on each commit, minor bumps on feature completion
 - Viewable in **Help → About**
 

@@ -1,10 +1,11 @@
-name: Build and Test
+name: Build, Test & Release
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master ]
+    tags: [ 'v*' ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
@@ -12,11 +13,10 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-        configuration: [Debug, Release]
       fail-fast: false
-    
+
     runs-on: ${{ matrix.os }}
-    
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -29,30 +29,28 @@ jobs:
         dotnet-version: '10.0.x'
         dotnet-quality: 'preview'
 
-    - name: Restore dependencies
+    - name: Restore
       run: dotnet restore NVS.slnx
 
     - name: Build
-      run: dotnet build NVS.slnx --configuration ${{ matrix.configuration }} --no-restore
+      run: dotnet build NVS.slnx -c Release --no-restore
 
     - name: Test
-      run: dotnet test NVS.slnx --configuration ${{ matrix.configuration }} --no-build --verbosity normal --collect:"XPlat Code Coverage"
-
-    - name: Upload coverage
-      if: matrix.configuration == 'Debug' && matrix.os == 'ubuntu-latest'
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: false
+      run: dotnet test NVS.slnx -c Release --no-build --verbosity normal
 
   publish:
     needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+
+    permissions:
+      contents: write
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -60,20 +58,32 @@ jobs:
         dotnet-version: '10.0.x'
         dotnet-quality: 'preview'
 
-    - name: Publish Windows
+    - name: Publish Windows x64
       run: dotnet publish src/NVS/NVS.csproj -c Release -r win-x64 --self-contained -o publish/win-x64
 
-    - name: Publish Linux
+    - name: Publish Linux x64
       run: dotnet publish src/NVS/NVS.csproj -c Release -r linux-x64 --self-contained -o publish/linux-x64
 
-    - name: Publish macOS
+    - name: Publish macOS x64
       run: dotnet publish src/NVS/NVS.csproj -c Release -r osx-x64 --self-contained -o publish/osx-x64
 
-    - name: Create Release
+    - name: Publish macOS ARM64
+      run: dotnet publish src/NVS/NVS.csproj -c Release -r osx-arm64 --self-contained -o publish/osx-arm64
+
+    - name: Package archives
+      run: |
+        cd publish
+        zip -r ../nvs-win-x64.zip win-x64/
+        tar -czf ../nvs-linux-x64.tar.gz linux-x64/
+        tar -czf ../nvs-osx-x64.tar.gz osx-x64/
+        tar -czf ../nvs-osx-arm64.tar.gz osx-arm64/
+
+    - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
-      if: startsWith(github.ref, 'refs/tags/')
       with:
+        generate_release_notes: true
         files: |
-          publish/win-x64/NVS.exe
-          publish/linux-x64/NVS
-          publish/osx-x64/NVS
+          nvs-win-x64.zip
+          nvs-linux-x64.tar.gz
+          nvs-osx-x64.tar.gz
+          nvs-osx-arm64.tar.gz
