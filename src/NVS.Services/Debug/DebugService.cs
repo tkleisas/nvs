@@ -13,6 +13,7 @@ namespace NVS.Services.Debug;
 public sealed class DebugService : IDebugService, IAsyncDisposable
 {
     private readonly DebugAdapterRegistry _adapterRegistry;
+    private readonly IBreakpointStore? _breakpointStore;
     private DapClient? _client;
     private Process? _adapterProcess;
     private int _activeThreadId;
@@ -30,9 +31,10 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
     public event EventHandler<Breakpoint>? BreakpointHit;
     public event EventHandler<OutputEvent>? OutputReceived;
 
-    public DebugService(DebugAdapterRegistry adapterRegistry)
+    public DebugService(DebugAdapterRegistry adapterRegistry, IBreakpointStore? breakpointStore = null)
     {
         _adapterRegistry = adapterRegistry ?? throw new ArgumentNullException(nameof(adapterRegistry));
+        _breakpointStore = breakpointStore;
     }
 
     // Internal constructor for testing — allows injecting a pre-built DapClient
@@ -117,6 +119,10 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         };
 
         await _client.LaunchAsync(launchArgs, cancellationToken).ConfigureAwait(false);
+
+        // Send all breakpoints from the store before configurationDone
+        await SyncBreakpointsToAdapterAsync(cancellationToken).ConfigureAwait(false);
+
         await _client.ConfigurationDoneAsync(cancellationToken).ConfigureAwait(false);
 
         var session = new DebugSession
@@ -317,6 +323,48 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
     }
 
     // ── Helpers ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Sends all breakpoints from the store to the debug adapter.
+    /// Must be called after initialize/launch and before configurationDone.
+    /// </summary>
+    private async Task SyncBreakpointsToAdapterAsync(CancellationToken cancellationToken)
+    {
+        if (_breakpointStore is null || _client is null) return;
+
+        var allBreakpoints = _breakpointStore.GetAllBreakpoints();
+        if (allBreakpoints.Count == 0) return;
+
+        // Group breakpoints by file path
+        var byFile = allBreakpoints
+            .Where(b => b.IsEnabled)
+            .GroupBy(b => b.Path, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in byFile)
+        {
+            var args = new DapSetBreakpointsArguments
+            {
+                Source = new DapSource { Path = group.Key, Name = Path.GetFileName(group.Key) },
+                Breakpoints = group.Select(b => new DapSourceBreakpoint { Line = b.Line }).ToList(),
+            };
+
+            try
+            {
+                var result = await _client.SetBreakpointsAsync(args, cancellationToken).ConfigureAwait(false);
+
+                // Update verified status in the store
+                foreach (var bp in result.Breakpoints)
+                {
+                    if (bp.Line.HasValue)
+                        _breakpointStore.UpdateVerifiedStatus(group.Key, bp.Line.Value, bp.Verified);
+                }
+            }
+            catch
+            {
+                // Best effort — don't fail the whole debug session for one file's breakpoints
+            }
+        }
+    }
 
     private void EnsureDebugging()
     {
