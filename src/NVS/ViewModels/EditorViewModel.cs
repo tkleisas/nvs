@@ -14,6 +14,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
     private readonly IEditorService _editorService;
     private readonly IFileSystemService _fileSystemService;
     private readonly ILspSessionManager? _lspSessionManager;
+    private readonly IBreakpointStore? _breakpointStore;
 
     private DocumentViewModel? _activeDocument;
     private int _activeTabIndex = -1;
@@ -69,11 +70,12 @@ public partial class EditorViewModel : INotifyPropertyChanged
 
     public ObservableCollection<DocumentViewModel> OpenDocuments { get; } = [];
 
-    public EditorViewModel(IEditorService editorService, IFileSystemService fileSystemService, ILspSessionManager? lspSessionManager = null)
+    public EditorViewModel(IEditorService editorService, IFileSystemService fileSystemService, ILspSessionManager? lspSessionManager = null, IBreakpointStore? breakpointStore = null)
     {
         _editorService = editorService;
         _fileSystemService = fileSystemService;
         _lspSessionManager = lspSessionManager;
+        _breakpointStore = breakpointStore;
 
         _editorService.DocumentOpened += OnDocumentOpened;
         _editorService.DocumentClosed += OnDocumentClosed;
@@ -226,6 +228,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
         var docVm = new DocumentViewModel(document);
         docVm.CloseTabCommand = new RelayCommand(() => CloseDocument(docVm));
         WireLspCommands(docVm);
+        WireBreakpointCommand(docVm);
         OpenDocuments.Add(docVm);
         ActiveDocument = docVm;
         ActiveTabIndex = OpenDocuments.Count - 1;
@@ -291,6 +294,32 @@ public partial class EditorViewModel : INotifyPropertyChanged
             var completions = await _lspSessionManager.GetCompletionsAsync(docVm.Document, pos);
             docVm.LastCompletionResults = completions;
         });
+    }
+
+    private void WireBreakpointCommand(DocumentViewModel docVm)
+    {
+        if (_breakpointStore is null)
+            return;
+
+        docVm.ToggleBreakpointCommand = new RelayCommand<int>(line =>
+        {
+            var filePath = docVm.Document.FilePath;
+            if (string.IsNullOrEmpty(filePath)) return;
+
+            _breakpointStore.ToggleBreakpoint(filePath, line);
+            RefreshBreakpoints(docVm);
+        });
+
+        // Load existing breakpoints for this file
+        RefreshBreakpoints(docVm);
+    }
+
+    private void RefreshBreakpoints(DocumentViewModel docVm)
+    {
+        if (_breakpointStore is null || string.IsNullOrEmpty(docVm.Document.FilePath)) return;
+
+        var bps = _breakpointStore.GetBreakpoints(docVm.Document.FilePath);
+        docVm.Breakpoints = bps.Select(b => (b.Line, b.IsVerified)).ToList();
     }
 
     internal void NotifyDiagnosticCountsChanged()
