@@ -30,6 +30,8 @@ public sealed class NvsDockFactory : Factory
         var terminal = new TerminalToolViewModel(_main);
         var buildOutput = new BuildOutputToolViewModel(_main);
         var problems = new ProblemsToolViewModel(_main);
+        var callStack = new CallStackToolViewModel(_main);
+        var variables = new VariablesToolViewModel(_main);
         var editor = new EditorDocumentViewModel(_main);
 
         var leftDock = new ProportionalDock
@@ -57,7 +59,7 @@ public sealed class NvsDockFactory : Factory
                 new ToolDock
                 {
                     ActiveDockable = terminal,
-                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems),
+                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables),
                     Alignment = Alignment.Bottom,
                     GripMode = GripMode.Visible,
                 }
@@ -139,6 +141,8 @@ public sealed class NvsDockFactory : Factory
             ["Terminal"] = () => _main,
             ["BuildOutput"] = () => _main,
             ["Problems"] = () => _main,
+            ["CallStack"] = () => _main,
+            ["Variables"] = () => _main,
             ["Editor"] = () => _main,
             ["Home"] = () => _main,
         };

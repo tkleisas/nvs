@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:NVS.ViewModels.Dock"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.VariablesView"
+             x:DataType="vm:VariablesToolViewModel">
+
+    <Grid RowDefinitions="Auto,*" Background="#1E1E1E">
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#252526" Padding="8,4">
+            <TextBlock Text="Variables" FontSize="12" Foreground="#CCCCCC" FontWeight="SemiBold"/>
+        </Border>
+
+        <!-- Variables Tree -->
+        <TreeView Grid.Row="1"
+                  ItemsSource="{Binding Variables}"
+                  Background="#1E1E1E"
+                  BorderThickness="0">
+            <TreeView.ItemTemplate>
+                <TreeDataTemplate ItemsSource="{Binding Children}">
+                    <Grid ColumnDefinitions="*,*,Auto" Margin="2">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Name}"
+                                   Foreground="#9CDCFE"
+                                   FontFamily="Consolas,Courier New,monospace"
+                                   FontSize="12"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Value}"
+                                   Foreground="#CE9178"
+                                   FontFamily="Consolas,Courier New,monospace"
+                                   FontSize="12"
+                                   Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Type}"
+                                   Foreground="#808080"
+                                   FontSize="11"
+                                   Margin="8,0,0,0"/>
+                    </Grid>
+                </TreeDataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+
+        <!-- Empty State -->
+        <TextBlock Grid.Row="1"
+                   Text="No variables available"
+                   Foreground="#808080"
+                   FontSize="12"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   IsVisible="{Binding !Variables.Count}"/>
+    </Grid>
+</UserControl>

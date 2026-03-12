@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:NVS.ViewModels.Dock"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.CallStackView"
+             x:DataType="vm:CallStackToolViewModel">
+
+    <Grid RowDefinitions="Auto,*" Background="#1E1E1E">
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#252526" Padding="8,4">
+            <TextBlock Text="Call Stack" FontSize="12" Foreground="#CCCCCC" FontWeight="SemiBold"/>
+        </Border>
+
+        <!-- Frame List -->
+        <ListBox Grid.Row="1"
+                 ItemsSource="{Binding Frames}"
+                 SelectedItem="{Binding SelectedFrame}"
+                 Background="#1E1E1E"
+                 BorderThickness="0">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid ColumnDefinitions="*,Auto" Margin="4,2">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Name}"
+                                   Foreground="#D4D4D4"
+                                   FontFamily="Consolas,Courier New,monospace"
+                                   FontSize="12"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="{Binding Source}"
+                                       Foreground="#808080"
+                                       FontSize="11"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="200"/>
+                            <TextBlock Foreground="#569CD6" FontSize="11">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat=":{0}">
+                                        <Binding Path="Line"/>
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Empty State -->
+        <TextBlock Grid.Row="1"
+                   Text="No call stack available"
+                   Foreground="#808080"
+                   FontSize="12"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   IsVisible="{Binding !Frames.Count}"/>
+    </Grid>
+</UserControl>

@@ -19,6 +19,8 @@ public class DockViewLocator : IDataTemplate
         [typeof(TerminalToolViewModel)] = () => new TerminalView(),
         [typeof(BuildOutputToolViewModel)] = () => new BuildOutputView(),
         [typeof(ProblemsToolViewModel)] = () => new ProblemsView(),
+        [typeof(CallStackToolViewModel)] = () => new CallStackView(),
+        [typeof(VariablesToolViewModel)] = () => new VariablesView(),
         [typeof(EditorDocumentViewModel)] = () => new EditorView(),
     };
 
