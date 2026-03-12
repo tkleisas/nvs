@@ -233,6 +233,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         };
 
         await LoadDirectoryContents(rootNode, folderPath);
+        rootNode.IsExpanded = true;
         FileTree.Add(rootNode);
     }
 
@@ -690,8 +691,10 @@ public partial class MainViewModel : INotifyPropertyChanged
     }
 }
 
-public class FileTreeNode
+public class FileTreeNode : INotifyPropertyChanged
 {
+    private bool _isExpanded;
+
     public string Name { get; init; } = "";
     public string Path { get; init; } = "";
     public bool IsDirectory { get; init; }
@@ -699,6 +702,21 @@ public class FileTreeNode
     public string Icon => IsDirectory ? "▸" : "●";
     public string IconColor => IsDirectory ? "#E8A848" : GetFileIconColor();
     public ICommand? OpenCommand { get; set; }
+
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded != value)
+            {
+                _isExpanded = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded)));
+            }
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
     
     private string GetFileIconColor()
     {

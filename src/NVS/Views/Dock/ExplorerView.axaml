@@ -30,6 +30,7 @@
             <Style Selector="TreeViewItem">
                 <Setter Property="Padding" Value="0"/>
                 <Setter Property="MinHeight" Value="22"/>
+                <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}"/>
             </Style>
         </TreeView.Styles>
         <TreeView.ItemTemplate>
