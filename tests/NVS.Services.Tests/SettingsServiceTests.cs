@@ -117,6 +117,56 @@ public class SettingsServiceTests : IDisposable
         loaded.Folders.Should().Contain("tests");
     }
 
+    [Fact]
+    public void WindowSettings_ShouldHaveDefaults()
+    {
+        var ws = new NVS.Core.Models.Settings.WindowSettings();
+
+        ws.Width.Should().Be(1200);
+        ws.Height.Should().Be(800);
+        ws.IsMaximized.Should().BeTrue();
+        ws.X.Should().BeNull();
+        ws.Y.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task WindowSettings_ShouldRoundTripThroughSaveLoad()
+    {
+        var settings = new NVS.Core.Models.Settings.AppSettings
+        {
+            Window = new NVS.Core.Models.Settings.WindowSettings
+            {
+                Width = 1400,
+                Height = 900,
+                X = 100,
+                Y = 50,
+                IsMaximized = false,
+            }
+        };
+
+        await _service.SaveAppSettingsAsync(settings);
+        var loaded = await _service.LoadAppSettingsAsync();
+
+        loaded.Window.Width.Should().Be(1400);
+        loaded.Window.Height.Should().Be(900);
+        loaded.Window.X.Should().Be(100);
+        loaded.Window.Y.Should().Be(50);
+        loaded.Window.IsMaximized.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task WindowSettings_ShouldDefaultWhenMissing()
+    {
+        // Save settings without window (simulates old config file)
+        var settings = new NVS.Core.Models.Settings.AppSettings { Theme = "Test" };
+        await _service.SaveAppSettingsAsync(settings);
+        var loaded = await _service.LoadAppSettingsAsync();
+
+        loaded.Window.Should().NotBeNull();
+        loaded.Window.Width.Should().Be(1200);
+        loaded.Window.IsMaximized.Should().BeTrue();
+    }
+
     private class TempDirectory : IDisposable
     {
         public string Path { get; }

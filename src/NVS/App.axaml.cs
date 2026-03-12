@@ -32,7 +32,20 @@ public partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // Load persisted settings before creating the window
+            var settingsService = Services?.GetService(typeof(ISettingsService)) as ISettingsService;
+            if (settingsService is not null)
+            {
+                try { settingsService.InitializeAsync().GetAwaiter().GetResult(); }
+                catch { /* Continue with defaults if settings fail to load */ }
+            }
+
             var mainWindow = Services?.GetService(typeof(MainWindow)) as MainWindow ?? new MainWindow();
+
+            // Restore window size/position/state from settings
+            var windowSettings = settingsService?.AppSettings.Window ?? new NVS.Core.Models.Settings.WindowSettings();
+            mainWindow.ApplyWindowSettings(windowSettings);
+
             var mainViewModel = Services?.GetService(typeof(MainViewModel)) as MainViewModel;
             if (mainViewModel != null)
             {

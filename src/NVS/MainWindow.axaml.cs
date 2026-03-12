@@ -1,6 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using NVS.Core.Interfaces;
+using NVS.Core.Models.Settings;
 using NVS.ViewModels;
 using NVS.Views;
 using NVS.Views.Dock;
@@ -9,14 +12,106 @@ namespace NVS;
 
 public partial class MainWindow : Window
 {
+    private double _restoreWidth = 1200;
+    private double _restoreHeight = 800;
+    private double? _restoreX;
+    private double? _restoreY;
+
     public MainWindow()
     {
         InitializeComponent();
         Closing += OnWindowClosing;
+        Opened += OnWindowOpened;
+    }
+
+    public void ApplyWindowSettings(WindowSettings settings)
+    {
+        _restoreWidth = settings.Width > 0 ? settings.Width : 1200;
+        _restoreHeight = settings.Height > 0 ? settings.Height : 800;
+
+        Width = _restoreWidth;
+        Height = _restoreHeight;
+
+        if (settings.X.HasValue && settings.Y.HasValue)
+        {
+            _restoreX = settings.X;
+            _restoreY = settings.Y;
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Position = new PixelPoint((int)settings.X.Value, (int)settings.Y.Value);
+        }
+        else
+        {
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        }
+
+        if (settings.IsMaximized)
+        {
+            WindowState = WindowState.Maximized;
+        }
+    }
+
+    private void OnWindowOpened(object? sender, EventArgs e)
+    {
+        // Record initial normal-state bounds
+        if (WindowState == WindowState.Normal)
+        {
+            RecordNormalBounds();
+        }
+
+        // Track changes so we always have the last normal-state bounds
+        PropertyChanged += (_, args) =>
+        {
+            if (args.Property == WindowStateProperty ||
+                args.Property == BoundsProperty)
+            {
+                RecordNormalBounds();
+            }
+        };
+
+        PositionChanged += (_, _) => RecordNormalBounds();
+    }
+
+    private void RecordNormalBounds()
+    {
+        if (WindowState != WindowState.Normal) return;
+        if (ClientSize.Width > 0) _restoreWidth = ClientSize.Width;
+        if (ClientSize.Height > 0) _restoreHeight = ClientSize.Height;
+        _restoreX = Position.X;
+        _restoreY = Position.Y;
+    }
+
+    private void SaveWindowState()
+    {
+        var app = App.Current;
+        if (app?.Services is null) return;
+
+        var settingsService = app.Services.GetService(typeof(ISettingsService)) as ISettingsService;
+        if (settingsService is null) return;
+
+        var windowSettings = new WindowSettings
+        {
+            IsMaximized = WindowState == WindowState.Maximized,
+            Width = _restoreWidth,
+            Height = _restoreHeight,
+            X = _restoreX,
+            Y = _restoreY,
+        };
+
+        var newSettings = settingsService.AppSettings with { Window = windowSettings };
+        try
+        {
+            settingsService.SaveAppSettingsAsync(newSettings).GetAwaiter().GetResult();
+        }
+        catch
+        {
+            // Best-effort: don't prevent window close if save fails
+        }
     }
 
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
+        SaveWindowState();
+
         if (DataContext is not MainViewModel vm) return;
 
         var dirtyDocs = vm.Editor?.OpenDocuments.Where(d => d.IsDirty).ToList();

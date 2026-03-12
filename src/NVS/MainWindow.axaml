@@ -8,9 +8,7 @@
         x:Class="NVS.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="{Binding Title}"
-        Width="1200" Height="800"
         MinWidth="800" MinHeight="600"
-        WindowStartupLocation="CenterScreen"
         Background="#1E1E1E">
 
     <Window.KeyBindings>
