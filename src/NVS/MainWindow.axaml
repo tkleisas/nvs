@@ -103,11 +103,15 @@
         </Border>
 
         <!-- Main Content Area -->
-        <Grid Grid.Row="2" ColumnDefinitions="250,Auto,*">
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250" MinWidth="150" MaxWidth="500" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
             <!-- Sidebar -->
             <Border Grid.Column="0" Background="#252526"
-                    BorderBrush="#3C3C3C" BorderThickness="0,0,1,0"
-                    MinWidth="150" MaxWidth="500">
+                    BorderBrush="#3C3C3C" BorderThickness="0,0,1,0">
                 <Grid RowDefinitions="Auto,*">
                     <!-- Sidebar Tab Buttons -->
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Background="#2D2D30">
