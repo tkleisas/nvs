@@ -226,7 +226,11 @@ public partial class EditorViewModel : INotifyPropertyChanged
     private void OnDocumentOpened(object? sender, Document document)
     {
         var docVm = new DocumentViewModel(document);
-        docVm.CloseTabCommand = new RelayCommand(() => CloseDocument(docVm));
+        docVm.CloseTabCommand = new RelayCommand(() =>
+        {
+            CloseDocument(docVm);
+            _ = _editorService.CloseDocumentAsync(docVm.Document);
+        });
         WireLspCommands(docVm);
         WireBreakpointCommand(docVm);
         OpenDocuments.Add(docVm);
