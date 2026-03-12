@@ -9,7 +9,7 @@
              x:DataType="dock:TerminalToolViewModel">
 
     <terminal:TerminalControl x:Name="Terminal"
-                              FontFamily="Cascadia Mono,Cascadia Code,Consolas,Courier New,monospace"
-                              FontSize="14"
-                              BufferSize="5000" />
+                              FontFamily="{Binding TerminalFontFamily}"
+                              FontSize="{Binding TerminalFontSize}"
+                              BufferSize="{Binding TerminalBufferSize}" />
 </UserControl>

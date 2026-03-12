@@ -31,6 +31,11 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     private bool _autoSave;
     private int _autoSaveDelay;
 
+    // Terminal
+    private string _terminalFontFamily = "Cascadia Mono,Cascadia Code,Consolas,Courier New,monospace";
+    private int _terminalFontSize = 14;
+    private int _terminalBufferSize = 5000;
+
     // LLM
     private string _llmEndpoint = "http://localhost:11434/v1";
     private string _llmModel = "codellama";
@@ -50,6 +55,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         [
             "General",
             "Editor",
+            "Terminal",
             "Language Servers",
             "LLM"
         ];
@@ -68,6 +74,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
             {
                 OnPropertyChanged(nameof(IsGeneralVisible));
                 OnPropertyChanged(nameof(IsEditorVisible));
+                OnPropertyChanged(nameof(IsTerminalVisible));
                 OnPropertyChanged(nameof(IsLanguageServersVisible));
                 OnPropertyChanged(nameof(IsLlmVisible));
             }
@@ -76,8 +83,9 @@ public partial class SettingsViewModel : INotifyPropertyChanged
 
     public bool IsGeneralVisible => _selectedSectionIndex == 0;
     public bool IsEditorVisible => _selectedSectionIndex == 1;
-    public bool IsLanguageServersVisible => _selectedSectionIndex == 2;
-    public bool IsLlmVisible => _selectedSectionIndex == 3;
+    public bool IsTerminalVisible => _selectedSectionIndex == 2;
+    public bool IsLanguageServersVisible => _selectedSectionIndex == 3;
+    public bool IsLlmVisible => _selectedSectionIndex == 4;
 
     // General properties
     public bool RestorePreviousSession
@@ -153,6 +161,25 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         set => SetProperty(ref _autoSaveDelay, value);
     }
 
+    // Terminal properties
+    public string TerminalFontFamily
+    {
+        get => _terminalFontFamily;
+        set => SetProperty(ref _terminalFontFamily, value);
+    }
+
+    public int TerminalFontSize
+    {
+        get => _terminalFontSize;
+        set => SetProperty(ref _terminalFontSize, value);
+    }
+
+    public int TerminalBufferSize
+    {
+        get => _terminalBufferSize;
+        set => SetProperty(ref _terminalBufferSize, value);
+    }
+
     // LLM properties
     public string LlmEndpoint
     {
@@ -214,6 +241,11 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         LlmMaxTokens = settings.Llm.MaxTokens;
         LlmEnableAutoComplete = settings.Llm.EnableAutoComplete;
         LlmEnableChat = settings.Llm.EnableChat;
+
+        // Terminal
+        TerminalFontFamily = settings.Terminal.FontFamily;
+        TerminalFontSize = settings.Terminal.FontSize;
+        TerminalBufferSize = settings.Terminal.BufferSize;
     }
 
     private async Task LoadLanguageServersAsync()
@@ -286,6 +318,12 @@ public partial class SettingsViewModel : INotifyPropertyChanged
                 MaxTokens = LlmMaxTokens,
                 EnableAutoComplete = LlmEnableAutoComplete,
                 EnableChat = LlmEnableChat,
+            },
+            Terminal = new TerminalSettings
+            {
+                FontFamily = TerminalFontFamily,
+                FontSize = TerminalFontSize,
+                BufferSize = TerminalBufferSize,
             },
             LanguageServers = BuildLanguageServerConfigs(),
         };

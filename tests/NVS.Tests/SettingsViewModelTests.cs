@@ -42,9 +42,10 @@ public sealed class SettingsViewModelTests
     {
         var vm = new SettingsViewModel(CreateSettingsService(), CreateServerManager());
 
-        vm.Sections.Should().HaveCount(4);
+        vm.Sections.Should().HaveCount(5);
         vm.Sections.Should().Contain("General");
         vm.Sections.Should().Contain("Editor");
+        vm.Sections.Should().Contain("Terminal");
         vm.Sections.Should().Contain("Language Servers");
         vm.Sections.Should().Contain("LLM");
     }
@@ -57,6 +58,7 @@ public sealed class SettingsViewModelTests
             RestorePreviousSession = false,
             CheckUpdatesOnStartup = true,
             Editor = new EditorSettings { FontSize = 16, TabSize = 2, WordWrap = true },
+            Terminal = new TerminalSettings { FontFamily = "Consolas", FontSize = 18, BufferSize = 10000 },
             Llm = new LlmSettings { Model = "gpt-4", MaxTokens = 4096 },
         };
 
@@ -68,6 +70,9 @@ public sealed class SettingsViewModelTests
         vm.FontSize.Should().Be(16);
         vm.TabSize.Should().Be(2);
         vm.WordWrap.Should().BeTrue();
+        vm.TerminalFontFamily.Should().Be("Consolas");
+        vm.TerminalFontSize.Should().Be(18);
+        vm.TerminalBufferSize.Should().Be(10000);
         vm.LlmModel.Should().Be("gpt-4");
         vm.LlmMaxTokens.Should().Be(4096);
     }
@@ -115,9 +120,12 @@ public sealed class SettingsViewModelTests
         vm.IsGeneralVisible.Should().BeFalse();
 
         vm.SelectedSectionIndex = 2;
-        vm.IsLanguageServersVisible.Should().BeTrue();
+        vm.IsTerminalVisible.Should().BeTrue();
 
         vm.SelectedSectionIndex = 3;
+        vm.IsLanguageServersVisible.Should().BeTrue();
+
+        vm.SelectedSectionIndex = 4;
         vm.IsLlmVisible.Should().BeTrue();
     }
 
@@ -208,6 +216,38 @@ public sealed class SettingsViewModelTests
         await vm.InstallServerCommand.ExecuteAsync(item);
 
         item.Status.Should().Be(LanguageServerStatus.NotInstalled);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_ShouldLoadTerminalDefaults()
+    {
+        var vm = new SettingsViewModel(CreateSettingsService(), CreateServerManager());
+        await vm.InitializeAsync();
+
+        vm.TerminalFontFamily.Should().Contain("Cascadia");
+        vm.TerminalFontSize.Should().Be(14);
+        vm.TerminalBufferSize.Should().Be(5000);
+    }
+
+    [Fact]
+    public async Task SaveCommand_ShouldPersistTerminalSettings()
+    {
+        var settingsService = CreateSettingsService();
+        var vm = new SettingsViewModel(settingsService, CreateServerManager());
+        await vm.InitializeAsync();
+
+        vm.TerminalFontFamily = "Fira Code";
+        vm.TerminalFontSize = 16;
+        vm.TerminalBufferSize = 8000;
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        await settingsService.Received(1).SaveAppSettingsAsync(
+            Arg.Is<AppSettings>(s =>
+                s.Terminal.FontFamily == "Fira Code" &&
+                s.Terminal.FontSize == 16 &&
+                s.Terminal.BufferSize == 8000),
+            Arg.Any<CancellationToken>());
     }
 }
 

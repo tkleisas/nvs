@@ -1,4 +1,5 @@
 using NVS.Core.Interfaces;
+using NVS.Core.Models.Settings;
 using NVS.ViewModels;
 
 namespace NVS.Tests;
@@ -14,8 +15,10 @@ public class MainViewModelSearchTests
         var editor = new EditorViewModel(editorService, fs);
         var git = Substitute.For<IGitService>();
         var terminal = Substitute.For<ITerminalService>();
+        var settings = Substitute.For<ISettingsService>();
+        settings.AppSettings.Returns(new AppSettings());
 
-        return new MainViewModel(workspaceService, editorService, fs, editor, git, terminal);
+        return new MainViewModel(workspaceService, editorService, fs, editor, git, terminal, settings);
     }
 
     [Fact]

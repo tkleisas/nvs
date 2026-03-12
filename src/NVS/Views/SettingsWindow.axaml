@@ -77,6 +77,25 @@
                         <CheckBox IsChecked="{Binding AutoSave}" Content="Auto-save" Foreground="#CCCCCC" />
                     </StackPanel>
 
+                    <!-- Terminal Section -->
+                    <StackPanel Spacing="12" IsVisible="{Binding IsTerminalVisible}">
+                        <TextBlock Text="Terminal" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                        <TextBlock Text="Configure the integrated terminal appearance."
+                                   FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
+                        <Separator Background="#3F3F46" />
+
+                        <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Font Family" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                            <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding TerminalFontFamily}" MaxWidth="360" HorizontalAlignment="Left" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Font Size" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding TerminalFontSize}" Minimum="8" Maximum="72" MaxWidth="120" HorizontalAlignment="Left" Margin="0,8,0,0" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Buffer Size (lines)" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding TerminalBufferSize}" Minimum="500" Maximum="50000" Increment="500" MaxWidth="160" HorizontalAlignment="Left" Margin="0,8,0,0" />
+                        </Grid>
+                    </StackPanel>
+
                     <!-- Language Servers Section -->
                     <StackPanel Spacing="12" IsVisible="{Binding IsLanguageServersVisible}">
                         <TextBlock Text="Language Servers" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />

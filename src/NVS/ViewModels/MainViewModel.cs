@@ -62,17 +62,21 @@ public partial class MainViewModel : INotifyPropertyChanged
         IFileSystemService fileSystemService,
         EditorViewModel editor,
         IGitService gitService,
-        ITerminalService terminalService)
+        ITerminalService terminalService,
+        ISettingsService settingsService)
     {
         _workspaceService = workspaceService;
         _editorService = editorService;
         _fileSystemService = fileSystemService;
         _gitService = gitService;
         _terminalService = terminalService;
+        SettingsService = settingsService;
         Editor = editor;
 
         _gitService.StatusChanged += OnGitStatusChanged;
     }
+
+    public ISettingsService SettingsService { get; }
 
     public string Title
     {

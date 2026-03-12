@@ -1,4 +1,5 @@
 using NVS.Core.Interfaces;
+using NVS.Core.Models.Settings;
 using NVS.ViewModels;
 
 namespace NVS.Tests;
@@ -15,8 +16,10 @@ public class MainViewModelGitTerminalTests
         var editor = new EditorViewModel(editorService, fileSystemService);
         var git = gitService ?? Substitute.For<IGitService>();
         var terminal = terminalService ?? Substitute.For<ITerminalService>();
+        var settings = Substitute.For<ISettingsService>();
+        settings.AppSettings.Returns(new AppSettings());
 
-        return new MainViewModel(workspaceService, editorService, fileSystemService, editor, git, terminal);
+        return new MainViewModel(workspaceService, editorService, fileSystemService, editor, git, terminal, settings);
     }
 
     // --- Sidebar switching ---
