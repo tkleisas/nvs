@@ -64,7 +64,7 @@
                         <i:Interaction.Behaviors>
                             <behaviors:DocumentTextBindingBehavior
                                 Text="{Binding Text, Mode=TwoWay}"
-                                Line="{Binding CursorLine, Mode=OneWayToSource}"
+                                Line="{Binding CursorLine, Mode=TwoWay}"
                                 Column="{Binding CursorColumn, Mode=OneWayToSource}"
                                 UndoCommand="{Binding UndoCommand, Mode=OneWayToSource}"
                                 RedoCommand="{Binding RedoCommand, Mode=OneWayToSource}"
@@ -74,7 +74,8 @@
                                 RequestCompletionCommand="{Binding RequestCompletionCommand}"
                                 CompletionResults="{Binding LastCompletionResults}"
                                 Breakpoints="{Binding Breakpoints}"
-                                ToggleBreakpointCommand="{Binding ToggleBreakpointCommand}"/>
+                                ToggleBreakpointCommand="{Binding ToggleBreakpointCommand}"
+                                DebugCurrentLine="{Binding DebugCurrentLine}"/>
                         </i:Interaction.Behaviors>
                     </AvaloniaEdit:TextEditor>
                 </DataTemplate>

@@ -616,14 +616,71 @@ public partial class MainViewModel : INotifyPropertyChanged
 
         try
         {
+            // Build first — debugger needs compiled output
+            StatusMessage = "Building before debug...";
+            var buildOutput = FindBuildOutputTool();
+            buildOutput?.ClearOutput();
+
+            var buildArgs = new List<string> { "build" };
+            if (_solutionService.CurrentSolution is { } sol)
+                buildArgs.Add(sol.FilePath);
+            buildArgs.Add("--nologo");
+
+            var buildTask = new Core.Interfaces.BuildTask
+            {
+                Name = "Build for Debug",
+                Command = "dotnet",
+                Args = [.. buildArgs],
+                WorkingDirectory = WorkspacePath,
+            };
+
+            void OnBuildOutput(object? sender, Core.Interfaces.BuildOutputEventArgs e)
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    buildOutput?.AppendOutput(e.Output, e.IsError));
+            }
+
+            _buildService.OutputReceived += OnBuildOutput;
+            BuildResult buildResult;
+            try
+            {
+                buildResult = await _buildService.RunTaskAsync(buildTask);
+            }
+            finally
+            {
+                _buildService.OutputReceived -= OnBuildOutput;
+            }
+
+            if (!buildResult.Success)
+            {
+                StatusMessage = $"Build failed — {buildResult.Errors.Count} error(s)";
+                FindProblemsTool()?.SetProblems(buildResult.Errors, buildResult.Warnings);
+                return;
+            }
+
             StatusMessage = "Starting debugger...";
             var projectDir = System.IO.Path.GetDirectoryName(startup.FilePath) ?? ".";
+            var assemblyName = startup.AssemblyName ?? startup.Name;
+            var programPath = System.IO.Path.Combine(projectDir, "bin", "Debug", startup.TargetFramework, assemblyName + ".dll");
+
+            // If exact path doesn't exist, search for the DLL under bin/Debug/
+            if (!System.IO.File.Exists(programPath))
+            {
+                var binDir = System.IO.Path.Combine(projectDir, "bin", "Debug");
+                if (System.IO.Directory.Exists(binDir))
+                {
+                    var found = System.IO.Directory.GetFiles(binDir, assemblyName + ".dll", System.IO.SearchOption.AllDirectories);
+                    if (found.Length > 0)
+                        programPath = found[0];
+                }
+            }
+
             var config = new NVS.Core.Models.Settings.DebugConfiguration
             {
                 Name = startup.Name,
                 Type = "coreclr",
                 Request = "launch",
-                Program = System.IO.Path.Combine(projectDir, "bin", "Debug", startup.TargetFramework, (startup.AssemblyName ?? startup.Name) + ".dll"),
+                Program = programPath,
                 Cwd = projectDir,
             };
 
@@ -721,6 +778,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         IsDebugging = false;
         IsDebugPaused = false;
         StatusMessage = "Debug session ended";
+        ClearDebugCurrentLine();
 
         // Clear call stack and variables
         FindToolInDock<CallStackToolViewModel>()?.ClearFrames();
@@ -732,7 +790,6 @@ public partial class MainViewModel : INotifyPropertyChanged
         IsDebugPaused = true;
         StatusMessage = "Paused";
 
-        // Update call stack and variables panels
         if (_debugService is null) return;
 
         try
@@ -745,8 +802,23 @@ public partial class MainViewModel : INotifyPropertyChanged
 
                 if (frames.Count > 0)
                 {
-                    var vars = await _debugService.GetVariablesAsync(frames[0].Id);
+                    var topFrame = frames[0];
+                    var vars = await _debugService.GetVariablesAsync(topFrame.Id);
                     FindToolInDock<VariablesToolViewModel>()?.UpdateVariables(vars);
+
+                    // Navigate to the stopped location in the editor
+                    if (!string.IsNullOrEmpty(topFrame.Source) && topFrame.Line > 0)
+                    {
+                        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+                        {
+                            await OpenFileAsync(topFrame.Source);
+                            if (Editor?.ActiveDocument is { } doc)
+                            {
+                                doc.CursorLine = topFrame.Line;
+                                doc.DebugCurrentLine = topFrame.Line;
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -760,12 +832,22 @@ public partial class MainViewModel : INotifyPropertyChanged
     {
         IsDebugPaused = false;
         StatusMessage = "Running...";
+        ClearDebugCurrentLine();
     }
 
     private void OnDebugOutput(object? sender, OutputEvent evt)
     {
         var isError = evt.Category is OutputCategory.Stderr;
         FindBuildOutputTool()?.AppendOutput(evt.Output, isError);
+    }
+
+    private void ClearDebugCurrentLine()
+    {
+        if (Editor?.OpenDocuments is not null)
+        {
+            foreach (var doc in Editor.OpenDocuments)
+                doc.DebugCurrentLine = null;
+        }
     }
 
     private BuildOutputToolViewModel? FindBuildOutputTool()

@@ -450,6 +450,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     {
         _server.EnqueueResponse("initialize", new DapCapabilities { SupportsConfigurationDoneRequest = true });
         _server.EnqueueResponse("launch", null);
+        _server.EnqueueEventAfterResponse("launch", "initialized");
         _server.EnqueueResponse("configurationDone", null);
         _server.Start();
 
@@ -475,6 +476,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     {
         _server.EnqueueResponse("initialize", new DapCapabilities());
         _server.EnqueueResponse("launch", null);
+        _server.EnqueueEventAfterResponse("launch", "initialized");
         _server.EnqueueResponse("configurationDone", null);
         _server.Start();
 
@@ -495,6 +497,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     {
         _server.EnqueueResponse("initialize", new DapCapabilities());
         _server.EnqueueResponse("launch", null);
+        _server.EnqueueEventAfterResponse("launch", "initialized");
         _server.EnqueueResponse("configurationDone", null);
         _server.Start();
 
@@ -516,6 +519,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     {
         _server.EnqueueResponse("initialize", new DapCapabilities());
         _server.EnqueueResponse("launch", null);
+        _server.EnqueueEventAfterResponse("launch", "initialized");
         _server.EnqueueResponse("configurationDone", null);
         _server.EnqueueResponse("disconnect", null);
         _server.Start();
@@ -540,6 +544,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     {
         _server.EnqueueResponse("initialize", new DapCapabilities());
         _server.EnqueueResponse("launch", null);
+        _server.EnqueueEventAfterResponse("launch", "initialized");
         _server.EnqueueResponse("configurationDone", null);
         _server.EnqueueResponse("threads", new DapThreadsResponseBody
         {
@@ -563,6 +568,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     {
         _server.EnqueueResponse("initialize", new DapCapabilities());
         _server.EnqueueResponse("launch", null);
+        _server.EnqueueEventAfterResponse("launch", "initialized");
         _server.EnqueueResponse("configurationDone", null);
         _server.EnqueueResponse("stackTrace", new DapStackTraceResponseBody
         {
@@ -594,6 +600,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     {
         _server.EnqueueResponse("initialize", new DapCapabilities());
         _server.EnqueueResponse("launch", null);
+        _server.EnqueueEventAfterResponse("launch", "initialized");
         _server.EnqueueResponse("configurationDone", null);
         _server.EnqueueResponse("scopes", new DapScopesResponseBody
         {
@@ -626,6 +633,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     {
         _server.EnqueueResponse("initialize", new DapCapabilities());
         _server.EnqueueResponse("launch", null);
+        _server.EnqueueEventAfterResponse("launch", "initialized");
         _server.EnqueueResponse("configurationDone", null);
         _server.EnqueueResponse("setBreakpoints", new DapSetBreakpointsResponseBody
         {
@@ -653,6 +661,7 @@ public sealed class DebugServiceTests : IAsyncDisposable
     {
         _server.EnqueueResponse("initialize", new DapCapabilities());
         _server.EnqueueResponse("launch", null);
+        _server.EnqueueEventAfterResponse("launch", "initialized");
         _server.EnqueueResponse("configurationDone", null);
         _server.Start();
 
@@ -775,6 +784,7 @@ internal sealed class MockDapServer
 {
     private readonly DapTransport _transport;
     private readonly Queue<CannedResponse> _responseQueue = new();
+    private readonly Dictionary<string, List<(string EventName, object? Body)>> _eventsAfterResponse = new();
     private readonly List<string> _receivedCommands = [];
     private CancellationTokenSource? _cts;
     private Task? _runTask;
@@ -795,6 +805,19 @@ internal sealed class MockDapServer
     public void EnqueueFailure(string command, string message)
     {
         _responseQueue.Enqueue(new CannedResponse(command, null, false, message));
+    }
+
+    /// <summary>
+    /// Enqueue an event to be sent automatically after the response to a given command.
+    /// </summary>
+    public void EnqueueEventAfterResponse(string afterCommand, string eventName, object? body = null)
+    {
+        if (!_eventsAfterResponse.TryGetValue(afterCommand, out var list))
+        {
+            list = [];
+            _eventsAfterResponse[afterCommand] = list;
+        }
+        list.Add((eventName, body));
     }
 
     public void Start()
@@ -858,6 +881,27 @@ internal sealed class MockDapServer
                         };
 
                         await _transport.WriteMessageAsync(response, cancellationToken).ConfigureAwait(false);
+
+                        // Send any events queued to fire after this command's response
+                        if (_eventsAfterResponse.TryGetValue(request.Command, out var events))
+                        {
+                            foreach (var (evtName, evtBody) in events)
+                            {
+                                var evtBodyElement = evtBody is not null
+                                    ? JsonSerializer.SerializeToElement(evtBody, DapTransport.JsonOptions)
+                                    : (JsonElement?)null;
+
+                                var evt = new DapEvent
+                                {
+                                    Seq = Interlocked.Increment(ref _nextSeq),
+                                    Event = evtName,
+                                    Body = evtBodyElement,
+                                };
+
+                                await _transport.WriteMessageAsync(evt, cancellationToken).ConfigureAwait(false);
+                            }
+                            _eventsAfterResponse.Remove(request.Command);
+                        }
                     }
                 }
             }

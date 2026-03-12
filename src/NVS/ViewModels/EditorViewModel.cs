@@ -352,6 +352,7 @@ public class DocumentViewModel : INotifyPropertyChanged
     private IReadOnlyList<CompletionItem>? _lastCompletionResults;
     private IReadOnlyList<(int Line, bool Verified)> _breakpoints = [];
     private ICommand? _toggleBreakpointCommand;
+    private int? _debugCurrentLine;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -514,6 +515,23 @@ public class DocumentViewModel : INotifyPropertyChanged
         {
             _toggleBreakpointCommand = value;
             OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// The line where the debugger is currently stopped. Null when not paused.
+    /// The behavior uses this to render a yellow highlight on the current execution line.
+    /// </summary>
+    public int? DebugCurrentLine
+    {
+        get => _debugCurrentLine;
+        set
+        {
+            if (_debugCurrentLine != value)
+            {
+                _debugCurrentLine = value;
+                OnPropertyChanged();
+            }
         }
     }
 

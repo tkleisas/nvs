@@ -108,22 +108,47 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
 
         SubscribeToClientEvents(_client);
 
-        // DAP initialization sequence: initialize → (wait for initialized event) → launch → configurationDone
-        await _client.InitializeAsync(cancellationToken).ConfigureAwait(false);
+        // DAP initialization sequence:
+        // 1. initialize → response (capabilities)
+        // 2. launch → response (adapter sets up debuggee)
+        // 3. Wait for "initialized" event from adapter
+        // 4. setBreakpoints (per file)
+        // 5. configurationDone → adapter starts execution
 
-        var launchArgs = new DapLaunchRequestArguments
+        var initializedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnInitialized(object? s, EventArgs e) => initializedTcs.TrySetResult();
+        _client.Initialized += OnInitialized;
+
+        try
         {
-            Program = configuration.Program ?? throw new InvalidOperationException("Program path is required."),
-            Args = configuration.Args.Count > 0 ? configuration.Args : null,
-            Cwd = configuration.Cwd,
-        };
+            await _client.InitializeAsync(cancellationToken).ConfigureAwait(false);
 
-        await _client.LaunchAsync(launchArgs, cancellationToken).ConfigureAwait(false);
+            var launchArgs = new DapLaunchRequestArguments
+            {
+                Program = configuration.Program ?? throw new InvalidOperationException("Program path is required."),
+                Args = configuration.Args.Count > 0 ? configuration.Args : null,
+                Cwd = configuration.Cwd,
+            };
 
-        // Send all breakpoints from the store before configurationDone
-        await SyncBreakpointsToAdapterAsync(cancellationToken).ConfigureAwait(false);
+            await _client.LaunchAsync(launchArgs, cancellationToken).ConfigureAwait(false);
 
-        await _client.ConfigurationDoneAsync(cancellationToken).ConfigureAwait(false);
+            // Wait for the initialized event (with timeout)
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
+            await using (timeoutCts.Token.Register(() => initializedTcs.TrySetCanceled()))
+            {
+                await initializedTcs.Task.ConfigureAwait(false);
+            }
+
+            // Send all breakpoints from the store before configurationDone
+            await SyncBreakpointsToAdapterAsync(cancellationToken).ConfigureAwait(false);
+
+            await _client.ConfigurationDoneAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _client.Initialized -= OnInitialized;
+        }
 
         var session = new DebugSession
         {

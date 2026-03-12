@@ -18,6 +18,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private TextEditor? _textEditor;
     private SearchPanel? _searchPanel;
     private DiagnosticBackgroundRenderer? _diagnosticRenderer;
+    private CurrentLineHighlightRenderer? _currentLineRenderer;
     private BreakpointMargin? _breakpointMargin;
     private CompletionWindow? _completionWindow;
     private bool _updating;
@@ -60,6 +61,9 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
     public static readonly StyledProperty<ICommand?> ToggleBreakpointCommandProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, ICommand?>(nameof(ToggleBreakpointCommand));
+
+    public static readonly StyledProperty<int?> DebugCurrentLineProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, int?>(nameof(DebugCurrentLine));
 
     public string Text
     {
@@ -133,6 +137,12 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         set => SetValue(ToggleBreakpointCommandProperty, value);
     }
 
+    public int? DebugCurrentLine
+    {
+        get => GetValue(DebugCurrentLineProperty);
+        set => SetValue(DebugCurrentLineProperty, value);
+    }
+
     protected override void OnAttached()
     {
         base.OnAttached();
@@ -150,6 +160,10 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _diagnosticRenderer = new DiagnosticBackgroundRenderer();
             _diagnosticRenderer.SetDocument(_textEditor.Document);
             _textEditor.TextArea.TextView.BackgroundRenderers.Add(_diagnosticRenderer);
+
+            // Install debug current line highlight renderer
+            _currentLineRenderer = new CurrentLineHighlightRenderer(_textEditor.Document);
+            _textEditor.TextArea.TextView.BackgroundRenderers.Add(_currentLineRenderer);
 
             // Install breakpoint margin (left gutter)
             _breakpointMargin = new BreakpointMargin();
@@ -178,6 +192,9 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
             if (_diagnosticRenderer != null)
                 _textEditor.TextArea.TextView.BackgroundRenderers.Remove(_diagnosticRenderer);
+
+            if (_currentLineRenderer != null)
+                _textEditor.TextArea.TextView.BackgroundRenderers.Remove(_currentLineRenderer);
 
             if (_breakpointMargin != null)
             {
@@ -220,6 +237,29 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         {
             var breakpoints = change.GetNewValue<IReadOnlyList<(int Line, bool Verified)>?>() ?? [];
             _breakpointMargin?.UpdateBreakpoints(breakpoints);
+        }
+        else if (change.Property == DebugCurrentLineProperty)
+        {
+            var line = change.GetNewValue<int?>();
+            _currentLineRenderer?.SetCurrentLine(line);
+            _textEditor?.TextArea.TextView.InvalidateLayer(AvaloniaEdit.Rendering.KnownLayer.Selection);
+
+            // Scroll to the debug line
+            if (line.HasValue && _textEditor?.Document is not null && line.Value <= _textEditor.Document.LineCount)
+            {
+                _textEditor.TextArea.Caret.Line = line.Value;
+                _textEditor.TextArea.Caret.Column = 1;
+                _textEditor.ScrollToLine(line.Value);
+            }
+        }
+        else if (change.Property == LineProperty && !_updating)
+        {
+            var line = change.GetNewValue<int>();
+            if (_textEditor?.Document is not null && line > 0 && line <= _textEditor.Document.LineCount)
+            {
+                _textEditor.TextArea.Caret.Line = line;
+                _textEditor.ScrollToLine(line);
+            }
         }
     }
 
