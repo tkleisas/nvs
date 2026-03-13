@@ -84,6 +84,38 @@ public sealed record DapLaunchRequestArguments
     public string? Console { get; init; }
 }
 
+// ── RunInTerminal (reverse request from adapter) ────────────────────
+
+public sealed record DapRunInTerminalArguments
+{
+    [JsonPropertyName("kind")]
+    public string? Kind { get; init; }
+
+    [JsonPropertyName("title")]
+    public string? Title { get; init; }
+
+    [JsonPropertyName("cwd")]
+    public string? Cwd { get; init; }
+
+    [JsonPropertyName("args")]
+    public IReadOnlyList<string>? Args { get; init; }
+
+    [JsonPropertyName("env")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyDictionary<string, string?>? Env { get; init; }
+}
+
+public sealed record DapRunInTerminalResponseBody
+{
+    [JsonPropertyName("processId")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? ProcessId { get; init; }
+
+    [JsonPropertyName("shellProcessId")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? ShellProcessId { get; init; }
+}
+
 // ── Breakpoints ─────────────────────────────────────────────────────
 
 public sealed record DapSourceBreakpoint

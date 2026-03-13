@@ -8,6 +8,13 @@ public interface IDebugService
     bool IsDebugging { get; }
     bool IsPaused { get; }
     DebugSession? CurrentSession { get; }
+
+    /// <summary>
+    /// Callback the IDE sets to handle DAP "runInTerminal" reverse requests.
+    /// The adapter calls this when console is set to "integratedTerminal".
+    /// Returns the launched process ID (or 0 if unknown).
+    /// </summary>
+    Func<RunInTerminalRequest, Task<int>>? RunInTerminalHandler { get; set; }
     
     Task<DebugSession> StartDebuggingAsync(DebugConfiguration configuration, CancellationToken cancellationToken = default);
     Task StopDebuggingAsync(CancellationToken cancellationToken = default);
@@ -87,4 +94,12 @@ public enum OutputCategory
     Stdout,
     Stderr,
     Telemetry
+}
+
+public sealed record RunInTerminalRequest
+{
+    public required string Cwd { get; init; }
+    public required IReadOnlyList<string> Args { get; init; }
+    public IReadOnlyDictionary<string, string?>? Env { get; init; }
+    public string? Title { get; init; }
 }

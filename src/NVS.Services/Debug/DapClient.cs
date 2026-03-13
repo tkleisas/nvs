@@ -29,6 +29,13 @@ public sealed class DapClient : IDapClient
     public event EventHandler<DapBreakpointEventBody>? BreakpointEvent;
     public event EventHandler? Initialized;
 
+    /// <summary>
+    /// Handler for DAP "runInTerminal" reverse requests.
+    /// The adapter calls this when console is set to "integratedTerminal".
+    /// Returns the launched process ID (or 0 if unknown).
+    /// </summary>
+    public Func<DapRunInTerminalArguments, Task<int>>? RunInTerminalHandler { get; set; }
+
     public DapClient(DapTransport transport)
     {
         _transport = transport ?? throw new ArgumentNullException(nameof(transport));
@@ -286,15 +293,35 @@ public sealed class DapClient : IDapClient
 
     private async Task HandleReverseRequestAsync(DapRequest request, CancellationToken cancellationToken)
     {
-        var response = new DapResponse
+        if (request.Command == "runInTerminal" && RunInTerminalHandler is not null)
+        {
+            var args = request.Arguments?.Deserialize<DapRunInTerminalArguments>(DapTransport.JsonOptions);
+            if (args is not null)
+            {
+                var processId = await RunInTerminalHandler(args).ConfigureAwait(false);
+                var responseBody = new DapRunInTerminalResponseBody { ProcessId = processId > 0 ? processId : null };
+                var response = new DapResponse
+                {
+                    Seq = Interlocked.Increment(ref _nextSeq),
+                    RequestSeq = request.Seq,
+                    Success = true,
+                    Command = request.Command,
+                    Body = JsonSerializer.SerializeToElement(responseBody, DapTransport.JsonOptions),
+                };
+                await _transport.WriteMessageAsync(response, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+        }
+
+        // Default: acknowledge unknown reverse requests
+        var defaultResponse = new DapResponse
         {
             Seq = Interlocked.Increment(ref _nextSeq),
             RequestSeq = request.Seq,
             Success = true,
             Command = request.Command,
         };
-
-        await _transport.WriteMessageAsync(response, cancellationToken).ConfigureAwait(false);
+        await _transport.WriteMessageAsync(defaultResponse, cancellationToken).ConfigureAwait(false);
     }
 
     // ── Dispose ───────────────────────────────────────────────────────

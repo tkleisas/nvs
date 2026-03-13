@@ -8,5 +8,6 @@ public sealed record DebugConfiguration
     public string? Program { get; init; }
     public string? Cwd { get; init; }
     public IReadOnlyList<string> Args { get; init; } = [];
+    public string? Console { get; init; }
     public IReadOnlyDictionary<string, object> AdditionalProperties { get; init; } = new Dictionary<string, object>();
 }

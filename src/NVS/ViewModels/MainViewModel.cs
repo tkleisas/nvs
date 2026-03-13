@@ -711,6 +711,22 @@ public partial class MainViewModel : INotifyPropertyChanged
                 Request = "launch",
                 Program = programPath,
                 Cwd = projectDir,
+                Console = "integratedTerminal",
+            };
+
+            // Wire up the RunInTerminal handler so netcoredbg launches
+            // the debuggee in the integrated terminal (enables console I/O)
+            _debugService.RunInTerminalHandler = async (request) =>
+            {
+                var terminalTool = FindTerminalTool();
+                if (terminalTool is not null)
+                {
+                    // Build command line from args
+                    var command = string.Join(" ", request.Args.Select(arg =>
+                        arg.Contains(' ') ? $"\"{arg}\"" : arg));
+                    await terminalTool.SendCommandToTerminalAsync(command);
+                }
+                return 0;
             };
 
             await _debugService.StartDebuggingAsync(config);

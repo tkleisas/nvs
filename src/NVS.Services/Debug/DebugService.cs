@@ -31,6 +31,8 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
     public event EventHandler<Breakpoint>? BreakpointHit;
     public event EventHandler<OutputEvent>? OutputReceived;
 
+    public Func<RunInTerminalRequest, Task<int>>? RunInTerminalHandler { get; set; }
+
     public DebugService(DebugAdapterRegistry adapterRegistry, IBreakpointStore? breakpointStore = null)
     {
         _adapterRegistry = adapterRegistry ?? throw new ArgumentNullException(nameof(adapterRegistry));
@@ -107,6 +109,7 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         }
 
         SubscribeToClientEvents(_client);
+        WireRunInTerminalHandler(_client);
 
         // DAP initialization sequence:
         // 1. initialize → response (capabilities)
@@ -128,6 +131,7 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
                 Program = configuration.Program ?? throw new InvalidOperationException("Program path is required."),
                 Args = configuration.Args.Count > 0 ? configuration.Args : null,
                 Cwd = configuration.Cwd,
+                Console = configuration.Console,
             };
 
             await _client.LaunchAsync(launchArgs, cancellationToken).ConfigureAwait(false);
@@ -306,6 +310,24 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         client.Terminated += OnClientTerminated;
         client.OutputReceived += OnClientOutput;
         client.ThreadEvent += OnClientThreadEvent;
+    }
+
+    private void WireRunInTerminalHandler(DapClient client)
+    {
+        client.RunInTerminalHandler = async (dapArgs) =>
+        {
+            if (RunInTerminalHandler is null) return 0;
+
+            var request = new RunInTerminalRequest
+            {
+                Cwd = dapArgs.Cwd ?? ".",
+                Args = dapArgs.Args ?? [],
+                Env = dapArgs.Env,
+                Title = dapArgs.Title,
+            };
+
+            return await RunInTerminalHandler(request).ConfigureAwait(false);
+        };
     }
 
     private void UnsubscribeFromClientEvents(DapClient client)
