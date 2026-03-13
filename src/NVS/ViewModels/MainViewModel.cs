@@ -44,7 +44,6 @@ public partial class MainViewModel : INotifyPropertyChanged
     private bool _isBuilding;
     private bool _isRunning;
     private CancellationTokenSource? _buildCts;
-    private CancellationTokenSource? _runCts;
     private CancellationTokenSource? _pauseCts;
     private bool _isDebugging;
     private bool _isDebugPaused;
@@ -513,43 +512,76 @@ public partial class MainViewModel : INotifyPropertyChanged
         if (!CanRun || WorkspacePath is null) return;
 
         IsRunning = true;
-        StatusMessage = "Running...";
-
-        var buildOutput = FindBuildOutputTool();
-        buildOutput?.ClearOutput();
-
-        _runCts = new CancellationTokenSource();
-
-        void OnOutput(object? sender, BuildOutputEventArgs e)
-        {
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                buildOutput?.AppendOutput(e.Output, e.IsError));
-        }
-
-        _buildService.OutputReceived += OnOutput;
+        StatusMessage = "Building...";
 
         try
         {
             var startup = _solutionService.GetStartupProject();
-            var workDir = startup is not null
-                ? Path.GetDirectoryName(startup.FilePath) ?? WorkspacePath
-                : WorkspacePath;
 
-            var task = new Core.Interfaces.BuildTask
+            // Build first
+            var buildOutput = FindBuildOutputTool();
+            buildOutput?.ClearOutput();
+
+            var buildArgs = new List<string> { "build" };
+            if (_solutionService.CurrentSolution is { } sol)
+                buildArgs.Add(sol.FilePath);
+            buildArgs.Add("--nologo");
+
+            var buildTask = new Core.Interfaces.BuildTask
             {
-                Name = "Run",
+                Name = "Build",
                 Command = "dotnet",
-                Args = startup is not null
-                    ? ["run", "--project", startup.FilePath, "--nologo"]
-                    : ["run", "--nologo"],
-                WorkingDirectory = WorkspacePath
+                Args = [.. buildArgs],
+                WorkingDirectory = WorkspacePath,
             };
 
-            var result = await _buildService.RunTaskAsync(task, _runCts.Token);
+            void OnBuildOutput(object? sender, BuildOutputEventArgs e)
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    buildOutput?.AppendOutput(e.Output, e.IsError));
+            }
 
-            StatusMessage = result.Success
-                ? "Application exited successfully"
-                : $"Application exited with code {result.ExitCode}";
+            _buildService.OutputReceived += OnBuildOutput;
+            BuildResult buildResult;
+            try
+            {
+                buildResult = await _buildService.RunTaskAsync(buildTask);
+            }
+            finally
+            {
+                _buildService.OutputReceived -= OnBuildOutput;
+            }
+
+            if (!buildResult.Success)
+            {
+                StatusMessage = $"Build failed — {buildResult.Errors.Count} error(s)";
+                FindProblemsTool()?.SetProblems(buildResult.Errors, buildResult.Warnings);
+                return;
+            }
+
+            // Run in the integrated terminal so the user can see console output
+            StatusMessage = "Running...";
+
+            var projectArg = startup is not null
+                ? $" --project \"{startup.FilePath}\""
+                : "";
+            var runCommand = $"dotnet run{projectArg} --nologo";
+
+            // Ensure terminal is visible and ready
+            if (_terminalService.ActiveTerminal is null)
+                CreateNewTerminal();
+            IsTerminalVisible = true;
+
+            var terminal = _terminalService.ActiveTerminal;
+            if (terminal is not null)
+            {
+                terminal.WriteLine(runCommand);
+                StatusMessage = "Application started in terminal";
+            }
+            else
+            {
+                StatusMessage = "Failed to open terminal";
+            }
         }
         catch (Exception ex)
         {
@@ -557,10 +589,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
         finally
         {
-            _buildService.OutputReceived -= OnOutput;
             IsRunning = false;
-            _runCts?.Dispose();
-            _runCts = null;
         }
     }
 
@@ -570,15 +599,14 @@ public partial class MainViewModel : INotifyPropertyChanged
         // Kill the process tree immediately, then cancel the token
         await _buildService.CancelAsync();
 
-        if (_runCts is not null)
-        {
-            await _runCts.CancelAsync();
-            StatusMessage = "Stopped";
-        }
-        else if (_buildCts is not null)
+        if (_buildCts is not null)
         {
             await _buildCts.CancelAsync();
             StatusMessage = "Build cancelled";
+        }
+        else
+        {
+            StatusMessage = "Stopped";
         }
     }
 
