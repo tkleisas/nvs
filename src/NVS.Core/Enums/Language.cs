@@ -17,5 +17,6 @@ public enum Language
     Go,
     Markdown,
     Yaml,
-    Toml
+    Toml,
+    Sql
 }

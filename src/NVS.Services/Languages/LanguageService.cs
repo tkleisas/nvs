@@ -22,6 +22,7 @@ public sealed class LanguageService : ILanguageService
         [Language.Html] = [".html", ".htm"],
         [Language.Css] = [".css", ".scss", ".sass", ".less"],
         [Language.Toml] = [".toml"],
+        [Language.Sql] = [".sql"],
     };
 
     private static readonly Dictionary<Language, string> LanguageIds = new()
@@ -41,6 +42,7 @@ public sealed class LanguageService : ILanguageService
         [Language.Html] = "html",
         [Language.Css] = "css",
         [Language.Toml] = "toml",
+        [Language.Sql] = "sql",
         [Language.Unknown] = "plaintext",
     };
 

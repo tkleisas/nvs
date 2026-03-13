@@ -33,6 +33,7 @@ public sealed class SyntaxHighlightingLoaderTests : IDisposable
         Language.Markdown,
         Language.Yaml,
         Language.Toml,
+        Language.Sql,
     };
 
     [Theory]
@@ -91,6 +92,7 @@ public sealed class SyntaxHighlightingLoaderTests : IDisposable
     [InlineData(Language.Css, "Comment")]
     [InlineData(Language.Yaml, "Comment")]
     [InlineData(Language.Toml, "Comment")]
+    [InlineData(Language.Sql, "Comment")]
     public void GetHighlighting_LanguagesWithComments_ShouldHaveCommentColor(Language language, string colorName)
     {
         var definition = SyntaxHighlightingLoader.GetHighlighting(language);
@@ -107,6 +109,7 @@ public sealed class SyntaxHighlightingLoaderTests : IDisposable
     [InlineData(Language.Python)]
     [InlineData(Language.Rust)]
     [InlineData(Language.Go)]
+    [InlineData(Language.Sql)]
     public void GetHighlighting_ProgrammingLanguages_ShouldHaveKeywordColor(Language language)
     {
         var definition = SyntaxHighlightingLoader.GetHighlighting(language);
@@ -126,6 +129,7 @@ public sealed class SyntaxHighlightingLoaderTests : IDisposable
     [InlineData(Language.Rust)]
     [InlineData(Language.Go)]
     [InlineData(Language.Json)]
+    [InlineData(Language.Sql)]
     public void GetHighlighting_LanguagesWithStrings_ShouldHaveStringColor(Language language)
     {
         var definition = SyntaxHighlightingLoader.GetHighlighting(language);

@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="SQL" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" foreground="#6A9955" />
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
+  <Color name="Function" foreground="#DCDCAA" />
+  <Color name="DataType" foreground="#4EC9B0" />
+  <Color name="Number" foreground="#B5CEA8" />
+  <Color name="Operator" foreground="#D4D4D4" />
+  <Color name="Punctuation" foreground="#D4D4D4" />
+
+  <RuleSet ignoreCase="true">
+    <!-- Line comments -->
+    <Span color="Comment">
+      <Begin>--</Begin>
+    </Span>
+
+    <!-- Block comments -->
+    <Span color="Comment" multiline="true">
+      <Begin>/\*</Begin>
+      <End>\*/</End>
+    </Span>
+
+    <!-- Single-quoted strings -->
+    <Span color="String">
+      <Begin>'</Begin>
+      <End>'</End>
+    </Span>
+
+    <!-- Double-quoted identifiers -->
+    <Span color="String">
+      <Begin>"</Begin>
+      <End>"</End>
+    </Span>
+
+    <Keywords color="Keyword">
+      <Word>SELECT</Word>
+      <Word>FROM</Word>
+      <Word>WHERE</Word>
+      <Word>INSERT</Word>
+      <Word>INTO</Word>
+      <Word>UPDATE</Word>
+      <Word>DELETE</Word>
+      <Word>CREATE</Word>
+      <Word>ALTER</Word>
+      <Word>DROP</Word>
+      <Word>TABLE</Word>
+      <Word>INDEX</Word>
+      <Word>VIEW</Word>
+      <Word>TRIGGER</Word>
+      <Word>DATABASE</Word>
+      <Word>SCHEMA</Word>
+      <Word>AND</Word>
+      <Word>OR</Word>
+      <Word>NOT</Word>
+      <Word>IN</Word>
+      <Word>EXISTS</Word>
+      <Word>BETWEEN</Word>
+      <Word>LIKE</Word>
+      <Word>IS</Word>
+      <Word>NULL</Word>
+      <Word>AS</Word>
+      <Word>ON</Word>
+      <Word>JOIN</Word>
+      <Word>INNER</Word>
+      <Word>LEFT</Word>
+      <Word>RIGHT</Word>
+      <Word>OUTER</Word>
+      <Word>CROSS</Word>
+      <Word>FULL</Word>
+      <Word>UNION</Word>
+      <Word>ALL</Word>
+      <Word>DISTINCT</Word>
+      <Word>ORDER</Word>
+      <Word>BY</Word>
+      <Word>ASC</Word>
+      <Word>DESC</Word>
+      <Word>GROUP</Word>
+      <Word>HAVING</Word>
+      <Word>LIMIT</Word>
+      <Word>OFFSET</Word>
+      <Word>SET</Word>
+      <Word>VALUES</Word>
+      <Word>PRIMARY</Word>
+      <Word>KEY</Word>
+      <Word>FOREIGN</Word>
+      <Word>REFERENCES</Word>
+      <Word>CONSTRAINT</Word>
+      <Word>UNIQUE</Word>
+      <Word>CHECK</Word>
+      <Word>DEFAULT</Word>
+      <Word>AUTOINCREMENT</Word>
+      <Word>IF</Word>
+      <Word>THEN</Word>
+      <Word>ELSE</Word>
+      <Word>END</Word>
+      <Word>CASE</Word>
+      <Word>WHEN</Word>
+      <Word>BEGIN</Word>
+      <Word>COMMIT</Word>
+      <Word>ROLLBACK</Word>
+      <Word>TRANSACTION</Word>
+      <Word>SAVEPOINT</Word>
+      <Word>RELEASE</Word>
+      <Word>PRAGMA</Word>
+      <Word>EXPLAIN</Word>
+      <Word>ANALYZE</Word>
+      <Word>VACUUM</Word>
+      <Word>ATTACH</Word>
+      <Word>DETACH</Word>
+      <Word>REINDEX</Word>
+      <Word>REPLACE</Word>
+      <Word>ABORT</Word>
+      <Word>CONFLICT</Word>
+      <Word>IGNORE</Word>
+      <Word>FAIL</Word>
+      <Word>GLOB</Word>
+      <Word>ESCAPE</Word>
+      <Word>EXCEPT</Word>
+      <Word>INTERSECT</Word>
+      <Word>COLLATE</Word>
+      <Word>CAST</Word>
+      <Word>WITH</Word>
+      <Word>RECURSIVE</Word>
+      <Word>RETURNING</Word>
+      <Word>TRUE</Word>
+      <Word>FALSE</Word>
+    </Keywords>
+
+    <Keywords color="Function">
+      <Word>COUNT</Word>
+      <Word>SUM</Word>
+      <Word>AVG</Word>
+      <Word>MIN</Word>
+      <Word>MAX</Word>
+      <Word>ABS</Word>
+      <Word>COALESCE</Word>
+      <Word>IFNULL</Word>
+      <Word>NULLIF</Word>
+      <Word>LENGTH</Word>
+      <Word>LOWER</Word>
+      <Word>UPPER</Word>
+      <Word>TRIM</Word>
+      <Word>LTRIM</Word>
+      <Word>RTRIM</Word>
+      <Word>SUBSTR</Word>
+      <Word>REPLACE</Word>
+      <Word>INSTR</Word>
+      <Word>HEX</Word>
+      <Word>TYPEOF</Word>
+      <Word>RANDOM</Word>
+      <Word>ROUND</Word>
+      <Word>GROUP_CONCAT</Word>
+      <Word>TOTAL</Word>
+      <Word>DATE</Word>
+      <Word>TIME</Word>
+      <Word>DATETIME</Word>
+      <Word>JULIANDAY</Word>
+      <Word>STRFTIME</Word>
+      <Word>PRINTF</Word>
+      <Word>UNICODE</Word>
+      <Word>CHAR</Word>
+      <Word>ZEROBLOB</Word>
+      <Word>LAST_INSERT_ROWID</Word>
+      <Word>CHANGES</Word>
+      <Word>TOTAL_CHANGES</Word>
+    </Keywords>
+
+    <Keywords color="DataType">
+      <Word>INTEGER</Word>
+      <Word>INT</Word>
+      <Word>SMALLINT</Word>
+      <Word>BIGINT</Word>
+      <Word>TINYINT</Word>
+      <Word>REAL</Word>
+      <Word>FLOAT</Word>
+      <Word>DOUBLE</Word>
+      <Word>NUMERIC</Word>
+      <Word>DECIMAL</Word>
+      <Word>TEXT</Word>
+      <Word>VARCHAR</Word>
+      <Word>CHAR</Word>
+      <Word>NCHAR</Word>
+      <Word>NVARCHAR</Word>
+      <Word>CLOB</Word>
+      <Word>BLOB</Word>
+      <Word>BOOLEAN</Word>
+      <Word>DATETIME</Word>
+      <Word>TIMESTAMP</Word>
+    </Keywords>
+
+    <!-- Numbers -->
+    <Rule color="Number">
+      \b\d+\.?\d*\b
+    </Rule>
+  </RuleSet>
+</SyntaxDefinition>

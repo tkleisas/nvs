@@ -47,7 +47,7 @@
                         Padding="8"
                         WordWrap="False">
                         <AvaloniaEdit:TextEditor.ContextMenu>
-                            <ContextMenu>
+                            <ContextMenu Opened="OnContextMenuOpened">
                                 <MenuItem Header="Cut" InputGesture="Ctrl+X" Click="OnCutClick"/>
                                 <MenuItem Header="Copy" InputGesture="Ctrl+C" Click="OnCopyClick"/>
                                 <MenuItem Header="Paste" InputGesture="Ctrl+V" Click="OnPasteClick"/>
@@ -59,6 +59,8 @@
                                 <Separator/>
                                 <MenuItem Header="Find" InputGesture="Ctrl+F" Command="{Binding OpenSearchCommand}"/>
                                 <MenuItem Header="Go to Definition" InputGesture="F12" Command="{Binding GoToDefinitionCommand}"/>
+                                <Separator Tag="SqlSeparator" IsVisible="False"/>
+                                <MenuItem Tag="ExecuteSql" Header="Execute SQL in Database Explorer" Click="OnExecuteInDatabaseExplorerClick" IsVisible="False"/>
                             </ContextMenu>
                         </AvaloniaEdit:TextEditor.ContextMenu>
                         <i:Interaction.Behaviors>

@@ -1215,6 +1215,25 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Executes SQL text in the Database Explorer panel.
+    /// </summary>
+    public async Task ExecuteSqlInDatabaseExplorer(string sql)
+    {
+        var dbTool = FindToolInDock<DatabaseExplorerToolViewModel>();
+        if (dbTool is null) return;
+
+        if (!dbTool.IsConnected)
+        {
+            StatusMessage = "No database connected — open a database first";
+            return;
+        }
+
+        await dbTool.ExecuteSql(sql);
+        ActivateToolInDock(dbTool);
+        StatusMessage = "SQL executed in Database Explorer";
+    }
+
     private void ActivateToolInDock(IDockable tool)
     {
         if (DockLayout is null) return;

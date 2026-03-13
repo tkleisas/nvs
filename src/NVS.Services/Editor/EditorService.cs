@@ -196,6 +196,7 @@ public sealed class EditorService : IEditorService
             ".md" => Language.Markdown,
             ".yaml" or ".yml" => Language.Yaml,
             ".toml" => Language.Toml,
+            ".sql" => Language.Sql,
             _ => Language.Unknown
         };
     }

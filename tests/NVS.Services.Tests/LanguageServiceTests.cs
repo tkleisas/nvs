@@ -24,6 +24,7 @@ public class LanguageServiceTests
     [InlineData("file.yaml", Language.Yaml)]
     [InlineData("file.html", Language.Html)]
     [InlineData("file.css", Language.Css)]
+    [InlineData("file.sql", Language.Sql)]
     [InlineData("file.unknown", Language.Unknown)]
     public void DetectLanguage_ShouldReturnCorrectLanguage(string filePath, Language expected)
     {
@@ -37,6 +38,7 @@ public class LanguageServiceTests
     {
         _service.GetLanguageId(Language.CSharp).Should().Be("csharp");
         _service.GetLanguageId(Language.TypeScript).Should().Be("typescript");
+        _service.GetLanguageId(Language.Sql).Should().Be("sql");
         _service.GetLanguageId(Language.Unknown).Should().Be("plaintext");
     }
 

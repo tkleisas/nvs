@@ -26,6 +26,7 @@ public static class SyntaxHighlightingLoader
         [Language.Markdown] = "Markdown",
         [Language.Yaml] = "Yaml",
         [Language.Toml] = "Toml",
+        [Language.Sql] = "Sql",
     };
 
     public static IHighlightingDefinition? GetHighlighting(Language language)
