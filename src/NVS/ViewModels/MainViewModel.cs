@@ -704,6 +704,11 @@ public partial class MainViewModel : INotifyPropertyChanged
                 }
             }
 
+            // Use integrated terminal for console apps (enables stdin),
+            // internal console for GUI apps (avoids terminal clutter)
+            var isConsoleApp = string.Equals(startup.OutputType, "Exe", StringComparison.OrdinalIgnoreCase)
+                            || startup.OutputType is null;
+
             var config = new NVS.Core.Models.Settings.DebugConfiguration
             {
                 Name = startup.Name,
@@ -711,23 +716,29 @@ public partial class MainViewModel : INotifyPropertyChanged
                 Request = "launch",
                 Program = programPath,
                 Cwd = projectDir,
-                Console = "integratedTerminal",
+                Console = isConsoleApp ? "integratedTerminal" : null,
             };
 
-            // Wire up the RunInTerminal handler so netcoredbg launches
-            // the debuggee in the integrated terminal (enables console I/O)
-            _debugService.RunInTerminalHandler = async (request) =>
+            if (isConsoleApp)
             {
-                var terminalTool = FindTerminalTool();
-                if (terminalTool is not null)
+                // Wire up the RunInTerminal handler so netcoredbg launches
+                // the debuggee in the integrated terminal (enables console I/O)
+                _debugService.RunInTerminalHandler = async (request) =>
                 {
-                    // Build command line from args
-                    var command = string.Join(" ", request.Args.Select(arg =>
-                        arg.Contains(' ') ? $"\"{arg}\"" : arg));
-                    await terminalTool.SendCommandToTerminalAsync(command);
-                }
-                return 0;
-            };
+                    var terminalTool = FindTerminalTool();
+                    if (terminalTool is not null)
+                    {
+                        var command = string.Join(" ", request.Args.Select(arg =>
+                            arg.Contains(' ') ? $"\"{arg}\"" : arg));
+                        await terminalTool.SendCommandToTerminalAsync(command);
+                    }
+                    return 0;
+                };
+            }
+            else
+            {
+                _debugService.RunInTerminalHandler = null;
+            }
 
             await _debugService.StartDebuggingAsync(config);
         }
