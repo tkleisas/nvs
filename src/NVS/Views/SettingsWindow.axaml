@@ -7,7 +7,7 @@
         x:Class="NVS.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="Settings"
-        Width="850" Height="720"
+        Width="850" Height="580"
         MinWidth="700" MinHeight="400"
         WindowStartupLocation="CenterOwner"
         Background="#1E1E1E">
