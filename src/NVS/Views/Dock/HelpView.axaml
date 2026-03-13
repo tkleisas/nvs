@@ -1,0 +1,61 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.HelpView"
+             x:DataType="dock:HelpToolViewModel">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Search bar -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="6,4">
+            <TextBox Grid.Column="0" Text="{Binding SearchQuery}"
+                     Watermark="Search help topics..."
+                     Background="#1E1E1E" Foreground="#D4D4D4"
+                     BorderBrush="#3C3C3C" FontSize="12" Padding="6,4" />
+            <Button Grid.Column="1" Content="✕" Padding="6,4" Margin="4,0,0,0"
+                    Command="{Binding ClearSearchCommand}"
+                    Background="#3C3C3C" Foreground="#808080" FontSize="11" />
+        </Grid>
+
+        <!-- Content: topic list + detail -->
+        <Grid Grid.Row="1" ColumnDefinitions="180,*">
+
+            <!-- Topic list -->
+            <ListBox Grid.Column="0"
+                     ItemsSource="{Binding FilteredTopics}"
+                     SelectedItem="{Binding SelectedTopic}"
+                     Background="#1E1E1E" BorderThickness="0,0,1,0" BorderBrush="#3C3C3C">
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                        <Setter Property="Padding" Value="8,4"/>
+                        <Setter Property="MinHeight" Value="28"/>
+                    </Style>
+                    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#264F78"/>
+                    </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="dock:HelpTopic">
+                        <StackPanel Spacing="1">
+                            <TextBlock Text="{Binding Title}" FontSize="12" Foreground="#CCCCCC" />
+                            <TextBlock Text="{Binding Category}" FontSize="9" Foreground="#808080" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Topic content -->
+            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <TextBlock Text="{Binding SelectedTopic.Content}"
+                           FontFamily="Consolas" FontSize="12"
+                           Foreground="#D4D4D4" Margin="16,8"
+                           TextWrapping="Wrap" />
+            </ScrollViewer>
+
+        </Grid>
+    </Grid>
+</UserControl>

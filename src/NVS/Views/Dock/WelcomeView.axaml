@@ -1,0 +1,133 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.WelcomeView"
+             x:DataType="dock:WelcomeDocumentViewModel">
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="40,32" Spacing="24" MaxWidth="640">
+
+            <!-- Title -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="NVS" FontSize="36" FontWeight="Bold" Foreground="#569CD6" />
+                <TextBlock Text="No Vim Substitute" FontSize="16" Foreground="#808080" />
+            </StackPanel>
+
+            <!-- Get Started section -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Get Started" FontSize="18" FontWeight="SemiBold" Foreground="#D4D4D4" />
+                <StackPanel Spacing="4">
+                    <Button Content="📂  Open Folder..."
+                            Command="{Binding Main.OpenFolderCommand}"
+                            Background="Transparent" Foreground="#569CD6"
+                            Padding="4,4" HorizontalAlignment="Left"
+                            FontSize="13" Cursor="Hand" />
+                    <Button Content="📄  Open File..."
+                            Command="{Binding Main.OpenFileCommand}"
+                            Background="Transparent" Foreground="#569CD6"
+                            Padding="4,4" HorizontalAlignment="Left"
+                            FontSize="13" Cursor="Hand" />
+                    <Button Content="🗂️  Open Solution..."
+                            Command="{Binding Main.OpenSolutionCommand}"
+                            Background="Transparent" Foreground="#569CD6"
+                            Padding="4,4" HorizontalAlignment="Left"
+                            FontSize="13" Cursor="Hand" />
+                    <Button Content="✨  New File"
+                            Command="{Binding Main.NewFileCommand}"
+                            Background="Transparent" Foreground="#569CD6"
+                            Padding="4,4" HorizontalAlignment="Left"
+                            FontSize="13" Cursor="Hand" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Keyboard Shortcuts Quick Reference -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Essential Shortcuts" FontSize="18" FontWeight="SemiBold" Foreground="#D4D4D4" />
+                <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                      Margin="0,4">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+N" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="New file" Foreground="#808080" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+O" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Open file" Foreground="#808080" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Ctrl+S" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Save" Foreground="#808080" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl+Shift+B" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Build solution" Foreground="#808080" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="F5" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Start debugging" Foreground="#808080" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="F9" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="5" Grid.Column="1" Text="Toggle breakpoint" Foreground="#808080" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Ctrl+Space" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="6" Grid.Column="1" Text="Autocomplete" Foreground="#808080" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="7" Grid.Column="0" Text="Ctrl+`" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="7" Grid.Column="1" Text="Toggle terminal" Foreground="#808080" FontSize="12" Padding="0,2" />
+                </Grid>
+            </StackPanel>
+
+            <!-- Features -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Features" FontSize="18" FontWeight="SemiBold" Foreground="#D4D4D4" />
+                <WrapPanel Orientation="Horizontal" Margin="0,4">
+                    <WrapPanel.Styles>
+                        <Style Selector="Border.feature">
+                            <Setter Property="Background" Value="#252526"/>
+                            <Setter Property="CornerRadius" Value="4"/>
+                            <Setter Property="Padding" Value="12,8"/>
+                            <Setter Property="Margin" Value="0,0,8,8"/>
+                            <Setter Property="MinWidth" Value="180"/>
+                        </Style>
+                    </WrapPanel.Styles>
+                    <Border Classes="feature">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="📝 Multi-language Editor" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text="Syntax highlighting, LSP, autocomplete" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="feature">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="🔨 Build &amp; Run" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text=".NET solutions, MSBuild integration" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="feature">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="🐛 Debugging" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text="DAP protocol, breakpoints, variables" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="feature">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="🔀 Git Integration" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text="Stage, commit, diff, branch tracking" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="feature">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="💬 AI Assistant" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text="LLM chat with file tools" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="feature">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="📦 NuGet Manager" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text="Search, install, update packages" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </WrapPanel>
+            </StackPanel>
+
+            <!-- Tip -->
+            <Border Background="#1A3A5C" CornerRadius="4" Padding="12,8">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="💡 Tip" FontSize="12" FontWeight="SemiBold" Foreground="#569CD6" />
+                    <TextBlock Text="Press F1 to open the searchable Help panel with detailed guides for every feature."
+                               FontSize="11" Foreground="#CCCCCC" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

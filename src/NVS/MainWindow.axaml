@@ -29,6 +29,7 @@
         <KeyBinding Gesture="F11" Command="{Binding DebugStepIntoCommand}" />
         <KeyBinding Gesture="Shift+F11" Command="{Binding DebugStepOutCommand}" />
         <KeyBinding Gesture="F9" Command="{Binding ToggleBreakpointCommand}" />
+        <KeyBinding Gesture="F1" Command="{Binding ShowHelpCommand}" />
     </Window.KeyBindings>
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
@@ -98,6 +99,9 @@
                 <MenuItem Header="_New Terminal" InputGesture="Ctrl+Shift+OemTilde" Command="{Binding NewTerminalCommand}" />
             </MenuItem>
             <MenuItem Header="_Help">
+                <MenuItem Header="_Welcome" Command="{Binding ShowWelcomeCommand}" />
+                <MenuItem Header="_Search Help" InputGesture="F1" Command="{Binding ShowHelpCommand}" />
+                <Separator />
                 <MenuItem Header="_About NVS" Click="OnAboutClick" />
             </MenuItem>
             <MenuItem Header="_Settings" Click="OnSettingsClick" />

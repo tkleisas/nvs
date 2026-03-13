@@ -1201,6 +1201,22 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    [RelayCommand]
+    private void ShowWelcome()
+    {
+        var welcome = FindToolInDock<WelcomeDocumentViewModel>();
+        if (welcome is not null)
+            ActivateToolInDock(welcome);
+    }
+
+    [RelayCommand]
+    private void ShowHelp()
+    {
+        var help = FindToolInDock<HelpToolViewModel>();
+        if (help is not null)
+            ActivateToolInDock(help);
+    }
+
     /// <summary>
     /// Opens a database file in the Database Explorer panel.
     /// </summary>
