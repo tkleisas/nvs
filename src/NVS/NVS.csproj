@@ -34,6 +34,7 @@
     <ProjectReference Include="..\NVS.Infrastructure\NVS.Infrastructure.csproj" />
     <ProjectReference Include="..\NVS.Services\NVS.Services.csproj" />
     <ProjectReference Include="..\NVS.Plugins\NVS.Plugins.csproj" />
+    <ProjectReference Include="..\..\lib\SQLiteExplorer\src\SQLiteExplorer.Lib\SQLiteExplorer.Lib.csproj" />
   </ItemGroup>
 
   <ItemGroup>

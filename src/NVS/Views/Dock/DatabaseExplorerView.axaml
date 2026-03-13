@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             xmlns:libViews="clr-namespace:SQLiteExplorer.Lib.Views;assembly=SQLiteExplorer.Lib"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.DatabaseExplorerView"
+             x:DataType="dock:DatabaseExplorerToolViewModel">
+
+    <libViews:DatabaseExplorerControl DataContext="{Binding DatabaseViewModel}" />
+</UserControl>

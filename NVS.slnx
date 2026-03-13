@@ -6,6 +6,10 @@
     <Project Path="src/NVS.Services/NVS.Services.csproj" />
     <Project Path="src/NVS/NVS.csproj" />
   </Folder>
+  <Folder Name="/lib/">
+    <Project Path="lib/SQLiteExplorer/src/SQLiteExplorer.Lib/SQLiteExplorer.Lib.csproj" />
+    <Project Path="lib/SQLiteExplorer/lib/AvaloniaVirtualDataGrid/src/AvaloniaVirtualDataGrid/AvaloniaVirtualDataGrid.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/NVS.Core.Tests/NVS.Core.Tests.csproj" />
     <Project Path="tests/NVS.Plugins.Tests/NVS.Plugins.Tests.csproj" />

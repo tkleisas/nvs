@@ -22,6 +22,7 @@ public class DockViewLocator : IDataTemplate
         [typeof(CallStackToolViewModel)] = () => new CallStackView(),
         [typeof(VariablesToolViewModel)] = () => new VariablesView(),
         [typeof(EditorDocumentViewModel)] = () => new EditorView(),
+        [typeof(DatabaseExplorerToolViewModel)] = () => new DatabaseExplorerView(),
     };
 
     // Cache views by their ViewModel instance so tab-switching preserves state

@@ -69,6 +69,7 @@
                 <MenuItem Header="_Explorer" InputGesture="Ctrl+Shift+E" Command="{Binding ShowExplorerCommand}" />
                 <MenuItem Header="_Search" InputGesture="Ctrl+Shift+F" Command="{Binding ShowSearchCommand}" />
                 <MenuItem Header="_Source Control" InputGesture="Ctrl+Shift+G" Command="{Binding ShowSourceControlCommand}" />
+                <MenuItem Header="_Database Explorer" Command="{Binding ShowDatabaseExplorerCommand}" />
                 <Separator />
                 <MenuItem Header="_Terminal" Command="{Binding ToggleTerminalCommand}" InputGesture="Ctrl+OemTilde" />
             </MenuItem>

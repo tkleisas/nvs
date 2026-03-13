@@ -1078,8 +1078,20 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     public async Task OpenFileAsync(string filePath)
     {
+        if (IsDatabaseExtension(filePath))
+        {
+            await OpenDatabaseFile(filePath);
+            return;
+        }
+
         await _editorService.OpenDocumentAsync(filePath);
         StatusMessage = $"Opened: {Path.GetFileName(filePath)}";
+    }
+
+    private static bool IsDatabaseExtension(string path)
+    {
+        var ext = Path.GetExtension(path).ToLowerInvariant();
+        return ext is ".db" or ".sqlite" or ".sqlite3";
     }
 
     [RelayCommand]
@@ -1176,6 +1188,57 @@ public partial class MainViewModel : INotifyPropertyChanged
     private void ShowSearch()
     {
         SidebarMode = "Search";
+    }
+
+    [RelayCommand]
+    private void ShowDatabaseExplorer()
+    {
+        var dbTool = FindToolInDock<DatabaseExplorerToolViewModel>();
+        if (dbTool is not null)
+        {
+            // Find the parent ToolDock so we can set it as the active dockable
+            ActivateToolInDock(dbTool);
+        }
+    }
+
+    /// <summary>
+    /// Opens a database file in the Database Explorer panel.
+    /// </summary>
+    public async Task OpenDatabaseFile(string filePath)
+    {
+        var dbTool = FindToolInDock<DatabaseExplorerToolViewModel>();
+        if (dbTool is not null)
+        {
+            await dbTool.OpenDatabase(filePath);
+            ActivateToolInDock(dbTool);
+            StatusMessage = $"Opened database: {Path.GetFileName(filePath)}";
+        }
+    }
+
+    private void ActivateToolInDock(IDockable tool)
+    {
+        if (DockLayout is null) return;
+        SetActiveDockableRecursive(DockLayout, tool);
+    }
+
+    private static bool SetActiveDockableRecursive(IDockable dockable, IDockable target)
+    {
+        if (dockable is IDock dock && dock.VisibleDockables is not null)
+        {
+            foreach (var child in dock.VisibleDockables)
+            {
+                if (child == target)
+                {
+                    dock.ActiveDockable = target;
+                    return true;
+                }
+                if (SetActiveDockableRecursive(child, target))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     [RelayCommand]
