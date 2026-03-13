@@ -37,11 +37,19 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     private int _terminalBufferSize = 5000;
 
     // LLM
-    private string _llmEndpoint = "http://localhost:11434/v1";
+    private string _llmEndpoint = "http://127.0.0.1:1234";
+    private string _llmApiKey = string.Empty;
+    private string _llmAuthScheme = "Bearer";
     private string _llmModel = "codellama";
-    private int _llmMaxTokens;
+    private string _llmCompletionsPath = "v1/chat/completions";
+    private int _llmMaxTokens = 4096;
+    private double _llmTemperature = 0.2;
+    private int _llmMaxIterations = 20;
+    private int _llmHttpTimeoutSeconds = 120;
     private bool _llmEnableAutoComplete;
-    private bool _llmEnableChat;
+    private bool _llmEnableChat = true;
+    private bool _llmStream = true;
+    private string _llmActivePromptTemplate = "general";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -187,16 +195,58 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         set => SetProperty(ref _llmEndpoint, value);
     }
 
+    public string LlmApiKey
+    {
+        get => _llmApiKey;
+        set => SetProperty(ref _llmApiKey, value);
+    }
+
+    public string LlmAuthScheme
+    {
+        get => _llmAuthScheme;
+        set => SetProperty(ref _llmAuthScheme, value);
+    }
+
     public string LlmModel
     {
         get => _llmModel;
         set => SetProperty(ref _llmModel, value);
     }
 
+    public string LlmCompletionsPath
+    {
+        get => _llmCompletionsPath;
+        set => SetProperty(ref _llmCompletionsPath, value);
+    }
+
     public int LlmMaxTokens
     {
         get => _llmMaxTokens;
         set => SetProperty(ref _llmMaxTokens, value);
+    }
+
+    public double LlmTemperature
+    {
+        get => _llmTemperature;
+        set => SetProperty(ref _llmTemperature, value);
+    }
+
+    public int LlmMaxIterations
+    {
+        get => _llmMaxIterations;
+        set => SetProperty(ref _llmMaxIterations, value);
+    }
+
+    public int LlmHttpTimeoutSeconds
+    {
+        get => _llmHttpTimeoutSeconds;
+        set => SetProperty(ref _llmHttpTimeoutSeconds, value);
+    }
+
+    public bool LlmStream
+    {
+        get => _llmStream;
+        set => SetProperty(ref _llmStream, value);
     }
 
     public bool LlmEnableAutoComplete
@@ -209,6 +259,12 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     {
         get => _llmEnableChat;
         set => SetProperty(ref _llmEnableChat, value);
+    }
+
+    public string LlmActivePromptTemplate
+    {
+        get => _llmActivePromptTemplate;
+        set => SetProperty(ref _llmActivePromptTemplate, value);
     }
 
     public async Task InitializeAsync()
@@ -237,10 +293,18 @@ public partial class SettingsViewModel : INotifyPropertyChanged
 
         // LLM
         LlmEndpoint = settings.Llm.Endpoint;
+        LlmApiKey = settings.Llm.ApiKey;
+        LlmAuthScheme = settings.Llm.AuthScheme;
         LlmModel = settings.Llm.Model;
+        LlmCompletionsPath = settings.Llm.CompletionsPath;
         LlmMaxTokens = settings.Llm.MaxTokens;
+        LlmTemperature = settings.Llm.Temperature;
+        LlmMaxIterations = settings.Llm.MaxIterations;
+        LlmHttpTimeoutSeconds = settings.Llm.HttpTimeoutSeconds;
+        LlmStream = settings.Llm.Stream;
         LlmEnableAutoComplete = settings.Llm.EnableAutoComplete;
         LlmEnableChat = settings.Llm.EnableChat;
+        LlmActivePromptTemplate = settings.Llm.ActivePromptTemplate;
 
         // Terminal
         TerminalFontFamily = settings.Terminal.FontFamily;
@@ -314,10 +378,18 @@ public partial class SettingsViewModel : INotifyPropertyChanged
             Llm = new LlmSettings
             {
                 Endpoint = LlmEndpoint,
+                ApiKey = LlmApiKey,
+                AuthScheme = LlmAuthScheme,
                 Model = LlmModel,
+                CompletionsPath = LlmCompletionsPath,
                 MaxTokens = LlmMaxTokens,
+                Temperature = LlmTemperature,
+                MaxIterations = LlmMaxIterations,
+                HttpTimeoutSeconds = LlmHttpTimeoutSeconds,
+                Stream = LlmStream,
                 EnableAutoComplete = LlmEnableAutoComplete,
                 EnableChat = LlmEnableChat,
+                ActivePromptTemplate = LlmActivePromptTemplate,
             },
             Terminal = new TerminalSettings
             {

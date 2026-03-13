@@ -16,6 +16,7 @@ using NVS.Services.Solution;
 using NVS.Services.Template;
 using NVS.Services.Terminal;
 using NVS.Services.Workspaces;
+using NVS.Services.LLM;
 using NVS.ViewModels;
 
 namespace NVS;
@@ -87,6 +88,7 @@ public partial class App : Application
         services.AddSingleton<DebugAdapterDownloader>();
         services.AddSingleton<DebugAdapterRegistry>();
         services.AddSingleton<ITemplateService, TemplateService>();
+        services.AddSingleton<ILlmService, LlmService>();
         
         // ViewModels
         services.AddSingleton<EditorViewModel>();

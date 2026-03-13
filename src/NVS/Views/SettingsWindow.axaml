@@ -155,23 +155,73 @@
                     <!-- LLM Section -->
                     <StackPanel Spacing="12" IsVisible="{Binding IsLlmVisible}">
                         <TextBlock Text="LLM / AI Assistance" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />
-                        <TextBlock Text="Configure a local or remote LLM endpoint for code completion and chat."
+                        <TextBlock Text="Configure a local or remote LLM endpoint for code completion and chat. Works with any OpenAI-compatible API (Ollama, LM Studio, OpenRouter, DeepSeek, llama.cpp, etc.)."
                                    FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
                         <Separator Background="#3F3F46" />
 
-                        <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Endpoint" Foreground="#CCCCCC" VerticalAlignment="Center" />
-                            <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding LlmEndpoint}" />
+                        <!-- Connection -->
+                        <TextBlock Text="Connection" FontSize="14" FontWeight="SemiBold" Foreground="#AAAAAA" Margin="0,4,0,0" />
+                        <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Endpoint URL" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                            <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding LlmEndpoint}"
+                                       Watermark="http://127.0.0.1:1234" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Model" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
-                            <TextBox   Grid.Row="1" Grid.Column="1" Text="{Binding LlmModel}" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="API Key" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBox   Grid.Row="1" Grid.Column="1" Text="{Binding LlmApiKey}"
+                                       PasswordChar="●" Watermark="Leave empty for local models" Margin="0,8,0,0" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Max Tokens" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
-                            <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding LlmMaxTokens}" Minimum="128" Maximum="16384" Increment="256" MaxWidth="160" HorizontalAlignment="Left" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Auth Scheme" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBox   Grid.Row="2" Grid.Column="1" Text="{Binding LlmAuthScheme}"
+                                       Watermark="Bearer" MaxWidth="200" HorizontalAlignment="Left" Margin="0,8,0,0" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Completions Path" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBox   Grid.Row="3" Grid.Column="1" Text="{Binding LlmCompletionsPath}"
+                                       Watermark="v1/chat/completions" Margin="0,8,0,0" />
                         </Grid>
 
-                        <CheckBox IsChecked="{Binding LlmEnableAutoComplete}" Content="Enable AI auto-complete" Foreground="#CCCCCC" />
-                        <CheckBox IsChecked="{Binding LlmEnableChat}" Content="Enable AI chat" Foreground="#CCCCCC" />
+                        <Separator Background="#3F3F46" />
+
+                        <!-- Model -->
+                        <TextBlock Text="Model" FontSize="14" FontWeight="SemiBold" Foreground="#AAAAAA" Margin="0,4,0,0" />
+                        <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Model ID" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                            <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding LlmModel}"
+                                       Watermark="codellama, qwen3-coder, deepseek-chat..." />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Max Tokens" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding LlmMaxTokens}"
+                                           Minimum="128" Maximum="65536" Increment="256"
+                                           MaxWidth="180" HorizontalAlignment="Left" Margin="0,8,0,0" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Temperature" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding LlmTemperature}"
+                                           Minimum="0" Maximum="2" Increment="0.1" FormatString="F1"
+                                           MaxWidth="180" HorizontalAlignment="Left" Margin="0,8,0,0" />
+                        </Grid>
+
+                        <Separator Background="#3F3F46" />
+
+                        <!-- Agent -->
+                        <TextBlock Text="Agent" FontSize="14" FontWeight="SemiBold" Foreground="#AAAAAA" Margin="0,4,0,0" />
+                        <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto" Margin="0,4">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Max Iterations" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                            <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding LlmMaxIterations}"
+                                           Minimum="1" Maximum="100" Increment="1"
+                                           MaxWidth="180" HorizontalAlignment="Left" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="HTTP Timeout (s)" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding LlmHttpTimeoutSeconds}"
+                                           Minimum="10" Maximum="600" Increment="10"
+                                           MaxWidth="180" HorizontalAlignment="Left" Margin="0,8,0,0" />
+                        </Grid>
+
+                        <Separator Background="#3F3F46" />
+
+                        <!-- Features -->
+                        <TextBlock Text="Features" FontSize="14" FontWeight="SemiBold" Foreground="#AAAAAA" Margin="0,4,0,0" />
+                        <CheckBox IsChecked="{Binding LlmStream}" Content="Enable streaming responses" Foreground="#CCCCCC" />
+                        <CheckBox IsChecked="{Binding LlmEnableChat}" Content="Enable AI chat panel" Foreground="#CCCCCC" />
+                        <CheckBox IsChecked="{Binding LlmEnableAutoComplete}" Content="Enable AI auto-complete (experimental)" Foreground="#CCCCCC" />
                     </StackPanel>
 
                 </Grid>

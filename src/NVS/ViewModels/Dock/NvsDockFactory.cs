@@ -33,6 +33,7 @@ public sealed class NvsDockFactory : Factory
         var callStack = new CallStackToolViewModel(_main);
         var variables = new VariablesToolViewModel(_main);
         var dbExplorer = new DatabaseExplorerToolViewModel(_main);
+        var llmChat = new LlmChatToolViewModel(_main);
         var editor = new EditorDocumentViewModel(_main);
 
         var leftDock = new ProportionalDock
@@ -87,6 +88,22 @@ public sealed class NvsDockFactory : Factory
             )
         };
 
+        var rightDock = new ProportionalDock
+        {
+            Proportion = 0.22,
+            Orientation = Orientation.Vertical,
+            VisibleDockables = CreateList<IDockable>
+            (
+                new ToolDock
+                {
+                    ActiveDockable = llmChat,
+                    VisibleDockables = CreateList<IDockable>(llmChat),
+                    Alignment = Alignment.Right,
+                    GripMode = GripMode.Visible,
+                }
+            ),
+        };
+
         var mainLayout = new ProportionalDock
         {
             Orientation = Orientation.Horizontal,
@@ -94,7 +111,9 @@ public sealed class NvsDockFactory : Factory
             (
                 leftDock,
                 new ProportionalDockSplitter(),
-                centerWithBottom
+                centerWithBottom,
+                new ProportionalDockSplitter(),
+                rightDock
             )
         };
 
@@ -145,6 +164,7 @@ public sealed class NvsDockFactory : Factory
             ["CallStack"] = () => _main,
             ["Variables"] = () => _main,
             ["DatabaseExplorer"] = () => _main,
+            ["LlmChat"] = () => _main,
             ["Editor"] = () => _main,
             ["Home"] = () => _main,
         };
