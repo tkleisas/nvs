@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using Avalonia.Controls;
-using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
 using Dock.Model.Core;
 using NVS.ViewModels.Dock;
@@ -26,31 +24,13 @@ public class DockViewLocator : IDataTemplate
         [typeof(DatabaseExplorerToolViewModel)] = () => new DatabaseExplorerView(),
     };
 
-    // Cache views by their ViewModel instance so tab-switching preserves state
-    private readonly ConditionalWeakTable<object, Control> _viewCache = new();
-
     public Control? Build(object? data)
     {
         if (data is null) return null;
 
-        if (_viewCache.TryGetValue(data, out var cached))
-        {
-            // Detach from current visual parent so the dock framework can reparent
-            if (cached.Parent is ContentPresenter cp)
-                cp.Content = null;
-            else if (cached.Parent is Decorator d)
-                d.Child = null;
-            else if (cached.Parent is Panel p)
-                p.Children.Remove(cached);
-
-            return cached;
-        }
-
         if (ViewMap.TryGetValue(data.GetType(), out var factory))
         {
-            var view = factory();
-            _viewCache.AddOrUpdate(data, view);
-            return view;
+            return factory();
         }
 
         return new TextBlock { Text = $"No view for {data.GetType().Name}" };
