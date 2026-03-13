@@ -21,4 +21,8 @@
     <InternalsVisibleTo Include="NVS.Services.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="LLM\Prompts\*.md" />
+  </ItemGroup>
+
 </Project>
