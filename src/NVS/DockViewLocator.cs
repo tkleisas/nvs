@@ -23,6 +23,7 @@ public class DockViewLocator : IDataTemplate
         [typeof(EditorDocumentViewModel)] = () => new EditorView(),
         [typeof(DatabaseExplorerToolViewModel)] = () => new DatabaseExplorerView(),
         [typeof(LlmChatToolViewModel)] = () => new LlmChatView(),
+        [typeof(NuGetToolViewModel)] = () => new NuGetView(),
     };
 
     public Control? Build(object? data)

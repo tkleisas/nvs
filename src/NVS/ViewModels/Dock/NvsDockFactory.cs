@@ -34,6 +34,7 @@ public sealed class NvsDockFactory : Factory
         var variables = new VariablesToolViewModel(_main);
         var dbExplorer = new DatabaseExplorerToolViewModel(_main);
         var llmChat = new LlmChatToolViewModel(_main);
+        var nuget = new NuGetToolViewModel(_main);
         var editor = new EditorDocumentViewModel(_main);
 
         var leftDock = new ProportionalDock
@@ -61,7 +62,7 @@ public sealed class NvsDockFactory : Factory
                 new ToolDock
                 {
                     ActiveDockable = terminal,
-                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, dbExplorer),
+                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, dbExplorer, nuget),
                     Alignment = Alignment.Bottom,
                     GripMode = GripMode.Visible,
                 }
@@ -165,6 +166,7 @@ public sealed class NvsDockFactory : Factory
             ["Variables"] = () => _main,
             ["DatabaseExplorer"] = () => _main,
             ["LlmChat"] = () => _main,
+            ["NuGet"] = () => _main,
             ["Editor"] = () => _main,
             ["Home"] = () => _main,
         };

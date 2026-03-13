@@ -91,6 +91,7 @@ public partial class App : Application
         services.AddSingleton<DebugAdapterRegistry>();
         services.AddSingleton<ITemplateService, TemplateService>();
         services.AddSingleton<ILlmService, LlmService>();
+        services.AddSingleton<INuGetService, NVS.Services.NuGet.NuGetPackageService>();
         
         // ViewModels
         services.AddSingleton<EditorViewModel>();

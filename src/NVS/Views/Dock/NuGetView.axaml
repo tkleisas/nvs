@@ -1,0 +1,186 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             xmlns:nuget="clr-namespace:NVS.Core.Models.NuGet;assembly=NVS.Core"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.NuGetView"
+             x:DataType="dock:NuGetToolViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+        <!-- Project selector -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="6,4">
+            <TextBlock Grid.Column="0" Text="Project:" Foreground="#808080" FontSize="11"
+                       VerticalAlignment="Center" Margin="0,0,6,0" />
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding ProjectPaths}"
+                      SelectedItem="{Binding SelectedProjectPath}"
+                      Background="#2D2D2D" Foreground="#CCCCCC"
+                      FontSize="10" Padding="4,2" />
+        </Grid>
+
+        <!-- Tab bar -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="6,2" Spacing="2">
+            <StackPanel.Styles>
+                <Style Selector="Button.tabBtn">
+                    <Setter Property="Background" Value="#3C3C3C"/>
+                    <Setter Property="Foreground" Value="#CCCCCC"/>
+                    <Setter Property="FontSize" Value="11"/>
+                    <Setter Property="Padding" Value="8,3"/>
+                </Style>
+                <Style Selector="Button.tabBtn.active">
+                    <Setter Property="Background" Value="#264F78"/>
+                </Style>
+            </StackPanel.Styles>
+            <Button Classes="tabBtn" Classes.active="{Binding IsBrowseTab}"
+                    Content="Browse" Command="{Binding SwitchTabCommand}" CommandParameter="Browse" />
+            <Button Classes="tabBtn" Classes.active="{Binding IsInstalledTab}"
+                    Content="Installed" Command="{Binding SwitchTabCommand}" CommandParameter="Installed" />
+            <Button Classes="tabBtn" Classes.active="{Binding IsUpdatesTab}"
+                    Content="Updates" Command="{Binding SwitchTabCommand}" CommandParameter="Updates" />
+            <Button Content="🔄" Command="{Binding RestoreCommand}"
+                    FontSize="11" Padding="6,3" Margin="8,0,0,0"
+                    Background="#3C3C3C" Foreground="#CCCCCC"
+                    ToolTip.Tip="Restore packages" />
+        </StackPanel>
+
+        <!-- Search bar (Browse tab) -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="6,2"
+              IsVisible="{Binding IsBrowseTab}">
+            <TextBox Grid.Column="0" Text="{Binding SearchQuery}"
+                     Watermark="Search NuGet packages..."
+                     Background="#1E1E1E" Foreground="#D4D4D4"
+                     BorderBrush="#3C3C3C" FontSize="12" Padding="6,4">
+                <TextBox.KeyBindings>
+                    <KeyBinding Gesture="Enter" Command="{Binding SearchCommand}" />
+                </TextBox.KeyBindings>
+            </TextBox>
+            <Button Grid.Column="1" Content="🔍" Padding="6,4" Margin="4,0,0,0"
+                    Command="{Binding SearchCommand}"
+                    Background="#3C3C3C" Foreground="#CCCCCC" />
+            <CheckBox Grid.Column="2" IsChecked="{Binding IncludePrerelease}"
+                      Content="Pre" Foreground="#808080" FontSize="10"
+                      Margin="6,0,0,0" VerticalAlignment="Center" />
+        </Grid>
+
+        <!-- Content area -->
+        <Panel Grid.Row="3">
+
+            <!-- Loading indicator -->
+            <TextBlock Text="Loading..." Foreground="#808080" FontSize="12"
+                       IsVisible="{Binding IsLoading}"
+                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16" />
+
+            <!-- Browse tab: search results -->
+            <ListBox ItemsSource="{Binding SearchResults}"
+                     SelectedItem="{Binding SelectedSearchResult}"
+                     IsVisible="{Binding IsBrowseTab}"
+                     Background="Transparent" BorderThickness="0" Margin="4,0">
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem">
+                        <Setter Property="Padding" Value="4,3"/>
+                        <Setter Property="MinHeight" Value="36"/>
+                    </Style>
+                </ListBox.Styles>
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="nuget:NuGetPackageInfo">
+                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{Binding Id}" FontSize="12" Foreground="#569CD6" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Version}" FontSize="10" Foreground="#808080" VerticalAlignment="Center" />
+                                <TextBlock Text="✓" FontSize="10" Foreground="#4EC9B0" IsVisible="{Binding IsVerified}" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Grid.Row="0" Grid.Column="1" FontSize="9" Foreground="#606060"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:N0} downloads">
+                                        <Binding Path="TotalDownloads" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                            <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                                       Text="{Binding Description}" FontSize="10" Foreground="#808080"
+                                       TextTrimming="CharacterEllipsis" MaxLines="2" TextWrapping="Wrap" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Installed tab -->
+            <Grid IsVisible="{Binding IsInstalledTab}" RowDefinitions="*,Auto">
+                <ListBox Grid.Row="0" ItemsSource="{Binding InstalledPackages}"
+                         SelectedItem="{Binding SelectedInstalledPackage}"
+                         Background="Transparent" BorderThickness="0" Margin="4,0">
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="Padding" Value="4,2"/>
+                            <Setter Property="MinHeight" Value="24"/>
+                        </Style>
+                    </ListBox.Styles>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="nuget:InstalledPackage">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" FontSize="12" Foreground="#CCCCCC">
+                                    <Run Text="{Binding Id}" />
+                                    <Run Text=" " />
+                                    <Run Text="{Binding RequestedVersion}" Foreground="#808080" />
+                                </TextBlock>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="6,4">
+                    <Button Content="Refresh" Command="{Binding LoadInstalledCommand}"
+                            FontSize="10" Padding="8,3" Background="#3C3C3C" Foreground="#CCCCCC" />
+                    <Button Content="Uninstall" Command="{Binding UninstallPackageCommand}"
+                            FontSize="10" Padding="8,3" Background="#5A1D1D" Foreground="#FF6B68" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Updates tab -->
+            <Grid IsVisible="{Binding IsUpdatesTab}" RowDefinitions="*,Auto">
+                <ListBox Grid.Row="0" ItemsSource="{Binding OutdatedPackages}"
+                         SelectedItem="{Binding SelectedInstalledPackage}"
+                         Background="Transparent" BorderThickness="0" Margin="4,0">
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="Padding" Value="4,2"/>
+                            <Setter Property="MinHeight" Value="24"/>
+                        </Style>
+                    </ListBox.Styles>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="nuget:InstalledPackage">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" FontSize="12" Foreground="#CCCCCC">
+                                    <Run Text="{Binding Id}" />
+                                    <Run Text=" " />
+                                    <Run Text="{Binding ResolvedVersion}" Foreground="#808080" />
+                                    <Run Text=" → " Foreground="#4EC9B0" />
+                                    <Run Text="{Binding LatestVersion}" Foreground="#4EC9B0" />
+                                </TextBlock>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="6,4">
+                    <Button Content="Check Updates" Command="{Binding LoadOutdatedCommand}"
+                            FontSize="10" Padding="8,3" Background="#3C3C3C" Foreground="#CCCCCC" />
+                    <Button Content="Update Selected" Command="{Binding UpdatePackageCommand}"
+                            FontSize="10" Padding="8,3" Background="#264F78" Foreground="#CCCCCC" />
+                </StackPanel>
+            </Grid>
+        </Panel>
+
+        <!-- Status bar + install button -->
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Background="#252526" Margin="0">
+            <TextBlock Grid.Column="0" Text="{Binding StatusText}"
+                       Foreground="#808080" FontSize="10" Padding="6,3" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="Install" Command="{Binding InstallPackageCommand}"
+                    FontSize="10" Padding="10,3" Margin="0,2,4,2"
+                    Background="#264F78" Foreground="#FFFFFF"
+                    IsVisible="{Binding IsBrowseTab}" />
+        </Grid>
+    </Grid>
+</UserControl>
