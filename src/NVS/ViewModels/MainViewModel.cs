@@ -320,7 +320,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task OpenWorkspaceAsync(string folderPath)
+    public async Task OpenWorkspaceAsync(string folderPath)
     {
         WorkspacePath = folderPath;
         IsWorkspaceOpen = true;

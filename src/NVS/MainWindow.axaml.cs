@@ -292,4 +292,43 @@ public partial class MainWindow : Window
         var window = new SettingsWindow { DataContext = vm };
         await window.ShowDialog(this);
     }
+
+    private async void OnNewProjectClick(object? sender, RoutedEventArgs e)
+    {
+        var app = App.Current;
+        var templateService = app?.Services?.GetService(typeof(ITemplateService)) as ITemplateService;
+        if (templateService is null) return;
+
+        var vm = new NewProjectViewModel(templateService);
+        var window = new NewProjectWindow { DataContext = vm };
+        var result = await window.ShowDialog<bool?>(this);
+
+        if (result == true && vm.CreatedProjectPath is not null && DataContext is MainViewModel mainVm)
+        {
+            await mainVm.OpenWorkspaceAsync(vm.CreatedProjectPath);
+        }
+    }
+
+    private async void OnNewFileFromTemplateClick(object? sender, RoutedEventArgs e)
+    {
+        var app = App.Current;
+        var templateService = app?.Services?.GetService(typeof(ITemplateService)) as ITemplateService;
+        if (templateService is null) return;
+
+        var mainVm = DataContext as MainViewModel;
+        var currentDir = mainVm?.WorkspacePath ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        string? projectRoot = null;
+        if (mainVm?.WorkspacePath is not null)
+            projectRoot = mainVm.WorkspacePath;
+
+        var vm = new NewFileViewModel(templateService, currentDir, projectRoot);
+        var window = new NewFileWindow { DataContext = vm };
+        var result = await window.ShowDialog<bool?>(this);
+
+        if (result == true && vm.CreatedFilePath is not null && mainVm is not null)
+        {
+            await mainVm.OpenFileAsync(vm.CreatedFilePath);
+        }
+    }
 }

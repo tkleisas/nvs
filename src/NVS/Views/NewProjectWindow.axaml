@@ -1,0 +1,105 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:NVS.ViewModels"
+        xmlns:m="using:NVS.Core.Models"
+        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="550"
+        x:Class="NVS.Views.NewProjectWindow"
+        x:DataType="vm:NewProjectViewModel"
+        x:CompileBindings="True"
+        Title="New Project"
+        Width="700" Height="550"
+        MinWidth="600" MinHeight="450"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E"
+        SystemDecorations="BorderOnly">
+
+    <Border BorderBrush="#3F3F46" BorderThickness="1">
+        <Grid RowDefinitions="Auto,*,Auto,Auto">
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="#252526" Padding="20,14">
+                <TextBlock Text="Create a new project"
+                           FontSize="18" FontWeight="SemiBold"
+                           Foreground="#CCCCCC" />
+            </Border>
+
+            <!-- Template List -->
+            <Grid Grid.Row="1" Margin="20,12,20,0" RowDefinitions="Auto,*">
+                <TextBlock Grid.Row="0" Text="Choose a template:" Foreground="#888888" Margin="0,0,0,6" />
+                <ListBox Grid.Row="1"
+                         ItemsSource="{Binding Templates}"
+                         SelectedItem="{Binding SelectedTemplate}"
+                         Background="#2D2D30"
+                         BorderBrush="#3F3F46"
+                         BorderThickness="1">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="m:ProjectTemplate">
+                            <Grid ColumnDefinitions="*,Auto" Margin="4,3">
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding DisplayName}" Foreground="#CCCCCC" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Description}" Foreground="#888888" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding DefaultLanguage}" Foreground="#569CD6" FontSize="11"
+                                           VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+
+            <!-- Configuration -->
+            <Grid Grid.Row="2" Margin="20,12" RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="120,*,Auto">
+                <!-- Project Name -->
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Project name:"
+                           Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,0,0,8" />
+                <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                         Text="{Binding ProjectName, Mode=TwoWay}"
+                         Background="#3C3C3C" Foreground="#CCCCCC"
+                         BorderBrush="#3F3F46" Margin="0,0,0,8" />
+
+                <!-- Location -->
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Location:"
+                           Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,0,0,8" />
+                <TextBox Grid.Row="1" Grid.Column="1"
+                         Text="{Binding Location, Mode=TwoWay}"
+                         Background="#3C3C3C" Foreground="#CCCCCC"
+                         BorderBrush="#3F3F46" Margin="0,0,8,8" />
+                <Button Grid.Row="1" Grid.Column="2" Content="Browse..."
+                        Click="OnBrowseClick" Margin="0,0,0,8"
+                        MinWidth="80" HorizontalContentAlignment="Center" />
+
+                <!-- Framework -->
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Framework:"
+                           Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,0,0,8" />
+                <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                          ItemsSource="{Binding AvailableFrameworks}"
+                          SelectedItem="{Binding SelectedFramework}"
+                          Background="#3C3C3C" Foreground="#CCCCCC"
+                          BorderBrush="#3F3F46" Margin="0,0,0,8"
+                          HorizontalAlignment="Stretch" />
+
+                <!-- Error Message -->
+                <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                           Text="{Binding ErrorMessage}"
+                           Foreground="#F44747" FontSize="12"
+                           IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           TextWrapping="Wrap" Margin="0,0,0,4" />
+            </Grid>
+
+            <!-- Buttons -->
+            <Border Grid.Row="3" Background="#252526" Padding="20,10"
+                    BorderBrush="#3F3F46" BorderThickness="0,1,0,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button Content="Create" Command="{Binding CreateProjectCommand}"
+                            MinWidth="90" HorizontalContentAlignment="Center"
+                            Classes="accent" />
+                    <Button Content="Cancel" Click="OnCancelClick"
+                            MinWidth="90" HorizontalContentAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

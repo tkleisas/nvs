@@ -1,0 +1,103 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:NVS.ViewModels"
+        xmlns:m="using:NVS.Core.Models"
+        mc:Ignorable="d" d:DesignWidth="650" d:DesignHeight="600"
+        x:Class="NVS.Views.NewFileWindow"
+        x:DataType="vm:NewFileViewModel"
+        x:CompileBindings="True"
+        Title="New File from Template"
+        Width="650" Height="600"
+        MinWidth="550" MinHeight="500"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E"
+        SystemDecorations="BorderOnly">
+
+    <Border BorderBrush="#3F3F46" BorderThickness="1">
+        <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="#252526" Padding="20,14">
+                <TextBlock Text="Add New File"
+                           FontSize="18" FontWeight="SemiBold"
+                           Foreground="#CCCCCC" />
+            </Border>
+
+            <!-- Template picker -->
+            <Grid Grid.Row="1" Margin="20,12,20,0" RowDefinitions="Auto,120">
+                <TextBlock Grid.Row="0" Text="Choose a template:" Foreground="#888888" Margin="0,0,0,6" />
+                <ListBox Grid.Row="1"
+                         ItemsSource="{Binding Templates}"
+                         SelectedItem="{Binding SelectedTemplate}"
+                         Background="#2D2D30"
+                         BorderBrush="#3F3F46"
+                         BorderThickness="1">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="m:FileTemplate">
+                            <StackPanel Orientation="Horizontal" Margin="4,2" Spacing="8">
+                                <TextBlock Text="{Binding Icon}" FontSize="14" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding DisplayName}" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Extension}" Foreground="#569CD6" FontSize="11" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+
+            <!-- Preview -->
+            <Grid Grid.Row="2" Margin="20,12,20,0" RowDefinitions="Auto,*">
+                <TextBlock Grid.Row="0" Text="Preview:" Foreground="#888888" Margin="0,0,0,6" />
+                <Border Grid.Row="1" Background="#1A1A1A" BorderBrush="#3F3F46" BorderThickness="1" Padding="8">
+                    <ScrollViewer>
+                        <TextBlock Text="{Binding Preview}"
+                                   FontFamily="Cascadia Mono,Consolas,Menlo,monospace"
+                                   FontSize="12"
+                                   Foreground="#D4D4D4"
+                                   TextWrapping="NoWrap" />
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+
+            <!-- Configuration -->
+            <Grid Grid.Row="3" Margin="20,12" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="100,*">
+                <!-- File Name -->
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="File name:"
+                           Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,0,0,8" />
+                <TextBox Grid.Row="0" Grid.Column="1"
+                         Text="{Binding FileName, Mode=TwoWay}"
+                         Background="#3C3C3C" Foreground="#CCCCCC"
+                         BorderBrush="#3F3F46" Margin="0,0,0,8" />
+
+                <!-- Namespace -->
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Namespace:"
+                           Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,0,0,8" />
+                <TextBox Grid.Row="1" Grid.Column="1"
+                         Text="{Binding NamespaceName, Mode=TwoWay}"
+                         Background="#3C3C3C" Foreground="#CCCCCC"
+                         BorderBrush="#3F3F46" Margin="0,0,0,8" />
+
+                <!-- Error Message -->
+                <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                           Text="{Binding ErrorMessage}"
+                           Foreground="#F44747" FontSize="12"
+                           IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           TextWrapping="Wrap" Margin="0,0,0,4" />
+            </Grid>
+
+            <!-- Buttons -->
+            <Border Grid.Row="4" Background="#252526" Padding="20,10"
+                    BorderBrush="#3F3F46" BorderThickness="0,1,0,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                    <Button Content="Create" Command="{Binding CreateFileCommand}"
+                            MinWidth="90" HorizontalContentAlignment="Center"
+                            Classes="accent" />
+                    <Button Content="Cancel" Click="OnCancelClick"
+                            MinWidth="90" HorizontalContentAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

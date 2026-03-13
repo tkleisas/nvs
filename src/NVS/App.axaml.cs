@@ -13,6 +13,7 @@ using NVS.Services.Languages;
 using NVS.Services.Lsp;
 using NVS.Services.Settings;
 using NVS.Services.Solution;
+using NVS.Services.Template;
 using NVS.Services.Terminal;
 using NVS.Services.Workspaces;
 using NVS.ViewModels;
@@ -85,6 +86,7 @@ public partial class App : Application
         services.AddSingleton<IBreakpointStore, BreakpointStore>();
         services.AddSingleton<DebugAdapterDownloader>();
         services.AddSingleton<DebugAdapterRegistry>();
+        services.AddSingleton<ITemplateService, TemplateService>();
         
         // ViewModels
         services.AddSingleton<EditorViewModel>();
