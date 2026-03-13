@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using NVS.ViewModels.Dock;
 
 namespace NVS.Views.Dock;
@@ -57,6 +58,43 @@ public partial class TerminalView : UserControl
                 else
                     Terminal.Args = ["-c", $"cd \"{workDir}\" && exec $SHELL"];
             }
+
+            // Wire up the SendCommandAsync delegate so RunProject can send
+            // commands directly to the Iciclecreek PTY terminal.
+            vm.SendCommandAsync = async command =>
+            {
+                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    try
+                    {
+                        // Find the inner Iciclecreek.Terminal.TerminalView inside the
+                        // TerminalControl template, then invoke the private SendToPtyAsync
+                        // method to write directly to the PTY stream.
+                        var innerView = Terminal?.GetVisualDescendants()
+                            .OfType<Iciclecreek.Terminal.TerminalView>()
+                            .FirstOrDefault();
+
+                        if (innerView is not null)
+                        {
+                            var method = innerView.GetType().GetMethod(
+                                "SendToPtyAsync",
+                                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                            if (method is not null)
+                            {
+                                var task = method.Invoke(innerView,
+                                    [command + "\r", System.Threading.CancellationToken.None]) as Task;
+                                if (task is not null)
+                                    await task;
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Terminal may not be ready yet
+                    }
+                });
+            };
 
             ApplyFontSettings();
         }

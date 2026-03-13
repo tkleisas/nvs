@@ -567,20 +567,18 @@ public partial class MainViewModel : INotifyPropertyChanged
                 : "";
             var runCommand = $"dotnet run{projectArg} --nologo";
 
-            // Ensure terminal is visible and ready
-            if (_terminalService.ActiveTerminal is null)
-                CreateNewTerminal();
+            // Ensure terminal panel is visible
             IsTerminalVisible = true;
 
-            var terminal = _terminalService.ActiveTerminal;
-            if (terminal is not null)
+            var terminalTool = FindTerminalTool();
+            if (terminalTool?.SendCommandAsync is not null)
             {
-                terminal.WriteLine(runCommand);
+                await terminalTool.SendCommandAsync(runCommand);
                 StatusMessage = "Application started in terminal";
             }
             else
             {
-                StatusMessage = "Failed to open terminal";
+                StatusMessage = "Terminal not available — open a terminal first";
             }
         }
         catch (Exception ex)
@@ -927,6 +925,11 @@ public partial class MainViewModel : INotifyPropertyChanged
     private ProblemsToolViewModel? FindProblemsTool()
     {
         return FindToolInDock<ProblemsToolViewModel>();
+    }
+
+    private TerminalToolViewModel? FindTerminalTool()
+    {
+        return FindToolInDock<TerminalToolViewModel>();
     }
 
     private T? FindToolInDock<T>() where T : class

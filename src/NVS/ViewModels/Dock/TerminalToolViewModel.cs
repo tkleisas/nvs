@@ -16,6 +16,11 @@ public class TerminalToolViewModel : Tool
     public string ShellPath { get; set; } = "";
     public string WorkingDirectory { get; set; } = "";
 
+    /// <summary>
+    /// Callback set by the view to send a command to the PTY terminal.
+    /// </summary>
+    public Func<string, Task>? SendCommandAsync { get; set; }
+
     public string TerminalFontFamily
     {
         get => _terminalFontFamily;
