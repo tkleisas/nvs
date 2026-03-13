@@ -571,9 +571,11 @@ public partial class MainViewModel : INotifyPropertyChanged
             IsTerminalVisible = true;
 
             var terminalTool = FindTerminalTool();
-            if (terminalTool?.SendCommandAsync is not null)
+            if (terminalTool is not null)
             {
-                await terminalTool.SendCommandAsync(runCommand);
+                // Queue the command — the terminal will deliver it
+                // once the PTY is ready (may need a brief delay).
+                await terminalTool.SendCommandToTerminalAsync(runCommand);
                 StatusMessage = "Application started in terminal";
             }
             else

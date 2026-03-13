@@ -16,10 +16,41 @@ public class TerminalToolViewModel : Tool
     public string ShellPath { get; set; } = "";
     public string WorkingDirectory { get; set; } = "";
 
+    private readonly Queue<string> _pendingCommands = new();
+
     /// <summary>
     /// Callback set by the view to send a command to the PTY terminal.
     /// </summary>
     public Func<string, Task>? SendCommandAsync { get; set; }
+
+    /// <summary>
+    /// Enqueues a command to be sent to the terminal. If the PTY is ready,
+    /// sends immediately; otherwise queues for delivery when ready.
+    /// </summary>
+    public async Task SendCommandToTerminalAsync(string command)
+    {
+        if (SendCommandAsync is not null)
+        {
+            await SendCommandAsync(command);
+        }
+        else
+        {
+            _pendingCommands.Enqueue(command);
+        }
+    }
+
+    /// <summary>
+    /// Called by the view when the PTY is ready to accept input.
+    /// Flushes any pending commands.
+    /// </summary>
+    public async Task FlushPendingCommandsAsync()
+    {
+        if (SendCommandAsync is null) return;
+        while (_pendingCommands.TryDequeue(out var command))
+        {
+            await SendCommandAsync(command);
+        }
+    }
 
     public string TerminalFontFamily
     {
