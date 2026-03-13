@@ -8,11 +8,13 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
-![Version](https://img.shields.io/badge/version-0.1.4-green)
-![Tests](https://img.shields.io/badge/tests-535%20passing-brightgreen)
+![Version](https://img.shields.io/badge/version-0.2.0-green)
+![Tests](https://img.shields.io/badge/tests-746%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
+
+![NVS Screenshot](images/nvs.png)
 
 ## What Is This?
 
@@ -25,14 +27,17 @@ NVS is a code editor / IDE that:
 - Has git integration that will absolutely let you force-push to main.
 - Has .NET solution/project loading with full build integration.
 - Has DAP-based debugging with breakpoints, call stack, and variable inspection.
+- Has an AI chat assistant that can read and modify your project files.
+- Has a NuGet package manager and SQLite database explorer.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
+- Has 746 tests, which is 746 more than the AI thought were necessary before the human insisted.
 
 ## Features
 
 ### 🖊️ Editor
 - Syntax highlighting for 14 languages (C#, C/C++, TypeScript, JavaScript, Python, Rust, Go, JSON, HTML, CSS, YAML, Markdown, TOML, XML)
 - Undo/Redo, Find & Replace (Ctrl+Z, Ctrl+Y, Ctrl+F)
-- Multi-tab editing with close buttons, line/column tracking
+- Multi-tab editing with dirty indicators, line/column tracking
 - Right-click context menu (Cut, Copy, Paste, Select All, Go to Definition)
 - Dockable panels via Dock.Avalonia — drag, split, and rearrange
 - Compiled bindings for that sweet, sweet performance
@@ -63,16 +68,16 @@ NVS is a code editor / IDE that:
 
 ### 🔀 Git Integration
 - Repository status, staging, unstaging
-- Commit with message
+- Commit with message (the AI suggested "fix stuff" for every commit message)
 - Branch management (create, checkout, list)
 - Commit log
-- Diff viewer with unified patch parsing
+- Diff viewer with unified patch parsing — implemented on the third attempt after the AI hallucinated two different diff libraries that don't exist
 - Source Control sidebar panel
 
 ### 💻 Terminal
 - Built-in PTY terminal panel (Ctrl+`) via Iciclecreek
 - Cross-platform shell detection (pwsh → PowerShell → cmd on Windows; `$SHELL` on Unix)
-- Multiple terminal instances
+- Multiple terminal instances — for when one terminal full of errors isn't enough
 - Configurable fonts (MesloLGM Nerd Font etc.)
 
 ### 🏗️ Solution & Build
@@ -82,10 +87,11 @@ NVS is a code editor / IDE that:
 - Run without debugging (Ctrl+F5)
 - Build Output panel with auto-scroll and MSBuild error parsing
 - Problems panel with click-to-navigate diagnostics
+- New project / file-from-template scaffolding via `dotnet new`
 
 ### 🐛 Debugging (DAP)
 - Debug Adapter Protocol client with Content-Length framed transport
-- **netcoredbg** auto-downloaded on first use (~3 MB) — no manual install needed
+- **netcoredbg** auto-downloaded on first use (~3 MB) — no manual install needed. The AI tried to implement a debugger from scratch before the human said "just use netcoredbg"
 - Start Debugging (F5), Stop (Shift+F5)
 - Step Over (F10), Step Into (F11), Step Out (Shift+F11)
 - Toggle Breakpoint (F9) with red gutter markers
@@ -94,8 +100,38 @@ NVS is a code editor / IDE that:
 - Debug output streamed to Build Output panel
 - Debug toolbar with visual step controls
 
+### 💬 LLM Chat Assistant
+- Built-in AI chat panel with streaming responses
+- Any OpenAI-compatible endpoint (OpenAI, OpenRouter, DeepSeek, Ollama, LM Studio)
+- Task modes: General, Coding, Debugging, Testing — each with tailored system prompts
+- Agent tools for file read/write, search, terminal commands, and editor integration
+- Configurable model, temperature, max iterations, and prompt templates
+- Yes, we built an AI-powered IDE using AI. It's slop all the way down.
+
+### 📦 NuGet Package Manager
+- Browse, search, and install packages from nuget.org
+- View installed packages per project
+- Check for and apply updates
+- Uninstall and restore packages
+- Project selector for multi-project solutions
+
+### 🗄️ SQLite Database Explorer
+- Open and browse .db, .sqlite, and .sqlite3 files
+- View table schemas and data
+- Execute SQL queries with results grid
+- Multiple database connections
+- Caused a docking crash that took longer to fix than the entire feature took to build. Classic.
+
+### ❓ Help System
+- Welcome tab with getting started links and feature overview
+- Searchable help panel (F1) with 12 built-in topics
+- Keyboard shortcuts reference
+- Contextual tooltips on all toolbar buttons
+- The help content was written by the AI, so it sounds very confident about features that were definitely not tested on macOS
+
 ### ⚙️ Settings
 - 4-section settings UI (General, Editor, Language Servers, LLM)
+- LLM configuration: endpoint, API key, model, temperature, streaming, prompt templates
 - Language server discovery, status, and one-click install
 - Window state persistence (size, position, maximized)
 - Settings persisted to `%APPDATA%/NVS/settings.json`
@@ -115,7 +151,7 @@ NVS (UI)  →  NVS.Services / NVS.Infrastructure  →  NVS.Core
 | Project | Role |
 |---------|------|
 | **NVS.Core** | Interfaces and models only. No implementations. The Switzerland of the codebase. |
-| **NVS.Services** | All the actual work: Editor, FileSystem, Workspace, Language, LSP, Git, Terminal, Settings, Solution, Build, Debug. |
+| **NVS.Services** | All the actual work: Editor, FileSystem, Workspace, Language, LSP, Git, Terminal, Settings, Solution, Build, Debug, LLM, NuGet. The load-bearing wall of this house of cards. |
 | **NVS.Infrastructure** | DI registration, Serilog logging config. |
 | **NVS.Plugins** | Plugin loading via `AssemblyLoadContext`. Currently quiet. Suspiciously quiet. |
 | **NVS** | The Avalonia UI app — ViewModels, Views, Behaviors, and the DI composition root. |
@@ -126,6 +162,7 @@ NVS (UI)  →  NVS.Services / NVS.Infrastructure  →  NVS.Core
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - Git (for version stamping)
+- A willingness to use an IDE built by a machine that once tried to `using LibGit2Sharp.Hunks` with zero remorse
 
 ### Build & Run
 
@@ -136,7 +173,7 @@ dotnet build NVS.slnx
 # Run
 dotnet run --project src/NVS
 
-# Run tests (535 of them)
+# Run tests (746 of them)
 dotnet test NVS.slnx
 ```
 
@@ -164,8 +201,8 @@ See [Releases](https://github.com/tkleisas/nvs/releases) for downloads.
 To create a release, tag a commit and push:
 
 ```bash
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 ## Tech Stack
@@ -186,12 +223,12 @@ git push origin v0.1.4
 
 ## Testing
 
-535 tests across 4 test projects:
+746 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
 
 - **NVS.Core.Tests** — Core model tests
 - **NVS.Plugins.Tests** — Plugin system tests
-- **NVS.Services.Tests** — EditorService, LanguageService, LSP, Git, Terminal, Registry, Solution, Build, DAP, Debug, Breakpoints
-- **NVS.Tests** — ViewModel tests (Editor, Document, Settings, MainViewModel, Build/Run commands)
+- **NVS.Services.Tests** — EditorService, LanguageService, LSP, Git, Terminal, Registry, Solution, Build, DAP, Debug, Breakpoints, LLM Agent Tools, NuGet
+- **NVS.Tests** — ViewModel tests (Editor, Document, Settings, MainViewModel, Build/Run, LLM Chat, NuGet, Help, Welcome)
 
 Test naming convention: `MethodName_Scenario_ExpectedOutcome`
 
@@ -206,18 +243,9 @@ public void ParsePatch_MixedChanges_ParsesAllLineTypes()
 ## Versioning
 
 - Version lives in `Directory.Build.props`
-- Informational version appends the short git commit hash (e.g., `0.1.4+a3f72b1`)
+- Informational version appends the short git commit hash (e.g., `0.2.0+a3f72b1`)
 - Patch bumps on each commit, minor bumps on feature completion
 - Viewable in **Help → About**
-
-## Contributing
-
-This project is in active development. Current focus areas:
-
-- 🔲 Project & file templates (dotnet new integration)
-- 🔲 SQLite database explorer
-- 🔲 Help system for beginners
-- 🔲 LLM integration
 
 ## License
 
@@ -227,4 +255,6 @@ MIT — see [LICENSE](LICENSE) for details.
 
 <p align="center">
   <i>NVS: Because the world needed another text editor, and we were too far in to stop.</i>
+  <br/>
+  <i>Built with ❤️ and approximately 47 "retry" commands.</i>
 </p>
