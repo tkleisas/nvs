@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
 using Dock.Model.Core;
 using NVS.ViewModels.Dock;
@@ -34,6 +35,14 @@ public class DockViewLocator : IDataTemplate
 
         if (_viewCache.TryGetValue(data, out var cached))
         {
+            // Detach from current visual parent so the dock framework can reparent
+            if (cached.Parent is ContentPresenter cp)
+                cp.Content = null;
+            else if (cached.Parent is Decorator d)
+                d.Child = null;
+            else if (cached.Parent is Panel p)
+                p.Children.Remove(cached);
+
             return cached;
         }
 
