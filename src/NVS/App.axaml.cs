@@ -17,6 +17,7 @@ using NVS.Services.Template;
 using NVS.Services.Terminal;
 using NVS.Services.Workspaces;
 using NVS.Services.LLM;
+using NVS.Services.LLM.Tools;
 using NVS.ViewModels;
 
 namespace NVS;
@@ -56,6 +57,7 @@ public partial class App : Application
             {
                 mainViewModel.StorageProvider = mainWindow.StorageProvider;
                 mainViewModel.InitializeDock();
+                RegisterLlmTools(mainViewModel);
             }
             mainWindow.DataContext = mainViewModel;
             desktop.MainWindow = mainWindow;
@@ -105,6 +107,56 @@ public partial class App : Application
         
         Infrastructure.Logging.LoggerConfiguration.ConfigureGlobalLogger(logPath);
         Serilog.Log.Information("NVS starting up...");
+    }
+
+    private void RegisterLlmTools(MainViewModel mainVm)
+    {
+        if (Services?.GetService(typeof(ILlmService)) is not LlmService llmService)
+            return;
+
+        Func<string?> getWorkspace = () => mainVm.WorkspacePath;
+        Func<string> getWorkspaceOrDefault = () => mainVm.WorkspacePath ?? Environment.CurrentDirectory;
+
+        llmService.RegisterTool(new ReadFileTool(getWorkspaceOrDefault));
+        llmService.RegisterTool(new WriteFileTool(getWorkspaceOrDefault));
+        llmService.RegisterTool(new ListFilesTool(getWorkspaceOrDefault));
+        llmService.RegisterTool(new SearchFilesTool(getWorkspaceOrDefault));
+        llmService.RegisterTool(new ReadEditorTool(() =>
+        {
+            var doc = mainVm.Editor?.ActiveDocument;
+            if (doc is null) return null;
+            return new ReadEditorTool.EditorState
+            {
+                FilePath = doc.Document.FilePath,
+                FileName = doc.Document.Name,
+                Language = doc.Language.ToString(),
+                Content = doc.Text ?? string.Empty,
+                CursorLine = doc.CursorLine,
+                CursorColumn = doc.CursorColumn
+            };
+        }));
+        llmService.RegisterTool(new ApplyEditTool(op =>
+        {
+            var doc = mainVm.Editor?.ActiveDocument;
+            if (doc is null) return false;
+            // Simple: replace entire content or specific lines
+            if (op.ReplaceSelection || (!op.LineStart.HasValue && !op.LineEnd.HasValue))
+            {
+                doc.Text = op.NewText;
+                return true;
+            }
+            var lines = (doc.Text ?? "").Split('\n').ToList();
+            var start = Math.Max(0, (op.LineStart ?? 1) - 1);
+            var end = Math.Min(lines.Count, op.LineEnd ?? lines.Count);
+            var count = end - start;
+            if (count > 0)
+                lines.RemoveRange(start, count);
+            lines.InsertRange(start, op.NewText.Split('\n'));
+            doc.Text = string.Join('\n', lines);
+            return true;
+        }));
+
+        Serilog.Log.Information("Registered {Count} LLM agent tools", 6);
     }
 }
 
