@@ -331,4 +331,56 @@ public partial class MainWindow : Window
             await mainVm.OpenFileAsync(vm.CreatedFilePath);
         }
     }
+
+    private async void OnAddProjectToSolutionClick(object? sender, RoutedEventArgs e)
+    {
+        var mainVm = DataContext as MainViewModel;
+        if (mainVm is null) return;
+
+        var app = App.Current;
+        var solutionService = app?.Services?.GetService(typeof(ISolutionService)) as ISolutionService;
+        var templateService = app?.Services?.GetService(typeof(ITemplateService)) as ITemplateService;
+        if (solutionService is null || templateService is null) return;
+
+        // Must have a solution loaded
+        if (solutionService.CurrentSolution is null)
+        {
+            mainVm.StatusMessage = "No solution loaded — open or create a project first";
+            return;
+        }
+
+        var vm = new NewProjectViewModel(templateService) { CreateSolution = false };
+        vm.Location = Path.GetDirectoryName(solutionService.CurrentSolution.FilePath)
+                      ?? mainVm.WorkspacePath
+                      ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        var window = new NewProjectWindow { DataContext = vm, Title = "Add New Project to Solution" };
+        var result = await window.ShowDialog<bool?>(this);
+
+        if (result == true && vm.CreatedProjectPath is not null)
+        {
+            try
+            {
+                // Find the .csproj in the created project
+                var csprojFiles = Directory.GetFiles(vm.CreatedProjectPath, "*.csproj", SearchOption.TopDirectoryOnly);
+                if (csprojFiles.Length > 0)
+                {
+                    await solutionService.AddProjectToSolutionAsync(
+                        solutionService.CurrentSolution.FilePath, csprojFiles[0]);
+
+                    // Reload the solution to pick up the new project
+                    await solutionService.LoadSolutionAsync(solutionService.CurrentSolution.FilePath);
+                    mainVm.StatusMessage = $"Project '{vm.ProjectName}' added to solution";
+                }
+
+                // Refresh file tree
+                if (mainVm.WorkspacePath is not null)
+                    await mainVm.OpenWorkspaceAsync(mainVm.WorkspacePath);
+            }
+            catch (Exception ex)
+            {
+                mainVm.StatusMessage = $"Failed to add project: {ex.Message}";
+            }
+        }
+    }
 }

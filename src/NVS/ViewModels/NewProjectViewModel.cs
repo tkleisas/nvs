@@ -17,6 +17,12 @@ public sealed partial class NewProjectViewModel : ObservableObject
     private string? _errorMessage;
     private bool _isCreating;
 
+    /// <summary>
+    /// Whether to also create a solution file when creating the project. Default true.
+    /// Set to false when adding a project to an existing solution.
+    /// </summary>
+    public bool CreateSolution { get; set; } = true;
+
     public NewProjectViewModel(ITemplateService templateService)
     {
         _templateService = templateService;
@@ -128,7 +134,8 @@ public sealed partial class NewProjectViewModel : ObservableObject
                 SelectedTemplate!.ShortName,
                 ProjectName,
                 Location,
-                SelectedFramework);
+                SelectedFramework,
+                CreateSolution);
 
             RequestClose?.Invoke(this, EventArgs.Empty);
         }

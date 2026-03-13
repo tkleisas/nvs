@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using NVS.Core.Interfaces;
@@ -103,6 +104,76 @@ public sealed partial class SolutionService : ISolutionService
     public ProjectModel? GetStartupProject()
     {
         return _loadedProjects.FirstOrDefault(p => p.IsExecutable);
+    }
+
+    public async Task<string> CreateSolutionAsync(string solutionName, string directory, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solutionName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+
+        Directory.CreateDirectory(directory);
+
+        var (exitCode, _, stderr) = await RunDotnetAsync(
+            $"new sln --name \"{solutionName}\" --output \"{directory}\"",
+            directory, cancellationToken).ConfigureAwait(false);
+
+        if (exitCode != 0)
+            throw new InvalidOperationException(
+                $"dotnet new sln failed (exit code {exitCode}): {stderr.Trim()}");
+
+        // dotnet new sln creates .slnx on modern SDKs, fall back to .sln
+        var slnxPath = Path.Combine(directory, $"{solutionName}.slnx");
+        if (File.Exists(slnxPath))
+            return slnxPath;
+
+        var slnPath = Path.Combine(directory, $"{solutionName}.sln");
+        if (File.Exists(slnPath))
+            return slnPath;
+
+        throw new InvalidOperationException(
+            "dotnet new sln succeeded but no solution file was found.");
+    }
+
+    public async Task AddProjectToSolutionAsync(string solutionPath, string projectPath, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solutionPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectPath);
+
+        if (!File.Exists(solutionPath))
+            throw new FileNotFoundException("Solution file not found.", solutionPath);
+        if (!File.Exists(projectPath))
+            throw new FileNotFoundException("Project file not found.", projectPath);
+
+        var solutionDir = Path.GetDirectoryName(solutionPath)!;
+        var (exitCode, _, stderr) = await RunDotnetAsync(
+            $"sln \"{solutionPath}\" add \"{projectPath}\"",
+            solutionDir, cancellationToken).ConfigureAwait(false);
+
+        if (exitCode != 0)
+            throw new InvalidOperationException(
+                $"dotnet sln add failed (exit code {exitCode}): {stderr.Trim()}");
+    }
+
+    private static async Task<(int ExitCode, string Stdout, string Stderr)> RunDotnetAsync(
+        string arguments, string workingDirectory, CancellationToken cancellationToken)
+    {
+        var psi = new ProcessStartInfo("dotnet", arguments)
+        {
+            WorkingDirectory = workingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        using var process = new Process { StartInfo = psi };
+        process.Start();
+
+        var stdout = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+        var stderr = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+        return (process.ExitCode, stdout, stderr);
     }
 
     internal static async Task<SolutionModel> ParseSlnxAsync(string path, CancellationToken cancellationToken = default)

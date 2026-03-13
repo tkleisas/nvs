@@ -136,7 +136,7 @@ public sealed class NewProjectViewModelTests
             var service = CreateMockTemplateService();
             service.CreateProjectAsync(
                     Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
-                    Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                    Arg.Any<string?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
                 .Returns(Path.Combine(tempDir, "MyApp"));
 
             var vm = new NewProjectViewModel(service);
@@ -164,7 +164,7 @@ public sealed class NewProjectViewModelTests
         var service = CreateMockTemplateService();
         service.CreateProjectAsync(
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
-                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                Arg.Any<string?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Throws(new Exception("dotnet new failed"));
 
         var vm = new NewProjectViewModel(service);

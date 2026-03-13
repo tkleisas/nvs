@@ -211,6 +211,7 @@ public sealed class TemplateService : ITemplateService
         string projectName,
         string outputDirectory,
         string? framework = null,
+        bool createSolution = true,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(templateShortName);
@@ -220,13 +221,47 @@ public sealed class TemplateService : ITemplateService
         var projectDir = Path.Combine(outputDirectory, projectName);
         Directory.CreateDirectory(projectDir);
 
+        // Create the project
         var args = $"new {templateShortName} --name {projectName} --output \"{projectDir}\"";
         if (!string.IsNullOrWhiteSpace(framework))
             args += $" --framework {framework}";
 
-        var psi = new ProcessStartInfo("dotnet", args)
+        await RunDotnetAsync(args, outputDirectory, "dotnet new", cancellationToken).ConfigureAwait(false);
+
+        if (createSolution)
         {
-            WorkingDirectory = outputDirectory,
+            // Create a solution file in the project directory
+            await RunDotnetAsync(
+                $"new sln --name \"{projectName}\" --output \"{projectDir}\"",
+                projectDir, "dotnet new sln", cancellationToken).ConfigureAwait(false);
+
+            // Add the project to the solution
+            var csprojFiles = Directory.GetFiles(projectDir, "*.csproj", SearchOption.TopDirectoryOnly);
+            if (csprojFiles.Length > 0)
+            {
+                // dotnet new sln creates .slnx on modern SDKs, fall back to .sln
+                var slnPath = Directory.GetFiles(projectDir, "*.slnx", SearchOption.TopDirectoryOnly)
+                    .Concat(Directory.GetFiles(projectDir, "*.sln", SearchOption.TopDirectoryOnly))
+                    .FirstOrDefault();
+
+                if (slnPath is not null)
+                {
+                    await RunDotnetAsync(
+                        $"sln \"{slnPath}\" add \"{csprojFiles[0]}\"",
+                        projectDir, "dotnet sln add", cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+
+        return projectDir;
+    }
+
+    private static async Task RunDotnetAsync(
+        string arguments, string workingDirectory, string description, CancellationToken cancellationToken)
+    {
+        var psi = new ProcessStartInfo("dotnet", arguments)
+        {
+            WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -236,16 +271,14 @@ public sealed class TemplateService : ITemplateService
         using var process = new Process { StartInfo = psi };
         process.Start();
 
-        var stdout = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+        _ = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
         var stderr = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
 
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
         if (process.ExitCode != 0)
             throw new InvalidOperationException(
-                $"dotnet new failed (exit code {process.ExitCode}): {stderr.Trim()}");
-
-        return projectDir;
+                $"{description} failed (exit code {process.ExitCode}): {stderr.Trim()}");
     }
 
     public async Task<string> CreateFileFromTemplateAsync(

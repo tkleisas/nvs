@@ -424,4 +424,91 @@ public sealed class SolutionServiceTests : IDisposable
     }
 
     #endregion
+
+    #region CreateSolutionAsync
+
+    [Fact]
+    public async Task CreateSolutionAsync_ShouldCreateSlnFile()
+    {
+        var slnPath = await _service.CreateSolutionAsync("TestSolution", _tempDir);
+
+        slnPath.Should().Contain("TestSolution");
+        File.Exists(slnPath).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateSolutionAsync_WithEmptyName_ShouldThrow()
+    {
+        var act = () => _service.CreateSolutionAsync("", _tempDir);
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task CreateSolutionAsync_WithEmptyDirectory_ShouldThrow()
+    {
+        var act = () => _service.CreateSolutionAsync("Test", "");
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task CreateSolutionAsync_CreatedSlnShouldBeParseable()
+    {
+        var slnPath = await _service.CreateSolutionAsync("TestSolution", _tempDir);
+
+        var solution = await _service.LoadSolutionAsync(slnPath);
+
+        solution.Name.Should().Be("TestSolution");
+    }
+
+    #endregion
+
+    #region AddProjectToSolutionAsync
+
+    [Fact]
+    public async Task AddProjectToSolutionAsync_ShouldAddProject()
+    {
+        // Create a solution
+        var slnPath = await _service.CreateSolutionAsync("TestSolution", _tempDir);
+
+        // Create a minimal .csproj
+        var projDir = Path.Combine(_tempDir, "MyApp");
+        Directory.CreateDirectory(projDir);
+        var csprojPath = Path.Combine(projDir, "MyApp.csproj");
+        await File.WriteAllTextAsync(csprojPath, """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        await _service.AddProjectToSolutionAsync(slnPath, csprojPath);
+
+        // Verify the solution now contains the project
+        var solution = await _service.LoadSolutionAsync(slnPath);
+        solution.Projects.Should().ContainSingle(p => p.Name == "MyApp");
+    }
+
+    [Fact]
+    public async Task AddProjectToSolutionAsync_WithMissingSln_ShouldThrow()
+    {
+        var missingSlnPath = Path.Combine(_tempDir, "missing.sln");
+        var csprojPath = Path.Combine(_tempDir, "MyApp.csproj");
+        await File.WriteAllTextAsync(csprojPath, "<Project></Project>");
+
+        var act = () => _service.AddProjectToSolutionAsync(missingSlnPath, csprojPath);
+        await act.Should().ThrowAsync<FileNotFoundException>();
+    }
+
+    [Fact]
+    public async Task AddProjectToSolutionAsync_WithMissingProject_ShouldThrow()
+    {
+        var slnPath = await _service.CreateSolutionAsync("TestSolution", _tempDir);
+        var missingCsproj = Path.Combine(_tempDir, "Missing.csproj");
+
+        var act = () => _service.AddProjectToSolutionAsync(slnPath, missingCsproj);
+        await act.Should().ThrowAsync<FileNotFoundException>();
+    }
+
+    #endregion
 }

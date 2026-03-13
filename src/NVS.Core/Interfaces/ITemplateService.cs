@@ -21,6 +21,7 @@ public interface ITemplateService
     /// <param name="projectName">The project name.</param>
     /// <param name="outputDirectory">The directory where the project will be created.</param>
     /// <param name="framework">Optional target framework (e.g. "net10.0").</param>
+    /// <param name="createSolution">Whether to also create a solution file and add the project. Default true.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The path to the created project directory.</returns>
     Task<string> CreateProjectAsync(
@@ -28,6 +29,7 @@ public interface ITemplateService
         string projectName,
         string outputDirectory,
         string? framework = null,
+        bool createSolution = true,
         CancellationToken cancellationToken = default);
 
     /// <summary>

@@ -38,6 +38,7 @@
                 <MenuItem Header="_New File" InputGesture="Ctrl+N" Command="{Binding NewFileCommand}" />
                 <MenuItem Header="New _Project..." InputGesture="Ctrl+Shift+N" Click="OnNewProjectClick" />
                 <MenuItem Header="New File from _Template..." Click="OnNewFileFromTemplateClick" />
+                <MenuItem Header="_Add Project to Solution..." Click="OnAddProjectToSolutionClick" />
                 <Separator />
                 <MenuItem Header="_Open File..." InputGesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
                 <MenuItem Header="Open _Solution..." Command="{Binding OpenSolutionCommand}" />
