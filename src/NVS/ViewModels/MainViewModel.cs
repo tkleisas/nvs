@@ -163,11 +163,13 @@ public partial class MainViewModel : INotifyPropertyChanged
     public bool HasGitTags => GitTags.Count > 0;
 
     private Branch? _selectedGitBranch;
+    private bool _isRefreshingBranches;
     public Branch? SelectedGitBranch
     {
         get => _selectedGitBranch;
         set
         {
+            if (_isRefreshingBranches) return;
             if (value is not null && value.Name != (_selectedGitBranch?.Name))
             {
                 SetProperty(ref _selectedGitBranch, value);
@@ -1631,15 +1633,25 @@ public partial class MainViewModel : INotifyPropertyChanged
     private async Task ReloadOpenDocumentsFromDisk()
     {
         if (Editor?.OpenDocuments is null) return;
+        var toClose = new List<DocumentViewModel>();
         foreach (var doc in Editor.OpenDocuments)
         {
-            if (doc.Document.FilePath is not null && File.Exists(doc.Document.FilePath))
+            if (doc.Document.FilePath is not null)
             {
-                var content = await File.ReadAllTextAsync(doc.Document.FilePath);
-                doc.Text = content;
-                doc.IsDirty = false;
+                if (File.Exists(doc.Document.FilePath))
+                {
+                    var content = await File.ReadAllTextAsync(doc.Document.FilePath);
+                    doc.Text = content;
+                    doc.IsDirty = false;
+                }
+                else
+                {
+                    toClose.Add(doc);
+                }
             }
         }
+        foreach (var doc in toClose)
+            Editor.CloseDocument(doc);
     }
 
     public async Task GitCreateBranchAsync(string branchName, bool includeChanges = true)
@@ -1882,13 +1894,21 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     private async Task RefreshGitBranches()
     {
-        GitBranches.Clear();
-        var branches = await _gitService.GetBranchesAsync();
-        foreach (var b in branches)
-            GitBranches.Add(b);
+        _isRefreshingBranches = true;
+        try
+        {
+            GitBranches.Clear();
+            var branches = await _gitService.GetBranchesAsync();
+            foreach (var b in branches)
+                GitBranches.Add(b);
 
-        _selectedGitBranch = GitBranches.FirstOrDefault(b => b.IsCurrent);
-        OnPropertyChanged(nameof(SelectedGitBranch));
+            _selectedGitBranch = GitBranches.FirstOrDefault(b => b.IsCurrent);
+            OnPropertyChanged(nameof(SelectedGitBranch));
+        }
+        finally
+        {
+            _isRefreshingBranches = false;
+        }
     }
 
     private async Task RefreshGitExtras()

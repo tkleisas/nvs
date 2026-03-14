@@ -202,7 +202,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
         docVm.IsDirty = false;
     }
 
-    private void CloseDocument(DocumentViewModel docVm)
+    internal void CloseDocument(DocumentViewModel docVm)
     {
         var index = OpenDocuments.IndexOf(docVm);
         OpenDocuments.Remove(docVm);
