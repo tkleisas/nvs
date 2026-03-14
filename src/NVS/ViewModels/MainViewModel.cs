@@ -1611,11 +1611,31 @@ public partial class MainViewModel : INotifyPropertyChanged
             await _gitService.CheckoutAsync(branch.Name);
             CurrentBranch = _gitService.CurrentBranch ?? "";
             RefreshGitFiles();
+
+            // Reload file tree and open documents to reflect new branch
+            if (_workspacePath is not null)
+                await LoadFileTree(_workspacePath);
+            await ReloadOpenDocumentsFromDisk();
+
             StatusMessage = $"Switched to branch: {branch.Name}";
         }
         catch (Exception ex)
         {
             StatusMessage = $"Checkout failed: {ex.Message}";
+        }
+    }
+
+    private async Task ReloadOpenDocumentsFromDisk()
+    {
+        if (Editor?.OpenDocuments is null) return;
+        foreach (var doc in Editor.OpenDocuments)
+        {
+            if (doc.Document.FilePath is not null && File.Exists(doc.Document.FilePath))
+            {
+                var content = await File.ReadAllTextAsync(doc.Document.FilePath);
+                doc.Text = content;
+                doc.IsDirty = false;
+            }
         }
     }
 
