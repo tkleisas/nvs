@@ -47,6 +47,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     private CancellationTokenSource? _pauseCts;
     private bool _isDebugging;
     private bool _isDebugPaused;
+    private bool _debugUsesTerminal;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -722,6 +723,8 @@ public partial class MainViewModel : INotifyPropertyChanged
 
             if (isConsoleApp)
             {
+                _debugUsesTerminal = true;
+
                 // Wire up the RunInTerminal handler so netcoredbg launches
                 // the debuggee in the integrated terminal (enables console I/O)
                 _debugService.RunInTerminalHandler = async (request) =>
@@ -729,6 +732,7 @@ public partial class MainViewModel : INotifyPropertyChanged
                     var terminalTool = FindTerminalTool();
                     if (terminalTool is not null)
                     {
+                        ActivateToolInDock(terminalTool);
                         var command = string.Join(" ", request.Args.Select(arg =>
                             arg.Contains(' ') ? $"\"{arg}\"" : arg));
                         await terminalTool.SendCommandToTerminalAsync(command);
@@ -738,6 +742,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             }
             else
             {
+                _debugUsesTerminal = false;
                 _debugService.RunInTerminalHandler = null;
             }
 
@@ -878,6 +883,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         {
             IsDebugging = false;
             IsDebugPaused = false;
+            _debugUsesTerminal = false;
             StatusMessage = "Debug session ended";
             ClearDebugCurrentLine();
 
@@ -969,6 +975,12 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     private void OnDebugOutput(object? sender, OutputEvent evt)
     {
+        // When the debuggee runs in the integrated terminal, its stdout/stderr
+        // goes directly to the terminal. Only route DAP console/telemetry output
+        // to the Build Output panel to avoid duplicate text.
+        if (_debugUsesTerminal && evt.Category is OutputCategory.Stdout or OutputCategory.Stderr)
+            return;
+
         var isError = evt.Category is OutputCategory.Stderr;
         FindBuildOutputTool()?.AppendOutput(evt.Output, isError);
     }
