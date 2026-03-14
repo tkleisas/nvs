@@ -35,7 +35,18 @@
     <ProjectReference Include="..\NVS.Services\NVS.Services.csproj" />
     <ProjectReference Include="..\NVS.Plugins\NVS.Plugins.csproj" />
     <ProjectReference Include="..\..\lib\SQLiteExplorer\src\SQLiteExplorer.Lib\SQLiteExplorer.Lib.csproj" />
+    <ProjectReference Include="..\..\tools\DebugStartupHook\DebugStartupHook.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Private>false</Private>
+    </ProjectReference>
   </ItemGroup>
+
+  <Target Name="CopyDebugStartupHook" AfterTargets="Build">
+    <MakeDir Directories="$(OutputPath)tools" />
+    <Copy SourceFiles="..\..\tools\DebugStartupHook\bin\$(Configuration)\netstandard2.0\DebugStartupHook.dll"
+          DestinationFolder="$(OutputPath)tools"
+          SkipUnchangedFiles="true" />
+  </Target>
 
   <ItemGroup>
     <EmbeddedResource Include="Highlighting\Definitions\*.xshd" />

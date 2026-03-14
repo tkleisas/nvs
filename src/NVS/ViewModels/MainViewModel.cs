@@ -708,8 +708,8 @@ public partial class MainViewModel : INotifyPropertyChanged
                 }
             }
 
-            // Console apps: launch in external console window (like VS),
-            // then attach the debugger. GUI apps: launch via DAP directly.
+            // Console apps: launch inside a debug terminal with a startup hook
+            // that pauses for debugger attach. GUI apps: launch via DAP directly.
             var isConsoleApp = string.Equals(startup.OutputType, "Exe", StringComparison.OrdinalIgnoreCase)
                             || startup.OutputType is null;
 
@@ -717,28 +717,44 @@ public partial class MainViewModel : INotifyPropertyChanged
             {
                 _debugUsesTerminal = true;
 
-                // Launch the debuggee in its own console window
-                _debuggeeProcess = new System.Diagnostics.Process
-                {
-                    StartInfo = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = "dotnet",
-                        Arguments = $"exec \"{programPath}\"",
-                        WorkingDirectory = projectDir,
-                        UseShellExecute = true,
-                    },
-                };
-                _debuggeeProcess.Start();
+                // Locate the startup hook DLL shipped with NVS
+                var hookDll = System.IO.Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory, "tools", "DebugStartupHook.dll");
+                if (!System.IO.File.Exists(hookDll))
+                    throw new System.IO.FileNotFoundException("Debug startup hook not found.", hookDll);
 
-                // Brief delay to let the runtime start before attaching
-                await Task.Delay(500);
+                // Temp file where the hook will write the debuggee PID
+                var pidFile = System.IO.Path.Combine(
+                    System.IO.Path.GetTempPath(), $"nvs_debug_{Guid.NewGuid():N}.pid");
+
+                CreateDebugTerminal(projectDir);
+
+                // Build the terminal command to launch the debuggee with the hook
+                string terminalCommand;
+                if (OperatingSystem.IsWindows())
+                {
+                    terminalCommand = $"$env:DOTNET_STARTUP_HOOKS='{hookDll}'; " +
+                                      $"$env:NVS_DEBUG_PID_FILE='{pidFile}'; " +
+                                      $"dotnet exec \"{programPath}\"";
+                }
+                else
+                {
+                    terminalCommand = $"DOTNET_STARTUP_HOOKS='{hookDll}' " +
+                                      $"NVS_DEBUG_PID_FILE='{pidFile}' " +
+                                      $"dotnet exec \"{programPath}\"";
+                }
+
+                await _debugTerminal!.SendCommandToTerminalAsync(terminalCommand);
+
+                // Wait for the startup hook to write the PID file
+                int debuggeePid = await WaitForPidFileAsync(pidFile, TimeSpan.FromSeconds(15));
 
                 var config = new NVS.Core.Models.Settings.DebugConfiguration
                 {
                     Name = startup.Name,
                     Type = "coreclr",
                     Request = "attach",
-                    ProcessId = _debuggeeProcess.Id,
+                    ProcessId = debuggeePid,
                     Cwd = projectDir,
                 };
 
@@ -1095,32 +1111,23 @@ public partial class MainViewModel : INotifyPropertyChanged
         return null;
     }
 
-    private static int GetFreeTcpPort()
-    {
-        using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
-
-    private static async Task WaitForTcpPortAsync(int port, TimeSpan timeout)
+    private static async Task<int> WaitForPidFileAsync(string pidFile, TimeSpan timeout)
     {
         using var cts = new CancellationTokenSource(timeout);
         while (!cts.Token.IsCancellationRequested)
         {
-            try
+            if (System.IO.File.Exists(pidFile))
             {
-                using var tcp = new System.Net.Sockets.TcpClient();
-                await tcp.ConnectAsync("127.0.0.1", port, cts.Token);
-                return;
+                var content = await System.IO.File.ReadAllTextAsync(pidFile, cts.Token);
+                if (int.TryParse(content.Trim(), out var pid))
+                {
+                    try { System.IO.File.Delete(pidFile); } catch { }
+                    return pid;
+                }
             }
-            catch (Exception) when (!cts.Token.IsCancellationRequested)
-            {
-                await Task.Delay(200, cts.Token);
-            }
+            await Task.Delay(100, cts.Token);
         }
-        throw new TimeoutException($"Debug adapter did not start listening on port {port} within {timeout.TotalSeconds}s.");
+        throw new TimeoutException("Debuggee process did not start within the timeout period.");
     }
 
     private T? FindToolInDock<T>() where T : class
