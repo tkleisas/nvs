@@ -412,6 +412,16 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
         else
         {
+            // Collect all project directories so root-level projects can exclude sibling project dirs
+            var projectDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var projRef in solution.Projects)
+            {
+                var projPath = Path.GetFullPath(Path.Combine(solutionDir, projRef.RelativePath));
+                var projDir = Path.GetDirectoryName(projPath);
+                if (projDir is not null)
+                    projectDirs.Add(projDir);
+            }
+
             foreach (var projRef in solution.Projects)
             {
                 var projectPath = Path.GetFullPath(Path.Combine(solutionDir, projRef.RelativePath));
@@ -428,7 +438,11 @@ public partial class MainViewModel : INotifyPropertyChanged
 
                 if (projectDir is not null && Directory.Exists(projectDir))
                 {
-                    LoadProjectFiles(projectNode, projectDir);
+                    // If project lives in solution root, exclude sibling project directories
+                    var excludeDirs = string.Equals(projectDir, solutionDir, StringComparison.OrdinalIgnoreCase)
+                        ? projectDirs.Where(d => !string.Equals(d, solutionDir, StringComparison.OrdinalIgnoreCase)).ToHashSet(StringComparer.OrdinalIgnoreCase)
+                        : null;
+                    LoadProjectFiles(projectNode, projectDir, excludeDirs);
                 }
 
                 solutionNode.Children.Add(projectNode);
@@ -439,7 +453,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         FileTree.Add(solutionNode);
     }
 
-    private static void LoadProjectFiles(FileTreeNode projectNode, string projectDir)
+    private static void LoadProjectFiles(FileTreeNode projectNode, string projectDir, HashSet<string>? excludeFullPaths = null)
     {
         try
         {
@@ -447,6 +461,10 @@ public partial class MainViewModel : INotifyPropertyChanged
             {
                 var dirName = Path.GetFileName(dir);
                 if (dirName.StartsWith('.') || IsInExcludedDirectory(dirName))
+                    continue;
+
+                // Skip sibling project directories when loading a root-level project
+                if (excludeFullPaths is not null && excludeFullPaths.Contains(dir))
                     continue;
 
                 var dirNode = new FileTreeNode
