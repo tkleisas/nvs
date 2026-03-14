@@ -108,6 +108,7 @@ public partial class App : Application
         services.AddSingleton<ITemplateService, TemplateService>();
         services.AddSingleton<ILlmService, LlmService>();
         services.AddSingleton<INuGetService, NVS.Services.NuGet.NuGetPackageService>();
+        services.AddSingleton<ICodeMetricsService, NVS.Services.Metrics.CodeMetricsService>();
         
         // ViewModels
         services.AddSingleton<EditorViewModel>();

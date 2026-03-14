@@ -36,6 +36,7 @@ public sealed class NvsDockFactory : Factory
         var llmChat = new LlmChatToolViewModel(_main);
         var nuget = new NuGetToolViewModel(_main);
         var help = new HelpToolViewModel();
+        var codeMetrics = new CodeMetricsToolViewModel(_main);
         var welcome = new WelcomeDocumentViewModel(_main);
         var editor = new EditorDocumentViewModel(_main);
 
@@ -64,7 +65,7 @@ public sealed class NvsDockFactory : Factory
                 new ToolDock
                 {
                     ActiveDockable = terminal,
-                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, dbExplorer, nuget, help),
+                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, dbExplorer, nuget, codeMetrics, help),
                     Alignment = Alignment.Bottom,
                     GripMode = GripMode.Visible,
                 }
@@ -170,6 +171,7 @@ public sealed class NvsDockFactory : Factory
             ["LlmChat"] = () => _main,
             ["NuGet"] = () => _main,
             ["Help"] = () => _main,
+            ["CodeMetrics"] = () => _main,
             ["Welcome"] = () => _main,
             ["Editor"] = () => _main,
             ["Home"] = () => _main,

@@ -26,6 +26,7 @@ public class DockViewLocator : IDataTemplate
         [typeof(NuGetToolViewModel)] = () => new NuGetView(),
         [typeof(WelcomeDocumentViewModel)] = () => new WelcomeView(),
         [typeof(HelpToolViewModel)] = () => new HelpView(),
+        [typeof(CodeMetricsToolViewModel)] = () => new CodeMetricsView(),
     };
 
     public Control? Build(object? data)

@@ -25,6 +25,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     private readonly IBuildService _buildService;
     private readonly IDebugService? _debugService;
     private readonly IBreakpointStore? _breakpointStore;
+    private readonly ICodeMetricsService? _codeMetricsService;
 
     private string _title = "NVS - No Vim Substitute";
     private bool _isWorkspaceOpen;
@@ -81,7 +82,8 @@ public partial class MainViewModel : INotifyPropertyChanged
         ISolutionService solutionService,
         IBuildService buildService,
         IDebugService? debugService = null,
-        IBreakpointStore? breakpointStore = null)
+        IBreakpointStore? breakpointStore = null,
+        ICodeMetricsService? codeMetricsService = null)
     {
         _workspaceService = workspaceService;
         _editorService = editorService;
@@ -92,6 +94,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         _buildService = buildService;
         _debugService = debugService;
         _breakpointStore = breakpointStore;
+        _codeMetricsService = codeMetricsService;
         SettingsService = settingsService;
         Editor = editor;
 
@@ -114,6 +117,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     public IBuildService BuildService => _buildService;
     public IDebugService? DebugService => _debugService;
     public IBreakpointStore? BreakpointStore => _breakpointStore;
+    public ICodeMetricsService? CodeMetricsService => _codeMetricsService;
 
     public bool IsDebugging
     {
@@ -1480,6 +1484,14 @@ public partial class MainViewModel : INotifyPropertyChanged
         var help = FindToolInDock<HelpToolViewModel>();
         if (help is not null)
             ActivateToolInDock(help);
+    }
+
+    [RelayCommand]
+    private void ShowCodeMetrics()
+    {
+        var metrics = FindToolInDock<CodeMetricsToolViewModel>();
+        if (metrics is not null)
+            ActivateToolInDock(metrics);
     }
 
     /// <summary>
