@@ -95,6 +95,18 @@
                 <Separator />
                 <MenuItem Header="Toggle _Breakpoint" InputGesture="F9" Command="{Binding ToggleBreakpointCommand}" />
             </MenuItem>
+            <MenuItem Header="_Git">
+                <MenuItem Header="_Init Repository" Command="{Binding GitInitRepositoryCommand}" />
+                <Separator />
+                <MenuItem Header="_Pull" Command="{Binding GitPullCommand}" />
+                <MenuItem Header="P_ush" Command="{Binding GitPushCommand}" />
+                <MenuItem Header="_Fetch" Command="{Binding GitFetchCommand}" />
+                <Separator />
+                <MenuItem Header="_Stash Changes" Command="{Binding GitStashSaveCommand}" />
+                <MenuItem Header="S_tash Pop" Command="{Binding GitStashPopCommand}" />
+                <Separator />
+                <MenuItem Header="_Refresh" InputGesture="Ctrl+Shift+G" Command="{Binding GitRefreshCommand}" />
+            </MenuItem>
             <MenuItem Header="_Terminal">
                 <MenuItem Header="_New Terminal" InputGesture="Ctrl+Shift+OemTilde" Command="{Binding NewTerminalCommand}" />
             </MenuItem>
