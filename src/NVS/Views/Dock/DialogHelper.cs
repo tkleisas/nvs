@@ -132,4 +132,61 @@ internal static class DialogHelper
         await dialog.ShowDialog(owner);
         return confirmed;
     }
+
+    public static async Task<(string? Name, string? Template)?> PromptNewProjectAsync(Window owner)
+    {
+        var dialog = new Window
+        {
+            Title = "Add Project to Solution",
+            Width = 400, Height = 200,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Background = Avalonia.Media.Brush.Parse("#2D2D30"),
+            CanResize = false,
+        };
+
+        (string? Name, string? Template)? result = null;
+        var panel = new StackPanel { Margin = new Avalonia.Thickness(16), Spacing = 8 };
+
+        var nameInput = new TextBox
+        {
+            Watermark = "Project name",
+            Background = Avalonia.Media.Brush.Parse("#3C3C3C"),
+            Foreground = Avalonia.Media.Brush.Parse("#CCCCCC"),
+        };
+
+        var templates = new[] { "console", "classlib", "web", "webapi", "blazor", "winforms", "wpf", "xunit", "nunit" };
+        var templateCombo = new ComboBox
+        {
+            ItemsSource = templates,
+            SelectedItem = "console",
+            Background = Avalonia.Media.Brush.Parse("#3C3C3C"),
+            Foreground = Avalonia.Media.Brush.Parse("#CCCCCC"),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+        };
+
+        var okBtn = new Button
+        {
+            Content = "Create",
+            Background = Avalonia.Media.Brush.Parse("#007ACC"),
+            Foreground = Avalonia.Media.Brush.Parse("White"),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+            Padding = new Avalonia.Thickness(20, 6),
+        };
+
+        okBtn.Click += (_, _) => { result = (nameInput.Text, templateCombo.SelectedItem as string); dialog.Close(); };
+        nameInput.KeyDown += (_, ke) =>
+        {
+            if (ke.Key == Key.Enter) { result = (nameInput.Text, templateCombo.SelectedItem as string); dialog.Close(); ke.Handled = true; }
+            if (ke.Key == Key.Escape) { dialog.Close(); ke.Handled = true; }
+        };
+
+        panel.Children.Add(new TextBlock { Text = "Template:", Foreground = Avalonia.Media.Brush.Parse("#CCCCCC") });
+        panel.Children.Add(templateCombo);
+        panel.Children.Add(nameInput);
+        panel.Children.Add(okBtn);
+        dialog.Content = panel;
+
+        await dialog.ShowDialog(owner);
+        return result;
+    }
 }

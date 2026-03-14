@@ -19,6 +19,7 @@
             <ContextMenu>
                 <MenuItem Header="New File..." Click="OnNewFileInExplorerClick" />
                 <MenuItem Header="New Folder..." Click="OnNewFolderInExplorerClick" />
+                <MenuItem Header="Add Project..." Click="OnAddProjectClick" />
                 <Separator />
                 <MenuItem Header="Rename..." Click="OnRenameInExplorerClick" />
                 <MenuItem Header="Delete" Click="OnDeleteInExplorerClick" />

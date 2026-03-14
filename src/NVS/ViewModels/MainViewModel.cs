@@ -394,26 +394,41 @@ public partial class MainViewModel : INotifyPropertyChanged
             IsDirectory = true
         };
 
-        foreach (var projRef in solution.Projects)
+        // Check if single project lives in the same directory as solution
+        var isFlatLayout = solution.Projects.Count == 1
+            && string.Equals(
+                Path.GetDirectoryName(Path.GetFullPath(Path.Combine(solutionDir, solution.Projects[0].RelativePath))),
+                solutionDir,
+                StringComparison.OrdinalIgnoreCase);
+
+        if (isFlatLayout)
         {
-            var projectPath = Path.GetFullPath(Path.Combine(solutionDir, projRef.RelativePath));
-            var projectDir = Path.GetDirectoryName(projectPath);
-            var isStartup = solution.StartupProjectPath is not null
-                && Path.GetFullPath(solution.StartupProjectPath) == Path.GetFullPath(projectPath);
-
-            var projectNode = new FileTreeNode
+            // Show files directly under solution node
+            LoadProjectFiles(solutionNode, solutionDir);
+        }
+        else
+        {
+            foreach (var projRef in solution.Projects)
             {
-                Name = isStartup ? $"▶ {projRef.Name}" : projRef.Name,
-                Path = projectDir ?? projectPath,
-                IsDirectory = true
-            };
+                var projectPath = Path.GetFullPath(Path.Combine(solutionDir, projRef.RelativePath));
+                var projectDir = Path.GetDirectoryName(projectPath);
+                var isStartup = solution.StartupProjectPath is not null
+                    && Path.GetFullPath(solution.StartupProjectPath) == Path.GetFullPath(projectPath);
 
-            if (projectDir is not null && Directory.Exists(projectDir))
-            {
-                LoadProjectFiles(projectNode, projectDir);
+                var projectNode = new FileTreeNode
+                {
+                    Name = isStartup ? $"▶ {projRef.Name}" : projRef.Name,
+                    Path = projectDir ?? projectPath,
+                    IsDirectory = true
+                };
+
+                if (projectDir is not null && Directory.Exists(projectDir))
+                {
+                    LoadProjectFiles(projectNode, projectDir);
+                }
+
+                solutionNode.Children.Add(projectNode);
             }
-
-            solutionNode.Children.Add(projectNode);
         }
 
         solutionNode.IsExpanded = true;
@@ -453,6 +468,54 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
         catch (UnauthorizedAccessException) { }
         catch (IOException) { }
+    }
+
+    public async Task AddProjectToSolutionAsync(string projectName, string template)
+    {
+        var solution = _solutionService.CurrentSolution;
+        if (solution is null || string.IsNullOrWhiteSpace(projectName)) return;
+
+        var solutionDir = Path.GetDirectoryName(solution.FilePath)!;
+        var projectDir = Path.Combine(solutionDir, projectName);
+
+        try
+        {
+            Directory.CreateDirectory(projectDir);
+
+            // Create project with dotnet new
+            var psi = new System.Diagnostics.ProcessStartInfo("dotnet", $"new {template} -n {projectName} -o \"{projectDir}\"")
+            {
+                WorkingDirectory = solutionDir,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var proc = System.Diagnostics.Process.Start(psi)!;
+            await proc.WaitForExitAsync();
+
+            if (proc.ExitCode != 0)
+            {
+                var err = await proc.StandardError.ReadToEndAsync();
+                StatusMessage = $"Failed to create project: {err.Trim()}";
+                return;
+            }
+
+            // Add to solution
+            var csprojPath = Path.Combine(projectDir, $"{projectName}.csproj");
+            await _solutionService.AddProjectToSolutionAsync(solution.FilePath, csprojPath);
+
+            // Reload solution
+            var reloaded = await _solutionService.LoadSolutionAsync(solution.FilePath);
+            LoadSolutionTree(reloaded);
+            RefreshGitFiles();
+
+            StatusMessage = $"Added project: {projectName} ({template})";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Add project failed: {ex.Message}";
+        }
     }
 
     [RelayCommand]

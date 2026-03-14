@@ -124,6 +124,25 @@ public partial class ExplorerView : UserControl
         await RefreshExplorer();
     }
 
+    private async void OnAddProjectClick(object? sender, RoutedEventArgs e)
+    {
+        var main = GetMain();
+        if (main?.SolutionService.CurrentSolution is null)
+        {
+            if (main is not null)
+                main.StatusMessage = "No solution loaded";
+            return;
+        }
+
+        var window = TopLevel.GetTopLevel(this) as Window;
+        if (window is null) return;
+
+        var result = await DialogHelper.PromptNewProjectAsync(window);
+        if (result is null || string.IsNullOrWhiteSpace(result.Value.Name)) return;
+
+        await main.AddProjectToSolutionAsync(result.Value.Name, result.Value.Template ?? "console");
+    }
+
     private async Task RefreshExplorer()
     {
         if (GetMain() is { } main)
