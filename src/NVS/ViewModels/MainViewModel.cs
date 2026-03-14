@@ -726,7 +726,11 @@ public partial class MainViewModel : INotifyPropertyChanged
                 CreateDebugTerminal(projectDir);
 
                 // Launch netcoredbg in server mode inside the debug terminal
-                var serverCommand = $"\"{adapterPath}\" --server={serverPort} --interpreter=vscode";
+                string serverCommand;
+                if (OperatingSystem.IsWindows())
+                    serverCommand = $"& \"{adapterPath}\" --server={serverPort} --interpreter=vscode";
+                else
+                    serverCommand = $"\"{adapterPath}\" --server={serverPort} --interpreter=vscode";
                 await _debugTerminal!.SendCommandToTerminalAsync(serverCommand);
 
                 // Wait for netcoredbg to start listening
