@@ -199,6 +199,8 @@
                 </StackPanel>
                 <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" HorizontalAlignment="Center" Foreground="White" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12">
+                    <TextBlock Text="{Binding Editor.CurrentMethodInfo}" Foreground="White" FontSize="11" />
+                    <TextBlock Text="|" Foreground="#80FFFFFF" />
                     <TextBlock Text="{Binding Editor.CursorLine, StringFormat='Ln {0}'}" Foreground="White" />
                     <TextBlock Text="{Binding Editor.CursorColumn, StringFormat='Col {0}'}" Foreground="White" />
                     <TextBlock Text="Spaces: 4" Foreground="White" />

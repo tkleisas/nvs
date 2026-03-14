@@ -23,6 +23,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private DiagnosticBackgroundRenderer? _diagnosticRenderer;
     private CurrentLineHighlightRenderer? _currentLineRenderer;
     private BreakpointMargin? _breakpointMargin;
+    private MetricsGutterMargin? _metricsMargin;
     private CompletionWindow? _completionWindow;
     private OverloadInsightWindow? _insightWindow;
     private CancellationTokenSource? _autoCompleteCts;
@@ -75,6 +76,9 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
     public static readonly StyledProperty<SignatureHelp?> SignatureHelpResultProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, SignatureHelp?>(nameof(SignatureHelpResult));
+
+    public static readonly StyledProperty<IReadOnlyList<MethodMetrics>?> FileMethodMetricsProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, IReadOnlyList<MethodMetrics>?>(nameof(FileMethodMetrics));
 
     public string Text
     {
@@ -166,6 +170,12 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         set => SetValue(SignatureHelpResultProperty, value);
     }
 
+    public IReadOnlyList<MethodMetrics>? FileMethodMetrics
+    {
+        get => GetValue(FileMethodMetricsProperty);
+        set => SetValue(FileMethodMetricsProperty, value);
+    }
+
     protected override void OnAttached()
     {
         base.OnAttached();
@@ -193,6 +203,10 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _breakpointMargin = new BreakpointMargin();
             _breakpointMargin.BreakpointToggled += OnBreakpointToggled;
             _textEditor.TextArea.LeftMargins.Insert(0, _breakpointMargin);
+
+            // Install metrics gutter margin (right of breakpoints)
+            _metricsMargin = new MetricsGutterMargin();
+            _textEditor.TextArea.LeftMargins.Insert(1, _metricsMargin);
 
             UndoCommand = new RelayCommand(
                 () => _textEditor?.Undo(),
@@ -227,6 +241,11 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             {
                 _breakpointMargin.BreakpointToggled -= OnBreakpointToggled;
                 _textEditor.TextArea.LeftMargins.Remove(_breakpointMargin);
+            }
+
+            if (_metricsMargin != null)
+            {
+                _textEditor.TextArea.LeftMargins.Remove(_metricsMargin);
             }
         }
     }
@@ -284,6 +303,11 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             var sigHelp = change.GetNewValue<SignatureHelp?>();
             if (sigHelp is { Signatures.Count: > 0 })
                 ShowSignatureHelp(sigHelp);
+        }
+        else if (change.Property == FileMethodMetricsProperty)
+        {
+            var metrics = change.GetNewValue<IReadOnlyList<MethodMetrics>?>() ?? [];
+            _metricsMargin?.UpdateMetrics(metrics);
         }
         else if (change.Property == LineProperty && !_updating)
         {

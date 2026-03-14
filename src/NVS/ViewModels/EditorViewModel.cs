@@ -16,6 +16,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
     private readonly IFileSystemService _fileSystemService;
     private readonly ILspSessionManager? _lspSessionManager;
     private readonly IBreakpointStore? _breakpointStore;
+    private readonly ICodeMetricsService? _codeMetricsService;
     private CancellationTokenSource? _didChangeCts;
 
     private DocumentViewModel? _activeDocument;
@@ -44,6 +45,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
 
     public int CursorLine => _activeDocument?.CursorLine ?? 1;
     public int CursorColumn => _activeDocument?.CursorColumn ?? 1;
+    public string CurrentMethodInfo => GetCurrentMethodInfo();
 
     public int TotalErrors => OpenDocuments.Sum(d => d.ErrorCount);
     public int TotalWarnings => OpenDocuments.Sum(d => d.WarningCount);
@@ -72,12 +74,13 @@ public partial class EditorViewModel : INotifyPropertyChanged
 
     public ObservableCollection<DocumentViewModel> OpenDocuments { get; } = [];
 
-    public EditorViewModel(IEditorService editorService, IFileSystemService fileSystemService, ILspSessionManager? lspSessionManager = null, IBreakpointStore? breakpointStore = null)
+    public EditorViewModel(IEditorService editorService, IFileSystemService fileSystemService, ILspSessionManager? lspSessionManager = null, IBreakpointStore? breakpointStore = null, ICodeMetricsService? codeMetricsService = null)
     {
         _editorService = editorService;
         _fileSystemService = fileSystemService;
         _lspSessionManager = lspSessionManager;
         _breakpointStore = breakpointStore;
+        _codeMetricsService = codeMetricsService;
 
         _editorService.DocumentOpened += OnDocumentOpened;
         _editorService.DocumentClosed += OnDocumentClosed;
@@ -201,6 +204,9 @@ public partial class EditorViewModel : INotifyPropertyChanged
         docVm.Document.Content = docVm.Text;
         await _editorService.SaveDocumentAsync(docVm.Document);
         docVm.IsDirty = false;
+
+        // Refresh metrics after save
+        _ = AnalyzeFileMetricsAsync(docVm);
     }
 
     internal void CloseDocument(DocumentViewModel docVm)
@@ -241,6 +247,9 @@ public partial class EditorViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasNoOpenDocuments));
 
         _lspSessionManager?.NotifyDocumentOpened(document);
+
+        // Analyze code metrics for C# files
+        _ = AnalyzeFileMetricsAsync(docVm);
     }
 
     private void OnDocumentClosed(object? sender, Document document)
@@ -267,7 +276,10 @@ public partial class EditorViewModel : INotifyPropertyChanged
     private void OnActiveDocumentPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(DocumentViewModel.CursorLine))
+        {
             OnPropertyChanged(nameof(CursorLine));
+            OnPropertyChanged(nameof(CurrentMethodInfo));
+        }
         else if (e.PropertyName is nameof(DocumentViewModel.CursorColumn))
             OnPropertyChanged(nameof(CursorColumn));
         else if (e.PropertyName is nameof(DocumentViewModel.ErrorCount) or nameof(DocumentViewModel.WarningCount))
@@ -293,6 +305,57 @@ public partial class EditorViewModel : INotifyPropertyChanged
             }
             catch (OperationCanceledException) { }
         });
+    }
+
+    /// <summary>
+    /// Returns a short status string for the method containing the cursor.
+    /// </summary>
+    private string GetCurrentMethodInfo()
+    {
+        var metrics = _activeDocument?.FileMethodMetrics;
+        if (metrics is null or { Count: 0 }) return "";
+
+        var line = CursorLine;
+        // Find the method whose line range contains the cursor
+        // Methods are sorted by line; find the last method whose Line ≤ cursor line
+        MethodMetrics? current = null;
+        foreach (var m in metrics)
+        {
+            if (m.Line <= line)
+                current = m;
+            else
+                break;
+        }
+
+        if (current is null) return "";
+
+        var cc = current.CyclomaticComplexity;
+        var mi = current.MaintainabilityIndex;
+        var severity = cc switch { <= 5 => "🟢", <= 10 => "🟡", _ => "🔴" };
+        return $"{severity} {current.Name} — CC:{cc} MI:{mi:F0}";
+    }
+
+    /// <summary>
+    /// Analyzes a C# file and sets method metrics on the document view model.
+    /// </summary>
+    private async Task AnalyzeFileMetricsAsync(DocumentViewModel docVm)
+    {
+        if (_codeMetricsService is null) return;
+        if (docVm.Document.Language != Language.CSharp) return;
+        if (string.IsNullOrEmpty(docVm.Document.FilePath)) return;
+
+        try
+        {
+            var fileMetrics = await _codeMetricsService.CalculateFileMetricsAsync(docVm.Document.FilePath);
+            var allMethods = fileMetrics.Types.SelectMany(t => t.Methods).OrderBy(m => m.Line).ToList();
+            docVm.FileMethodMetrics = allMethods;
+            if (docVm == _activeDocument)
+                OnPropertyChanged(nameof(CurrentMethodInfo));
+        }
+        catch
+        {
+            // Metrics analysis failure is non-critical
+        }
     }
 
     /// <summary>
@@ -494,6 +557,7 @@ public class DocumentViewModel : INotifyPropertyChanged
     private int? _debugCurrentLine;
     private ICommand? _quickFixCommand;
     private IReadOnlyList<CodeAction>? _lastCodeActions;
+    private IReadOnlyList<MethodMetrics>? _fileMethodMetrics;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -716,6 +780,20 @@ public class DocumentViewModel : INotifyPropertyChanged
         set
         {
             _lastCodeActions = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Method metrics for the current file. Used by the gutter margin to show complexity dots
+    /// and by the status bar to display current method info.
+    /// </summary>
+    public IReadOnlyList<MethodMetrics>? FileMethodMetrics
+    {
+        get => _fileMethodMetrics;
+        set
+        {
+            _fileMethodMetrics = value;
             OnPropertyChanged();
         }
     }

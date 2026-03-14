@@ -80,7 +80,8 @@
                                 SignatureHelpResult="{Binding LastSignatureHelp}"
                                 Breakpoints="{Binding Breakpoints}"
                                 ToggleBreakpointCommand="{Binding ToggleBreakpointCommand}"
-                                DebugCurrentLine="{Binding DebugCurrentLine}"/>
+                                DebugCurrentLine="{Binding DebugCurrentLine}"
+                                FileMethodMetrics="{Binding FileMethodMetrics}"/>
                         </i:Interaction.Behaviors>
                     </AvaloniaEdit:TextEditor>
                 </DataTemplate>
