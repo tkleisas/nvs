@@ -4,22 +4,31 @@
   <Color name="Bold" foreground="#D4D4D4" fontWeight="bold" />
   <Color name="Code" foreground="#CE9178" />
   <Color name="Link" foreground="#4EC9B0" />
-  <Color name="ListMarker" foreground="#569CD6" />
   <Color name="Blockquote" foreground="#6A9955" />
-  <Color name="HorizontalRule" foreground="#808080" />
 
   <RuleSet>
+    <!-- Fenced code blocks -->
     <Span color="Code" multiline="true" begin="```" end="```" />
+
+    <!-- Inline code -->
     <Span color="Code" begin="`" end="`" />
 
-    <Rule color="Heading">#{1,6}\s+\S+</Rule>
-    <Rule color="Bold">\*\*.+?\*\*</Rule>
-    <Rule color="Bold">__.+?__</Rule>
-    <Rule color="Link">\[([^\]]+)\]\([^\)]+\)</Rule>
-    <Rule color="Link">&lt;https?://[^&gt;]+&gt;</Rule>
-    <Rule color="ListMarker">[-*+]\s+\S</Rule>
-    <Rule color="ListMarker">\d+\.\s+\S</Rule>
-    <Rule color="Blockquote">&gt;\s+\S+</Rule>
-    <Rule color="HorizontalRule">[-*_]{3,}</Rule>
+    <!-- Bold -->
+    <Span color="Bold" begin="\*\*" end="\*\*" />
+    <Span color="Bold" begin="__" end="__" />
+
+    <!-- Links: [text](url) -->
+    <Span color="Link" begin="\[" end="\)" />
+
+    <!-- Headings as spans: # to end of line -->
+    <Span color="Heading" begin="######\s" />
+    <Span color="Heading" begin="#####\s" />
+    <Span color="Heading" begin="####\s" />
+    <Span color="Heading" begin="###\s" />
+    <Span color="Heading" begin="##\s" />
+    <Span color="Heading" begin="#\s" />
+
+    <!-- Block quotes -->
+    <Span color="Blockquote" begin="&gt;\s" />
   </RuleSet>
 </SyntaxDefinition>
