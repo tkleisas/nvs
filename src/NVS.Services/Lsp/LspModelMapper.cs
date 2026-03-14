@@ -120,6 +120,38 @@ internal static class LspModelMapper
         Code = diagnostic.Code,
     };
 
+    public static LspDiagnostic ToLspDiagnostic(Diagnostic diagnostic) => new()
+    {
+        Range = ToLspRange(diagnostic.Range),
+        Severity = MapDiagnosticSeverityToLsp(diagnostic.Severity),
+        Code = diagnostic.Code,
+        Source = diagnostic.Source,
+        Message = diagnostic.Message,
+    };
+
+    public static CodeAction FromLspCodeAction(LspCodeAction lsp) => new()
+    {
+        Title = lsp.Title,
+        Kind = lsp.Kind,
+        IsPreferred = lsp.IsPreferred,
+        Diagnostics = lsp.Diagnostics?.Select(FromLspDiagnostic).ToList(),
+        Edit = lsp.Edit is not null ? FromLspWorkspaceEdit(lsp.Edit) : null,
+    };
+
+    public static WorkspaceEdit FromLspWorkspaceEdit(LspWorkspaceEdit lsp)
+    {
+        var changes = new Dictionary<string, IReadOnlyList<TextEdit>>();
+        if (lsp.Changes is not null)
+        {
+            foreach (var (uri, edits) in lsp.Changes)
+            {
+                var filePath = FromUri(uri);
+                changes[filePath] = edits.Select(FromLspTextEdit).ToList();
+            }
+        }
+        return new WorkspaceEdit { Changes = changes };
+    }
+
     public static SignatureHelp FromSignatureHelp(LspSignatureHelp lsp) => new()
     {
         Signatures = lsp.Signatures.Select(FromSignatureInformation).ToList(),
@@ -163,5 +195,14 @@ internal static class LspModelMapper
         3 => DiagnosticSeverity.Information,
         4 => DiagnosticSeverity.Hint,
         _ => DiagnosticSeverity.Information,
+    };
+
+    private static int MapDiagnosticSeverityToLsp(DiagnosticSeverity severity) => severity switch
+    {
+        DiagnosticSeverity.Error => 1,
+        DiagnosticSeverity.Warning => 2,
+        DiagnosticSeverity.Information => 3,
+        DiagnosticSeverity.Hint => 4,
+        _ => 3,
     };
 }

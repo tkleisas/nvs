@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace NVS.Services.Lsp.Protocol;
@@ -188,4 +189,56 @@ public sealed record LspDiagnostic
     public string? Code { get; init; }
     public string? Source { get; init; }
     public required string Message { get; init; }
+}
+
+// ─── Code Actions ───────────────────────────────────────────────────────────
+
+public sealed record CodeActionParams
+{
+    public required TextDocumentIdentifier TextDocument { get; init; }
+    public required LspRange Range { get; init; }
+    public required CodeActionContext Context { get; init; }
+}
+
+public sealed record CodeActionContext
+{
+    public IReadOnlyList<LspDiagnostic> Diagnostics { get; init; } = [];
+    public IReadOnlyList<string>? Only { get; init; }
+}
+
+/// <summary>
+/// LSP CodeAction — may contain an edit, a command, or both.
+/// Server can also return raw Command objects instead of CodeActions;
+/// those are handled separately in the client.
+/// </summary>
+public sealed record LspCodeAction
+{
+    public required string Title { get; init; }
+    public string? Kind { get; init; }
+    public IReadOnlyList<LspDiagnostic>? Diagnostics { get; init; }
+    public bool IsPreferred { get; init; }
+    public LspWorkspaceEdit? Edit { get; init; }
+    public LspCommand? Command { get; init; }
+    public JsonElement? Data { get; init; }
+}
+
+public sealed record LspCommand
+{
+    public required string Title { get; init; }
+    public required string Command { get; init; }
+    public IReadOnlyList<JsonElement>? Arguments { get; init; }
+}
+
+public sealed record LspWorkspaceEdit
+{
+    public Dictionary<string, IReadOnlyList<LspTextEdit>>? Changes { get; init; }
+}
+
+// ─── Resolve Code Action ────────────────────────────────────────────────────
+
+public sealed record CodeActionResolveRequest
+{
+    public required string Title { get; init; }
+    public string? Kind { get; init; }
+    public JsonElement? Data { get; init; }
 }

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using NVS.Core.Enums;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
+using Range = NVS.Core.Models.Range;
 
 namespace NVS.Services.Lsp;
 
@@ -108,6 +109,24 @@ public sealed class LspSessionManager : ILspSessionManager
             return [];
 
         return await client.GetFormattingEditsAsync(document, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<CodeAction>> GetCodeActionsAsync(Document document, Range range, IReadOnlyList<Diagnostic> diagnostics, CancellationToken cancellationToken = default)
+    {
+        var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
+        if (client is null)
+            return [];
+
+        return await client.GetCodeActionsAsync(document, range, diagnostics, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ApplyWorkspaceEditAsync(Document document, WorkspaceEdit edit, CancellationToken cancellationToken = default)
+    {
+        var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
+        if (client is null)
+            return;
+
+        await client.ApplyWorkspaceEditAsync(edit, cancellationToken).ConfigureAwait(false);
     }
 
     public void NotifyDocumentOpened(Document document)

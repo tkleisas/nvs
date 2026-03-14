@@ -473,6 +473,110 @@ public sealed class LspClientTests : IAsyncLifetime
             .WithMessage("*Method not found*");
     }
 
+    // ─── Code Actions ───────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetCodeActionsAsync_WithCodeActions_ShouldReturnActions()
+    {
+        _mockServer.OnRequest("textDocument/codeAction", _ => new object[]
+        {
+            new
+            {
+                title = "Add missing using",
+                kind = "quickfix",
+                isPreferred = true,
+                edit = new
+                {
+                    changes = new Dictionary<string, object[]>
+                    {
+                        ["file:///C:/project/test.cs"] = new object[]
+                        {
+                            new
+                            {
+                                range = new { start = new { line = 0, character = 0 }, end = new { line = 0, character = 0 } },
+                                newText = "using System;\n",
+                            },
+                        },
+                    },
+                },
+            },
+            new
+            {
+                title = "Extract method",
+                kind = "refactor.extract",
+                isPreferred = false,
+            },
+        });
+
+        await _client.InitializeAsync(@"C:\project");
+
+        var doc = CreateDocument("test.cs");
+        var range = new Range
+        {
+            Start = new Position { Line = 5, Column = 0 },
+            End = new Position { Line = 5, Column = 10 },
+        };
+        var diagnostics = new List<Diagnostic>
+        {
+            new()
+            {
+                Message = "CS0246: The type 'Console' could not be found",
+                Severity = DiagnosticSeverity.Error,
+                Range = range,
+                Code = "CS0246",
+            },
+        };
+
+        var result = await _client.GetCodeActionsAsync(doc, range, diagnostics);
+
+        result.Should().HaveCount(2);
+        result[0].Title.Should().Be("Add missing using");
+        result[0].Kind.Should().Be("quickfix");
+        result[0].IsPreferred.Should().BeTrue();
+        result[0].Edit.Should().NotBeNull();
+        result[0].Edit!.Changes.Should().ContainKey(@"C:\project\test.cs");
+        result[1].Title.Should().Be("Extract method");
+        result[1].Kind.Should().Be("refactor.extract");
+    }
+
+    [Fact]
+    public async Task GetCodeActionsAsync_WithEmptyResult_ShouldReturnEmpty()
+    {
+        _mockServer.OnRequest("textDocument/codeAction", _ => Array.Empty<object>());
+
+        await _client.InitializeAsync(@"C:\project");
+
+        var doc = CreateDocument("test.cs");
+        var range = new Range
+        {
+            Start = Position.Zero,
+            End = new Position { Line = 1, Column = 0 },
+        };
+
+        var result = await _client.GetCodeActionsAsync(doc, range, []);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetCodeActionsAsync_WithNullResult_ShouldReturnEmpty()
+    {
+        _mockServer.OnRequest("textDocument/codeAction", _ => (object?)null);
+
+        await _client.InitializeAsync(@"C:\project");
+
+        var doc = CreateDocument("test.cs");
+        var range = new Range
+        {
+            Start = Position.Zero,
+            End = new Position { Line = 1, Column = 0 },
+        };
+
+        var result = await _client.GetCodeActionsAsync(doc, range, []);
+
+        result.Should().BeEmpty();
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────
 
     private static Document CreateDocument(string name) => new()

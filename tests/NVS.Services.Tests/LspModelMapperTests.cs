@@ -315,4 +315,129 @@ public sealed class LspModelMapperTests
         result.Source.Should().Be("compiler");
         result.Code.Should().Be("CS0001");
     }
+
+    // ─── Code Action Mapping ────────────────────────────────────────────────
+
+    [Fact]
+    public void ToLspDiagnostic_ShouldMapCorrectly()
+    {
+        var diagnostic = new Diagnostic
+        {
+            Message = "Unused variable",
+            Severity = DiagnosticSeverity.Warning,
+            Range = new Range
+            {
+                Start = new Position { Line = 3, Column = 4 },
+                End = new Position { Line = 3, Column = 10 },
+            },
+            Source = "csharp",
+            Code = "CS0219",
+        };
+
+        var result = LspModelMapper.ToLspDiagnostic(diagnostic);
+
+        result.Message.Should().Be("Unused variable");
+        result.Severity.Should().Be(2); // Warning = 2
+        result.Range.Start.Line.Should().Be(3);
+        result.Range.Start.Character.Should().Be(4);
+        result.Source.Should().Be("csharp");
+        result.Code.Should().Be("CS0219");
+    }
+
+    [Fact]
+    public void FromLspCodeAction_ShouldMapWithEdit()
+    {
+        var lspAction = new LspCodeAction
+        {
+            Title = "Add using",
+            Kind = "quickfix",
+            IsPreferred = true,
+            Edit = new LspWorkspaceEdit
+            {
+                Changes = new Dictionary<string, IReadOnlyList<LspTextEdit>>
+                {
+                    ["file:///C:/project/test.cs"] =
+                    [
+                        new LspTextEdit
+                        {
+                            Range = new LspRange
+                            {
+                                Start = new LspPosition { Line = 0, Character = 0 },
+                                End = new LspPosition { Line = 0, Character = 0 },
+                            },
+                            NewText = "using System;\n",
+                        },
+                    ],
+                },
+            },
+        };
+
+        var result = LspModelMapper.FromLspCodeAction(lspAction);
+
+        result.Title.Should().Be("Add using");
+        result.Kind.Should().Be("quickfix");
+        result.IsPreferred.Should().BeTrue();
+        result.Edit.Should().NotBeNull();
+        result.Edit!.Changes.Should().ContainKey(@"C:\project\test.cs");
+        result.Edit.Changes[@"C:\project\test.cs"].Should().HaveCount(1);
+        result.Edit.Changes[@"C:\project\test.cs"][0].NewText.Should().Be("using System;\n");
+    }
+
+    [Fact]
+    public void FromLspCodeAction_WithoutEdit_ShouldMapCorrectly()
+    {
+        var lspAction = new LspCodeAction
+        {
+            Title = "Extract method",
+            Kind = "refactor.extract",
+        };
+
+        var result = LspModelMapper.FromLspCodeAction(lspAction);
+
+        result.Title.Should().Be("Extract method");
+        result.Kind.Should().Be("refactor.extract");
+        result.Edit.Should().BeNull();
+        result.IsPreferred.Should().BeFalse();
+    }
+
+    [Fact]
+    public void FromLspWorkspaceEdit_WithMultipleFiles_ShouldMapAll()
+    {
+        var lspEdit = new LspWorkspaceEdit
+        {
+            Changes = new Dictionary<string, IReadOnlyList<LspTextEdit>>
+            {
+                ["file:///C:/project/a.cs"] =
+                [
+                    new LspTextEdit
+                    {
+                        Range = new LspRange
+                        {
+                            Start = new LspPosition { Line = 0, Character = 0 },
+                            End = new LspPosition { Line = 0, Character = 5 },
+                        },
+                        NewText = "hello",
+                    },
+                ],
+                ["file:///C:/project/b.cs"] =
+                [
+                    new LspTextEdit
+                    {
+                        Range = new LspRange
+                        {
+                            Start = new LspPosition { Line = 1, Character = 0 },
+                            End = new LspPosition { Line = 1, Character = 3 },
+                        },
+                        NewText = "world",
+                    },
+                ],
+            },
+        };
+
+        var result = LspModelMapper.FromLspWorkspaceEdit(lspEdit);
+
+        result.Changes.Should().HaveCount(2);
+        result.Changes.Should().ContainKey(@"C:\project\a.cs");
+        result.Changes.Should().ContainKey(@"C:\project\b.cs");
+    }
 }

@@ -20,6 +20,8 @@ public interface ILspClient
     Task<IReadOnlyList<DocumentSymbol>> GetDocumentSymbolsAsync(Document document, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<TextEdit>> GetFormattingEditsAsync(Document document, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(Document document, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CodeAction>> GetCodeActionsAsync(Document document, Range range, IReadOnlyList<Diagnostic> diagnostics, CancellationToken cancellationToken = default);
+    Task ApplyWorkspaceEditAsync(WorkspaceEdit edit, CancellationToken cancellationToken = default);
     
     void NotifyDocumentOpened(Document document);
     void NotifyDocumentChanged(Document document, string content);
@@ -99,6 +101,36 @@ public sealed record ParameterInformation
 {
     public required string Label { get; init; }
     public string? Documentation { get; init; }
+}
+
+public sealed record CodeAction
+{
+    public required string Title { get; init; }
+    public string? Kind { get; init; }
+    public bool IsPreferred { get; init; }
+    public IReadOnlyList<Diagnostic>? Diagnostics { get; init; }
+    public WorkspaceEdit? Edit { get; init; }
+}
+
+public sealed record WorkspaceEdit
+{
+    /// <summary>
+    /// Map of file URI → text edits to apply. URIs are local file paths (decoded from file:// URIs).
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<TextEdit>> Changes { get; init; }
+        = new Dictionary<string, IReadOnlyList<TextEdit>>();
+}
+
+public static class CodeActionKinds
+{
+    public const string QuickFix = "quickfix";
+    public const string Refactor = "refactor";
+    public const string RefactorExtract = "refactor.extract";
+    public const string RefactorInline = "refactor.inline";
+    public const string RefactorRewrite = "refactor.rewrite";
+    public const string Source = "source";
+    public const string SourceOrganizeImports = "source.organizeImports";
+    public const string SourceFixAll = "source.fixAll";
 }
 
 public enum DiagnosticSeverity

@@ -1,4 +1,5 @@
 using NVS.Core.Models;
+using Range = NVS.Core.Models.Range;
 
 namespace NVS.Core.Interfaces;
 
@@ -21,6 +22,8 @@ public interface ILspSessionManager : IAsyncDisposable
     Task<IReadOnlyList<Location>> GetReferencesAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<HoverInfo?> GetHoverAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<TextEdit>> FormatDocumentAsync(Document document, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CodeAction>> GetCodeActionsAsync(Document document, Range range, IReadOnlyList<Diagnostic> diagnostics, CancellationToken cancellationToken = default);
+    Task ApplyWorkspaceEditAsync(Document document, WorkspaceEdit edit, CancellationToken cancellationToken = default);
 
     void NotifyDocumentOpened(Document document);
     void NotifyDocumentChanged(Document document, string content);

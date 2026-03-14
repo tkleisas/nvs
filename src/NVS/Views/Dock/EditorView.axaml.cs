@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using AvaloniaEdit;
 using NVS.Core.Enums;
+using NVS.Core.Interfaces;
 using NVS.ViewModels;
 using NVS.ViewModels.Dock;
 
@@ -69,6 +70,66 @@ public partial class EditorView : UserControl
                     break;
             }
         }
+    }
+
+    private async void OnQuickFixClick(object? sender, RoutedEventArgs e)
+    {
+        var editor = GetEditorFromMenuItem(sender);
+        if (editor?.DataContext is not DocumentViewModel docVm) return;
+
+        // Trigger code actions via the command
+        var ctx = new LspRequestContext(
+            docVm.CursorLine,
+            docVm.CursorColumn,
+            editor.Text ?? "");
+
+        if (docVm.QuickFixCommand is System.Windows.Input.ICommand cmd && cmd.CanExecute(ctx))
+        {
+            cmd.Execute(ctx);
+
+            // Wait briefly for the async command to complete
+            await Task.Delay(500);
+
+            var actions = docVm.LastCodeActions;
+            if (actions is not { Count: > 0 }) return;
+
+            // Build a popup menu with the available code actions
+            var actionMenu = new ContextMenu();
+            foreach (var action in actions)
+            {
+                var menuItem = new MenuItem
+                {
+                    Header = FormatCodeActionHeader(action),
+                };
+
+                var capturedAction = action;
+                menuItem.Click += async (_, _) =>
+                {
+                    if (DataContext is EditorDocumentViewModel editorDocVm && editorDocVm.Main.Editor is { } editor2)
+                    {
+                        await editor2.ApplyCodeActionAsync(capturedAction);
+                    }
+                };
+
+                actionMenu.Items.Add(menuItem);
+            }
+
+            actionMenu.Open(editor);
+        }
+    }
+
+    private static string FormatCodeActionHeader(CodeAction action)
+    {
+        var prefix = action.Kind switch
+        {
+            "quickfix" => "🔧 ",
+            var k when k?.StartsWith("refactor") == true => "✏️ ",
+            var k when k?.StartsWith("source") == true => "📄 ",
+            _ => "",
+        };
+
+        var preferred = action.IsPreferred ? " ★" : "";
+        return $"{prefix}{action.Title}{preferred}";
     }
 
     private async void OnExecuteInDatabaseExplorerClick(object? sender, RoutedEventArgs e)

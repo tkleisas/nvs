@@ -414,4 +414,86 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
             Content = "// test content",
         };
     }
+
+    // ─── Code Actions ───────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetCodeActionsAsync_ShouldDelegateToClient()
+    {
+        var mockClient = CreateMockClient(Language.CSharp);
+        SetupFactory(Language.CSharp, mockClient);
+
+        var expectedActions = new List<CodeAction>
+        {
+            new() { Title = "Add using", Kind = "quickfix" },
+        };
+
+        mockClient.GetCodeActionsAsync(
+            Arg.Any<Document>(),
+            Arg.Any<Range>(),
+            Arg.Any<IReadOnlyList<Diagnostic>>(),
+            Arg.Any<CancellationToken>())
+            .Returns(expectedActions);
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var range = new Range
+        {
+            Start = new Position { Line = 0, Column = 0 },
+            End = new Position { Line = 1, Column = 0 },
+        };
+
+        var result = await _manager.GetCodeActionsAsync(doc, range, []);
+
+        result.Should().HaveCount(1);
+        result[0].Title.Should().Be("Add using");
+    }
+
+    [Fact]
+    public async Task GetCodeActionsAsync_WithNoClient_ShouldReturnEmpty()
+    {
+        _factory.CreateClientAsync(Arg.Any<Language>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<ILspClient?>(null));
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var range = new Range
+        {
+            Start = Position.Zero,
+            End = new Position { Line = 1, Column = 0 },
+        };
+
+        var result = await _manager.GetCodeActionsAsync(doc, range, []);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ApplyWorkspaceEditAsync_ShouldDelegateToClient()
+    {
+        var mockClient = CreateMockClient(Language.CSharp);
+        SetupFactory(Language.CSharp, mockClient);
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var edit = new WorkspaceEdit
+        {
+            Changes = new Dictionary<string, IReadOnlyList<TextEdit>>
+            {
+                [@"C:\project\test.cs"] =
+                [
+                    new TextEdit
+                    {
+                        Range = new Range
+                        {
+                            Start = Position.Zero,
+                            End = Position.Zero,
+                        },
+                        NewText = "using System;\n",
+                    },
+                ],
+            },
+        };
+
+        await _manager.ApplyWorkspaceEditAsync(doc, edit);
+
+        await mockClient.Received(1).ApplyWorkspaceEditAsync(edit, Arg.Any<CancellationToken>());
+    }
 }

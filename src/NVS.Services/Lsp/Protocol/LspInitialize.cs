@@ -28,6 +28,25 @@ public sealed record TextDocumentClientCapabilities
     public PublishDiagnosticsClientCapabilities? PublishDiagnostics { get; init; }
     public SynchronizationClientCapabilities? Synchronization { get; init; }
     public SignatureHelpClientCapabilities? SignatureHelp { get; init; }
+    public CodeActionClientCapabilities? CodeAction { get; init; }
+}
+
+public sealed record CodeActionClientCapabilities
+{
+    public bool DynamicRegistration { get; init; }
+    public CodeActionLiteralSupport? CodeActionLiteralSupport { get; init; }
+    public bool IsPreferredSupport { get; init; }
+    public bool ResolveSupport { get; init; }
+}
+
+public sealed record CodeActionLiteralSupport
+{
+    public CodeActionKindValue? CodeActionKind { get; init; }
+}
+
+public sealed record CodeActionKindValue
+{
+    public IReadOnlyList<string> ValueSet { get; init; } = [];
 }
 
 public sealed record CompletionClientCapabilities
@@ -108,6 +127,7 @@ public sealed record ServerCapabilities
     public JsonElement? ReferencesProvider { get; init; }
     public JsonElement? DocumentSymbolProvider { get; init; }
     public JsonElement? DocumentFormattingProvider { get; init; }
+    public JsonElement? CodeActionProvider { get; init; }
 
     /// <summary>
     /// Checks if a capability (which may be bool or object) is enabled.

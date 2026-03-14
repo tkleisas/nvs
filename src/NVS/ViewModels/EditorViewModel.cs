@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using NVS.Core.Enums;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
+using Range = NVS.Core.Models.Range;
 
 namespace NVS.ViewModels;
 
@@ -372,6 +373,36 @@ public partial class EditorViewModel : INotifyPropertyChanged
                 docVm.LastSignatureHelp = null;
             }
         });
+
+        docVm.QuickFixCommand = new AsyncRelayCommand<LspRequestContext?>(async (ctx) =>
+        {
+            if (ctx is null) return;
+            try
+            {
+                await FlushLspDidChangeAsync(docVm, ctx.Text).ConfigureAwait(false);
+
+                // Build a range covering the current line
+                var line = ctx.Line - 1;
+                var range = new Range
+                {
+                    Start = new Position { Line = line, Column = 0 },
+                    End = new Position { Line = line + 1, Column = 0 },
+                };
+
+                // Find diagnostics on the current line
+                var lineDiags = docVm.Diagnostics
+                    .Where(d => d.Range.Start.Line == line)
+                    .ToList();
+
+                var actions = await _lspSessionManager.GetCodeActionsAsync(
+                    docVm.Document, range, lineDiags);
+                docVm.LastCodeActions = actions;
+            }
+            catch (Exception)
+            {
+                docVm.LastCodeActions = [];
+            }
+        });
     }
 
     private void WireBreakpointCommand(DocumentViewModel docVm)
@@ -390,6 +421,34 @@ public partial class EditorViewModel : INotifyPropertyChanged
 
         // Load existing breakpoints for this file
         RefreshBreakpoints(docVm);
+    }
+
+    /// <summary>
+    /// Applies a code action's workspace edit to files and refreshes open documents.
+    /// Called from the UI after the user selects a code action.
+    /// </summary>
+    internal async Task ApplyCodeActionAsync(CodeAction action)
+    {
+        if (action.Edit is null || _lspSessionManager is null)
+            return;
+
+        var activeDoc = ActiveDocument;
+        if (activeDoc is null) return;
+
+        await _lspSessionManager.ApplyWorkspaceEditAsync(activeDoc.Document, action.Edit);
+
+        // Reload affected documents that are currently open
+        foreach (var filePath in action.Edit.Changes.Keys)
+        {
+            var openDoc = OpenDocuments.FirstOrDefault(d =>
+                string.Equals(d.Document.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+            if (openDoc is not null)
+            {
+                var content = await _fileSystemService.ReadAllTextAsync(filePath);
+                openDoc.Text = content;
+                openDoc.IsDirty = true;
+            }
+        }
     }
 
     private void RefreshBreakpoints(DocumentViewModel docVm)
@@ -433,6 +492,8 @@ public class DocumentViewModel : INotifyPropertyChanged
     private ICommand? _requestSignatureHelpCommand;
     private SignatureHelp? _lastSignatureHelp;
     private int? _debugCurrentLine;
+    private ICommand? _quickFixCommand;
+    private IReadOnlyList<CodeAction>? _lastCodeActions;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -633,6 +694,29 @@ public class DocumentViewModel : INotifyPropertyChanged
                 _debugCurrentLine = value;
                 OnPropertyChanged();
             }
+        }
+    }
+
+    public ICommand? QuickFixCommand
+    {
+        get => _quickFixCommand;
+        set
+        {
+            _quickFixCommand = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Set by QuickFixCommand; the view reads this to show the code actions menu.
+    /// </summary>
+    public IReadOnlyList<CodeAction>? LastCodeActions
+    {
+        get => _lastCodeActions;
+        set
+        {
+            _lastCodeActions = value;
+            OnPropertyChanged();
         }
     }
 

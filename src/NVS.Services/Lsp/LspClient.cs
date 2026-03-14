@@ -93,6 +93,26 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
                         ContextSupport = true,
                         SignatureInformation = new SignatureHelpSignatureInformation { ActiveParameterSupport = true },
                     },
+                    CodeAction = new CodeActionClientCapabilities
+                    {
+                        CodeActionLiteralSupport = new CodeActionLiteralSupport
+                        {
+                            CodeActionKind = new CodeActionKindValue
+                            {
+                                ValueSet = [
+                                    "quickfix",
+                                    "refactor",
+                                    "refactor.extract",
+                                    "refactor.inline",
+                                    "refactor.rewrite",
+                                    "source",
+                                    "source.organizeImports",
+                                    "source.fixAll",
+                                ],
+                            },
+                        },
+                        IsPreferredSupport = true,
+                    },
                 },
             },
         };
@@ -294,6 +314,96 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
         // This method is a no-op; diagnostics arrive via DiagnosticsReceived event.
         await Task.CompletedTask;
         return [];
+    }
+
+    public async Task<IReadOnlyList<CodeAction>> GetCodeActionsAsync(Document document, Range range, IReadOnlyList<Diagnostic> diagnostics, CancellationToken cancellationToken = default)
+    {
+        var lspDiagnostics = diagnostics.Select(LspModelMapper.ToLspDiagnostic).ToList();
+
+        var param = new CodeActionParams
+        {
+            TextDocument = LspModelMapper.ToTextDocumentIdentifier(document),
+            Range = LspModelMapper.ToLspRange(range),
+            Context = new CodeActionContext { Diagnostics = lspDiagnostics },
+        };
+
+        var response = await SendRawRequestAsync("textDocument/codeAction", param, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (response?.Result is null)
+            return [];
+
+        var result = response.Result.Value;
+
+        if (result.ValueKind == JsonValueKind.Array)
+        {
+            var actions = new List<CodeAction>();
+            foreach (var element in result.EnumerateArray())
+            {
+                // Server may return CodeAction objects or Command objects
+                if (element.TryGetProperty("edit", out _) || element.TryGetProperty("kind", out _))
+                {
+                    var lspAction = element.Deserialize<LspCodeAction>(JsonOptions);
+                    if (lspAction is not null)
+                        actions.Add(LspModelMapper.FromLspCodeAction(lspAction));
+                }
+                else if (element.TryGetProperty("command", out _) && element.TryGetProperty("title", out var titleProp))
+                {
+                    // Raw Command — wrap in a CodeAction with no edit
+                    actions.Add(new CodeAction { Title = titleProp.GetString() ?? "Command" });
+                }
+            }
+            return actions;
+        }
+
+        return [];
+    }
+
+    public async Task ApplyWorkspaceEditAsync(WorkspaceEdit edit, CancellationToken cancellationToken = default)
+    {
+        // Apply edits to local files
+        foreach (var (filePath, edits) in edit.Changes)
+        {
+            if (!File.Exists(filePath))
+                continue;
+
+            var content = await File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
+            var lines = content.Split('\n');
+
+            // Apply edits in reverse order to preserve positions
+            var sortedEdits = edits.OrderByDescending(e => e.Range.Start.Line)
+                                   .ThenByDescending(e => e.Range.Start.Column)
+                                   .ToList();
+
+            foreach (var textEdit in sortedEdits)
+            {
+                content = ApplyTextEdit(content, textEdit);
+            }
+
+            await File.WriteAllTextAsync(filePath, content, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static string ApplyTextEdit(string content, TextEdit edit)
+    {
+        var lines = content.Split('\n');
+        var startLine = Math.Min(edit.Range.Start.Line, lines.Length - 1);
+        var endLine = Math.Min(edit.Range.End.Line, lines.Length - 1);
+        var startCol = edit.Range.Start.Column;
+        var endCol = edit.Range.End.Column;
+
+        // Calculate flat offsets
+        var offset = 0;
+        for (var i = 0; i < startLine; i++)
+            offset += lines[i].Length + 1; // +1 for \n
+        offset += Math.Min(startCol, lines[startLine].Length);
+
+        var endOffset = 0;
+        for (var i = 0; i < endLine; i++)
+            endOffset += lines[i].Length + 1;
+        endOffset += Math.Min(endCol, lines[endLine].Length);
+
+        return string.Concat(content.AsSpan(0, offset), edit.NewText, content.AsSpan(endOffset));
     }
 
     // ─── Document Notifications ─────────────────────────────────────────────
