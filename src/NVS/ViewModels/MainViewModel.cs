@@ -390,7 +390,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         var solutionNode = new FileTreeNode
         {
             Name = $"{solution.Name} ({Path.GetFileName(solution.FilePath)})",
-            Path = solution.FilePath,
+            Path = solutionDir,
             IsDirectory = true
         };
 
@@ -404,7 +404,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             var projectNode = new FileTreeNode
             {
                 Name = isStartup ? $"▶ {projRef.Name}" : projRef.Name,
-                Path = projectPath,
+                Path = projectDir ?? projectPath,
                 IsDirectory = true
             };
 
