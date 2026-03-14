@@ -16,5 +16,10 @@ public sealed record DebugConfiguration
     /// </summary>
     public int? ServerPort { get; init; }
 
+    /// <summary>
+    /// For attach mode: the PID of the already-running debuggee process.
+    /// </summary>
+    public int? ProcessId { get; init; }
+
     public IReadOnlyDictionary<string, object> AdditionalProperties { get; init; } = new Dictionary<string, object>();
 }

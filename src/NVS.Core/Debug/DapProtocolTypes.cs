@@ -84,6 +84,12 @@ public sealed record DapLaunchRequestArguments
     public string? Console { get; init; }
 }
 
+public sealed record DapAttachRequestArguments
+{
+    [JsonPropertyName("processId")]
+    public int ProcessId { get; init; }
+}
+
 // ── RunInTerminal (reverse request from adapter) ────────────────────
 
 public sealed record DapRunInTerminalArguments

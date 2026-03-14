@@ -134,7 +134,7 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
 
         // DAP initialization sequence:
         // 1. initialize → response (capabilities)
-        // 2. launch → response (adapter sets up debuggee)
+        // 2. launch or attach → response
         // 3. Wait for "initialized" event from adapter
         // 4. setBreakpoints (per file)
         // 5. configurationDone → adapter starts execution
@@ -147,15 +147,23 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         {
             await _client.InitializeAsync(cancellationToken).ConfigureAwait(false);
 
-            var launchArgs = new DapLaunchRequestArguments
+            if (configuration.Request == "attach" && configuration.ProcessId is int pid)
             {
-                Program = configuration.Program ?? throw new InvalidOperationException("Program path is required."),
-                Args = configuration.Args.Count > 0 ? configuration.Args : null,
-                Cwd = configuration.Cwd,
-                Console = configuration.Console,
-            };
+                await _client.AttachAsync(new DapAttachRequestArguments { ProcessId = pid }, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                var launchArgs = new DapLaunchRequestArguments
+                {
+                    Program = configuration.Program ?? throw new InvalidOperationException("Program path is required."),
+                    Args = configuration.Args.Count > 0 ? configuration.Args : null,
+                    Cwd = configuration.Cwd,
+                    Console = configuration.Console,
+                };
 
-            await _client.LaunchAsync(launchArgs, cancellationToken).ConfigureAwait(false);
+                await _client.LaunchAsync(launchArgs, cancellationToken).ConfigureAwait(false);
+            }
 
             // Wait for the initialized event (with timeout)
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

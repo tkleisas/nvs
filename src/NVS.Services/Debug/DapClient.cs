@@ -84,6 +84,11 @@ public sealed class DapClient : IDapClient
         await SendRequestAsync("launch", args, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task AttachAsync(DapAttachRequestArguments args, CancellationToken cancellationToken = default)
+    {
+        await SendRequestAsync("attach", args, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task ConfigurationDoneAsync(CancellationToken cancellationToken = default)
     {
         await SendRequestAsync("configurationDone", null, cancellationToken).ConfigureAwait(false);

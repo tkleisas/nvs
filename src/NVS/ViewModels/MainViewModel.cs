@@ -49,6 +49,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     private bool _isDebugPaused;
     private bool _debugUsesTerminal;
     private TerminalToolViewModel? _debugTerminal;
+    private System.Diagnostics.Process? _debuggeeProcess;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -707,51 +708,57 @@ public partial class MainViewModel : INotifyPropertyChanged
                 }
             }
 
-            // Use integrated terminal for console apps (enables stdin),
-            // internal console for GUI apps (avoids terminal clutter)
+            // Console apps: launch in external console window (like VS),
+            // then attach the debugger. GUI apps: launch via DAP directly.
             var isConsoleApp = string.Equals(startup.OutputType, "Exe", StringComparison.OrdinalIgnoreCase)
                             || startup.OutputType is null;
 
-            int? serverPort = null;
-
             if (isConsoleApp)
             {
-                // netcoredbg doesn't support DAP runInTerminal, so we run it
-                // in TCP server mode inside a debug terminal. The debuggee's
-                // console I/O goes through the terminal's PTY.
                 _debugUsesTerminal = true;
-                var adapterPath = await _debugService.ResolveAdapterPathAsync("coreclr");
 
-                serverPort = GetFreeTcpPort();
-                CreateDebugTerminal(projectDir);
+                // Launch the debuggee in its own console window
+                _debuggeeProcess = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "dotnet",
+                        Arguments = $"exec \"{programPath}\"",
+                        WorkingDirectory = projectDir,
+                        UseShellExecute = true,
+                    },
+                };
+                _debuggeeProcess.Start();
 
-                // Launch netcoredbg in server mode inside the debug terminal
-                string serverCommand;
-                if (OperatingSystem.IsWindows())
-                    serverCommand = $"& \"{adapterPath}\" --server={serverPort} --interpreter=vscode";
-                else
-                    serverCommand = $"\"{adapterPath}\" --server={serverPort} --interpreter=vscode";
-                await _debugTerminal!.SendCommandToTerminalAsync(serverCommand);
+                // Brief delay to let the runtime start before attaching
+                await Task.Delay(500);
 
-                // Wait for netcoredbg to start listening
-                await WaitForTcpPortAsync(serverPort.Value, TimeSpan.FromSeconds(10));
+                var config = new NVS.Core.Models.Settings.DebugConfiguration
+                {
+                    Name = startup.Name,
+                    Type = "coreclr",
+                    Request = "attach",
+                    ProcessId = _debuggeeProcess.Id,
+                    Cwd = projectDir,
+                };
+
+                await _debugService.StartDebuggingAsync(config);
             }
             else
             {
                 _debugUsesTerminal = false;
+
+                var config = new NVS.Core.Models.Settings.DebugConfiguration
+                {
+                    Name = startup.Name,
+                    Type = "coreclr",
+                    Request = "launch",
+                    Program = programPath,
+                    Cwd = projectDir,
+                };
+
+                await _debugService.StartDebuggingAsync(config);
             }
-
-            var config = new NVS.Core.Models.Settings.DebugConfiguration
-            {
-                Name = startup.Name,
-                Type = "coreclr",
-                Request = "launch",
-                Program = programPath,
-                Cwd = projectDir,
-                ServerPort = serverPort,
-            };
-
-            await _debugService.StartDebuggingAsync(config);
         }
         catch (Exception ex)
         {
@@ -780,6 +787,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         StatusMessage = "Debug session ended";
         ClearDebugCurrentLine();
         DestroyDebugTerminal();
+        CleanupDebuggeeProcess();
     }
 
     [RelayCommand]
@@ -899,6 +907,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             StatusMessage = "Debug session ended";
             ClearDebugCurrentLine();
             DestroyDebugTerminal();
+            CleanupDebuggeeProcess();
 
             // Clear call stack and variables
             FindToolInDock<CallStackToolViewModel>()?.ClearFrames();
@@ -1055,6 +1064,21 @@ public partial class MainViewModel : INotifyPropertyChanged
         parentDock?.VisibleDockables?.Remove(_debugTerminal);
 
         _debugTerminal = null;
+    }
+
+    private void CleanupDebuggeeProcess()
+    {
+        if (_debuggeeProcess is null) return;
+
+        try
+        {
+            if (!_debuggeeProcess.HasExited)
+                _debuggeeProcess.Kill(entireProcessTree: true);
+        }
+        catch { /* process may have already exited */ }
+
+        _debuggeeProcess.Dispose();
+        _debuggeeProcess = null;
     }
 
     private static IDock? FindParentDock(IDockable root, IDockable target)
