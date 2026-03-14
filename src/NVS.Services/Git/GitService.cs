@@ -153,10 +153,18 @@ public sealed class GitService : IGitService, IDisposable
             if (!GitignoreTemplates.TryGetValue(template, out var content))
                 return Task.FromResult(GitOperationResult.Fail($"Unknown template: {template}"));
 
-            // Dedent the raw string literal content
-            var lines = content.Split('\n').Select(l => l.TrimStart()).Where(l => l.Length > 0);
+            var lines = content.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0);
             var gitignorePath = System.IO.Path.Combine(repoPath, ".gitignore");
-            File.WriteAllText(gitignorePath, string.Join(Environment.NewLine, lines) + Environment.NewLine);
+
+            // Write and flush to disk so git init sees the file
+            using (var fs = new FileStream(gitignorePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            using (var writer = new StreamWriter(fs))
+            {
+                foreach (var line in lines)
+                    writer.WriteLine(line);
+                writer.Flush();
+                fs.Flush(flushToDisk: true);
+            }
 
             RefreshStatus();
             return Task.FromResult(GitOperationResult.Ok());
