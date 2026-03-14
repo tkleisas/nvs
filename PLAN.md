@@ -4,6 +4,10 @@
 
 A cross-platform open-source IDE built with .NET 10 and AvaloniaUI.
 
+## Current Status: v0.3.0 — 806 tests passing
+
+All phases 1–8 complete. Multi-project solutions, startup project selection, CLI arguments, GUI app launching, and code metrics all working.
+
 ## Technology Stack
 
 | Category | Technology |
@@ -12,16 +16,15 @@ A cross-platform open-source IDE built with .NET 10 and AvaloniaUI.
 | UI Framework | AvaloniaUI 11.x |
 | MVVM | CommunityToolkit.Mvvm |
 | DI | Microsoft.Extensions.DependencyInjection |
-| ORM | Dapper |
-| Database | SQLite (per-workspace) |
 | Logging | Serilog |
-| Testing | xUnit |
+| Testing | xUnit + FluentAssertions + NSubstitute |
 | Git | LibGit2Sharp |
 | Editor | AvaloniaEdit |
 | LSP/DAP | Custom JSON-RPC via System.IO.Pipelines |
 | LLM | OpenAI-compatible API |
-| File Watching | System.IO.FileSystemWatcher |
-| Async | Task-based |
+| Code Metrics | Microsoft.CodeAnalysis (Roslyn) |
+| Terminal | Iciclecreek.Avalonia.Terminal |
+| Debugging | netcoredbg (auto-downloaded) |
 
 ## Architecture Overview
 
@@ -36,13 +39,10 @@ A cross-platform open-source IDE built with .NET 10 and AvaloniaUI.
 |  +-- IEditorService  +-- ILspClient  +-- IDebugService          |
 |  +-- IGitService     +-- ITerminalService  +-- IIndexService    |
 |  +-- IBuildService   +-- IPluginManager  +-- ILLMService        |
+|  +-- ICodeMetricsService  +-- ISolutionService                  |
 +-----------------------------------------------------------------+
 |  Infrastructure                                                  |
-|  +-- Plugin Engine  +-- SQLite Indexer  +-- LSP/DAP Clients     |
-|  +-- Process Manager  +-- File System Watcher                   |
-+-----------------------------------------------------------------+
-|  Data Layer                                                      |
-|  +-- Project Index (SQLite)  +-- Settings  +-- Plugin State     |
+|  +-- Plugin Engine  +-- LSP/DAP Clients  +-- Process Manager    |
 +-----------------------------------------------------------------+
 ```
 
@@ -52,238 +52,101 @@ A cross-platform open-source IDE built with .NET 10 and AvaloniaUI.
 NVS/
 +-- src/
 |   +-- NVS.Core/                    # Interfaces, abstractions, models
-|   |   +-- Models/                  # Project, Document, Workspace, Symbol
-|   |   +-- Interfaces/              # IService contracts
-|   |   +-- Events/                  # Domain events
-|   |
-|   +-- NVS.Infrastructure/          # Cross-cutting concerns
-|   |   +-- Logging/                 # Serilog config
-|   |   +-- DependencyInjection/     # Service registration
-|   |   +-- Configuration/           # Settings management
-|   |
-|   +-- NVS.Services/
-|   |   +-- Editor/                  # AvaloniaEdit wrapper, highlighting
-|   |   +-- Lsp/                     # LSP client, server management
-|   |   +-- Debug/                   # DAP client, debug adapters
-|   |   +-- Git/                     # LibGit2Sharp wrapper
-|   |   +-- Terminal/                # Terminal integration
-|   |   +-- Index/                   # SQLite indexing, search
-|   |   +-- Build/                   # Build system integration
-|   |   +-- Llm/                     # OpenAI-compatible client
-|   |
-|   +-- NVS.Plugins/
-|   |   +-- Abstractions/            # Plugin API interfaces
-|   |   +-- Engine/                  # Loading, lifecycle
-|   |   +-- BuiltIn/                 # Core plugins (optional)
-|   |
+|   +-- NVS.Infrastructure/          # Cross-cutting concerns (DI, logging)
+|   +-- NVS.Services/                # All service implementations
+|   +-- NVS.Plugins/                 # Plugin loading via AssemblyLoadContext
 |   +-- NVS/                         # Avalonia UI application
-|       +-- Views/                   # Windows, controls
-|       +-- ViewModels/              # MVVM viewmodels
-|       +-- Themes/                  # Theme definitions
-|       +-- Assets/                  # Icons, fonts
-|
 +-- tests/
 |   +-- NVS.Core.Tests/
-|   +-- NVS.Services.Tests/
+|   +-- NVS.Services.Tests/          # 548 tests
 |   +-- NVS.Plugins.Tests/
-|
-+-- NVS.sln
+|   +-- NVS.Tests/                   # 256 ViewModel tests
++-- lib/
+|   +-- SQLiteExplorer/              # SQLite browser component
++-- tools/
+|   +-- DebugStartupHook/            # Console app debug attach hook
++-- NVS.slnx
 +-- Directory.Build.props
-+-- .github/
-|   +-- workflows/
-|       +-- build.yml
-|       +-- release.yml
-+-- README.md
-```
-
-## Core Interfaces
-
-```csharp
-// NVS.Core/Interfaces/
-IWorkspaceService      // Workspace management
-IProjectService        // Project loading, structure
-IEditorService         // Text editing, documents
-ILspClient            // Language server communication
-IDebugService         // Debugging via DAP
-IGitService           // Git operations
-ITerminalService      // Terminal instances
-IIndexService         // SQLite indexing, search
-IBuildService         // Build execution
-IPluginManager        // Plugin lifecycle
-ILLMService           // AI assistance
-ISettingsService      // Configuration
-IThemeService         // Theming
-IKeyBindingService    // Keybindings
-```
-
-## SQLite Schema (Per-Workspace)
-
-```sql
--- .nvs/index.db
-
-CREATE TABLE files (
-    id INTEGER PRIMARY KEY,
-    path TEXT UNIQUE NOT NULL,
-    hash TEXT,
-    last_indexed TEXT,
-    language TEXT
-);
-
-CREATE TABLE symbols (
-    id INTEGER PRIMARY KEY,
-    file_id INTEGER REFERENCES files(id),
-    name TEXT NOT NULL,
-    kind TEXT,              -- class, method, function, etc.
-    container TEXT,         -- parent symbol
-    line_start INTEGER,
-    line_end INTEGER,
-    column_start INTEGER,
-    column_end INTEGER,
-    documentation TEXT
-);
-
-CREATE TABLE references (
-    id INTEGER PRIMARY KEY,
-    from_symbol_id INTEGER REFERENCES symbols(id),
-    to_symbol_id INTEGER REFERENCES symbols(id),
-    reference_kind TEXT     -- call, import, extends, etc.
-);
-
-CREATE VIRTUAL TABLE content_fts USING fts5(
-    file_id,
-    content,
-    tokenize='porter unicode61'
-);
-```
-
-## Configuration Files
-
-### Global Settings (~/.nvs/settings.json)
-
-```json
-{
-  "theme": "NVS Dark",
-  "keybindingPreset": "vscode",
-  "editor": {
-    "fontSize": 14,
-    "fontFamily": "JetBrains Mono",
-    "tabSize": 4
-  },
-  "llm": {
-    "endpoint": "http://localhost:11434/v1",
-    "model": "codellama"
-  }
-}
-```
-
-### Workspace Settings (.nvs/workspace.json)
-
-```json
-{
-  "folders": ["src", "tests"],
-  "languageServers": {
-    "csharp": { "command": "dotnet", "args": ["omnisharp"] },
-    "cpp": { "command": "clangd" },
-    "typescript": { "command": "typescript-language-server", "args": ["--stdio"] }
-  },
-  "debugConfigurations": [],
-  "buildTasks": []
-}
 ```
 
 ## Implementation Phases
 
-### Phase 1: Foundation (Weeks 1-4)
+### Phase 1: Foundation ✅
 - [x] Solution setup with .NET 10, AvaloniaUI
 - [x] Core interfaces and DI setup
 - [x] Basic shell UI (window, layout, menus)
 - [x] Project/workspace model
 - [x] Settings infrastructure
 
-### Phase 2: Editor Core (Weeks 5-8) - IN PROGRESS
-- [x] AvaloniaEdit integration (basic TextBox for now)
-- [x] Syntax highlighting definitions (7 languages)
-- [x] File management services (EditorService, FileSystemService, WorkspaceService)
-- [x] EditorViewModel with commands
-- [x] Tab management UI
-- [x] File tree double-click to open files
-- [ ] Integrate actual AvaloniaEdit control
-- [ ] Advanced syntax highlighting
-- [ ] Basic commands (undo/redo/find)
+### Phase 2: Editor Core ✅
+- [x] AvaloniaEdit integration with syntax highlighting (14 languages)
+- [x] Multi-tab editing with dirty indicators
+- [x] Undo/Redo, Find & Replace
+- [x] File tree with type-specific icons
+- [x] Dockable panels via Dock.Avalonia
 
-### Phase 3: LSP Integration (Weeks 9-12)
-- [ ] LSP client implementation (JSON-RPC)
-- [ ] Language server management
-- [ ] Auto-complete, go-to-definition, diagnostics
-- [ ] Support: C#, C/C++ (ccls/clangd), TS/JS (typescript-language-server)
+### Phase 3: LSP Integration ✅
+- [x] Full JSON-RPC 2.0 transport layer
+- [x] Auto-completion, signature help, go-to-definition
+- [x] Inline diagnostics with squiggly underlines
+- [x] Code Actions / Quick Fixes (Ctrl+.)
+- [x] 12 language server configurations with one-click install
 
-### Phase 4: Git + Terminal (Weeks 13-16)
-- [ ] LibGit2Sharp integration
-- [ ] Git status, diff view, commit UI
-- [ ] Terminal emulator (Avalonia Xterm or custom PTY)
-- [ ] PowerShell/Bash shell integration
+### Phase 4: Git + Terminal ✅
+- [x] LibGit2Sharp integration (status, staging, commit, diff)
+- [x] Branch management (create, checkout, delete)
+- [x] PTY terminal with cross-platform shell detection
+- [x] Multiple terminal instances
 
-### Phase 5: Debugging (DAP) (Weeks 17-21)
-- [ ] DAP client implementation
-- [ ] Breakpoints, call stack, variables view
-- [ ] Debug adapters: netcoredbg, cpptools, node-debug
-- [ ] Launch/attach configurations
+### Phase 5: Debugging (DAP) ✅
+- [x] DAP client with Content-Length framed transport
+- [x] netcoredbg auto-download
+- [x] Breakpoints, call stack, variables panel
+- [x] Console apps via terminal, GUI apps via DAP launch
 
-### Phase 6: SQLite Indexing (Weeks 22-24)
-- [ ] Project indexing schema
-- [ ] Symbol search, file search
-- [ ] Reference tracking
+### Phase 6: Solution & Build ✅
+- [x] .sln/.slnx/.csproj loading with multi-project support
+- [x] Build/Rebuild/Clean with MSBuild error parsing
+- [x] Run with GUI app detection (WinExe → detached process)
+- [x] Startup project selection (dropdown + context menu)
+- [x] New project scaffolding, add project to solution
 
-### Phase 7: Plugin System (Weeks 25-28)
-- [ ] Plugin API design
-- [ ] Dynamic loading (AssemblyLoadContext)
-- [ ] Plugin manifest format
-- [ ] Plugin marketplace (future)
+### Phase 7: Plugins, LLM, NuGet, SQLite, Help ✅
+- [x] Plugin loading via AssemblyLoadContext
+- [x] LLM chat with agent tools (file R/W, search, terminal, editor)
+- [x] NuGet package manager (browse, install, update, uninstall)
+- [x] SQLite database explorer
+- [x] Help system with F1 search and Welcome tab
 
-### Phase 8: LLM/Agents (Phase 2)
-- [ ] OpenAI-compatible API integration
-- [ ] Code completion, chat interface
-- [ ] Agent framework
+### Phase 8: Code Metrics & Linting ✅
+- [x] 8.1 — LSP Code Actions with Quick Fix UI
+- [x] 8.2 — Roslyn-based code metrics service
+- [x] 8.3 — Code Metrics Dashboard panel
+- [x] 8.4 — Inline metrics gutter dots and status bar display
 
-## Key NuGet Packages
+### Post-Phase Improvements ✅
+- [x] Multi-project solution tree (root-level project exclusion fix)
+- [x] Startup project selection (toolbar + explorer context menu)
+- [x] GUI app launching as detached process
+- [x] CLI argument support (`nvs solution.sln`, `nvs ./folder/`, `nvs file.cs`)
 
-```xml
-<!-- UI -->
-<PackageVersion Include="Avalonia" Version="11.2.0" />
-<PackageVersion Include="AvaloniaEdit" Version="11.1.0" />
-<PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-
-<!-- Core -->
-<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
-<PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
-<PackageVersion Include="Serilog" Version="4.2.0" />
-<PackageVersion Include="Serilog.Sinks.File" Version="6.0.0" />
-
-<!-- Data -->
-<PackageVersion Include="Dapper" Version="2.1.0" />
-<PackageVersion Include="Microsoft.Data.Sqlite" Version="9.0.0" />
-
-<!-- Git -->
-<PackageVersion Include="LibGit2Sharp" Version="0.31.0" />
-
-<!-- Testing -->
-<PackageVersion Include="xunit" Version="2.9.0" />
-<PackageVersion Include="xunit.runner.visualstudio" Version="3.0.0" />
-<PackageVersion Include="FluentAssertions" Version="7.0.0" />
-<PackageVersion Include="NSubstitute" Version="5.3.0" />
-```
+### Future Ideas
+- [ ] Docker/Podman integration
+- [ ] Remote development (SSH)
+- [ ] Extension marketplace
+- [ ] Vim keybinding mode (the irony)
+- [ ] Light theme (heresy)
+- [ ] Collaborative editing
 
 ## Design Decisions
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Config Format | JSON | Native .NET, simple, type-safe |
-| Keybindings | Multiple presets | User chooses at first launch |
 | Workspace Model | Hybrid | Folder-based + solution-based |
-| Theming | Both JSON + VS Code | Maximum compatibility |
-| Update Check | None | Package managers handle updates |
+| Theming | Fluent Dark only | Consistent, tasteful |
 | Telemetry | None | Privacy-focused |
-| Crash Reporting | Manual | User-controlled |
-| LLM Integration | OpenAI-compatible | Supports llama.cpp, Ollama, OpenRouter, vLLM |
-| Terminal | Evaluate both | xterm.js vs native PTY |
-| Plugin API | Expose services | Full API access |
+| LLM Integration | OpenAI-compatible | Supports Ollama, OpenRouter, LM Studio, etc. |
+| Terminal | Iciclecreek PTY | Native cross-platform PTY |
+| Plugin API | AssemblyLoadContext | Isolation + full API access |
+| Code Metrics | Roslyn | Native C# analysis, no external tools |

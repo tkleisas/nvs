@@ -8,8 +8,8 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
-![Version](https://img.shields.io/badge/version-0.2.0-green)
-![Tests](https://img.shields.io/badge/tests-746%20passing-brightgreen)
+![Version](https://img.shields.io/badge/version-0.3.0-green)
+![Tests](https://img.shields.io/badge/tests-806%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -29,8 +29,11 @@ NVS is a code editor / IDE that:
 - Has DAP-based debugging with breakpoints, call stack, and variable inspection.
 - Has an AI chat assistant that can read and modify your project files.
 - Has a NuGet package manager and SQLite database explorer.
+- Has Roslyn-based code metrics with gutter indicators and a dashboard panel.
+- Supports multi-project solutions with startup project selection.
+- Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
-- Has 746 tests, which is 746 more than the AI thought were necessary before the human insisted.
+- Has 806 tests, which is 806 more than the AI thought were necessary before the human insisted.
 
 ## Features
 
@@ -47,6 +50,7 @@ NVS is a code editor / IDE that:
 - Auto-completion with trigger characters (`.`, `<`, `:`) and debounced identifier completion
 - Signature help / parameter info on `(` and `,`
 - Go to Definition (F12)
+- Code Actions / Quick Fixes (Ctrl+.)
 - Inline diagnostics with squiggly underlines
 - Incremental document sync (`textDocument/didChange`)
 - 12 open-source language servers, installable from Settings:
@@ -66,13 +70,22 @@ NVS is a code editor / IDE that:
 | marksman | Markdown | Manual download |
 | taplo | TOML | `cargo` |
 
+### 📊 Code Metrics & Linting
+- Roslyn-based code metrics analysis (cyclomatic complexity, maintainability index, lines of code)
+- Code Metrics Dashboard panel with project → file → type → method tree view
+- Severity indicators: 🟢 healthy, 🟡 moderate, 🔴 complex
+- Inline gutter dots next to methods colored by complexity
+- Status bar shows current method metrics at cursor position
+- Analyze entire workspace or individual files
+
 ### 🔀 Git Integration
 - Repository status, staging, unstaging
 - Commit with message (the AI suggested "fix stuff" for every commit message)
-- Branch management (create, checkout, list)
+- Branch management (create, checkout, delete, list)
 - Commit log
 - Diff viewer with unified patch parsing — implemented on the third attempt after the AI hallucinated two different diff libraries that don't exist
 - Source Control sidebar panel
+- Branch picker in the status bar
 
 ### 💻 Terminal
 - Built-in PTY terminal panel (Ctrl+`) via Iciclecreek
@@ -82,12 +95,15 @@ NVS is a code editor / IDE that:
 
 ### 🏗️ Solution & Build
 - Open .sln, .slnx, and .csproj files
-- Solution Explorer tree with project structure
+- Multi-project solution support with correct tree structure
+- Solution Explorer tree with project structure and file icons
+- **Startup project selection** — toolbar dropdown or right-click → "Set as Startup Project"
 - Build, Rebuild, Clean (Ctrl+Shift+B)
-- Run without debugging (Ctrl+F5)
+- Run without debugging (Ctrl+F5) — GUI apps launch as detached windows, console apps run in terminal
 - Build Output panel with auto-scroll and MSBuild error parsing
 - Problems panel with click-to-navigate diagnostics
 - New project / file-from-template scaffolding via `dotnet new`
+- Add existing project to solution
 
 ### 🐛 Debugging (DAP)
 - Debug Adapter Protocol client with Content-Length framed transport
@@ -99,6 +115,7 @@ NVS is a code editor / IDE that:
 - Variables panel with expandable tree view (lazy-loaded children)
 - Debug output streamed to Build Output panel
 - Debug toolbar with visual step controls
+- Console apps debug in integrated terminal; GUI apps debug directly
 
 ### 💬 LLM Chat Assistant
 - Built-in AI chat panel with streaming responses
@@ -140,6 +157,13 @@ NVS is a code editor / IDE that:
 - File tree with type-specific icons (🟢 C# · 🔵 C++ · 🟡 JS · 🔷 TS · 🐍 Python · 🦀 Rust · and more)
 - Compact indentation with expand/collapse state
 - Double-click to open files
+- Right-click context menu: New File, New Folder, Delete, Set as Startup Project
+
+### 🖥️ Command Line
+- Open a solution: `nvs path/to/solution.sln`
+- Open a folder: `nvs path/to/project/`
+- Open a file: `nvs path/to/file.cs`
+- CLI argument takes precedence over session restore
 
 ## Architecture
 
@@ -151,7 +175,7 @@ NVS (UI)  →  NVS.Services / NVS.Infrastructure  →  NVS.Core
 | Project | Role |
 |---------|------|
 | **NVS.Core** | Interfaces and models only. No implementations. The Switzerland of the codebase. |
-| **NVS.Services** | All the actual work: Editor, FileSystem, Workspace, Language, LSP, Git, Terminal, Settings, Solution, Build, Debug, LLM, NuGet. The load-bearing wall of this house of cards. |
+| **NVS.Services** | All the actual work: Editor, FileSystem, Workspace, Language, LSP, Git, Terminal, Settings, Solution, Build, Debug, LLM, NuGet, Code Metrics. The load-bearing wall of this house of cards. |
 | **NVS.Infrastructure** | DI registration, Serilog logging config. |
 | **NVS.Plugins** | Plugin loading via `AssemblyLoadContext`. Currently quiet. Suspiciously quiet. |
 | **NVS** | The Avalonia UI app — ViewModels, Views, Behaviors, and the DI composition root. |
@@ -173,7 +197,10 @@ dotnet build NVS.slnx
 # Run
 dotnet run --project src/NVS
 
-# Run tests (746 of them)
+# Open a solution directly
+dotnet run --project src/NVS -- path/to/solution.sln
+
+# Run tests (806 of them)
 dotnet test NVS.slnx
 ```
 
@@ -201,8 +228,8 @@ See [Releases](https://github.com/tkleisas/nvs/releases) for downloads.
 To create a release, tag a commit and push:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
 
 ## Tech Stack
@@ -215,6 +242,7 @@ git push origin v0.2.0
 | Terminal | [Iciclecreek.Avalonia.Terminal](https://github.com/tomlm/Iciclecreek.Avalonia.Terminal) 1.0 |
 | MVVM | [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/) 8.4 |
 | Git | [LibGit2Sharp](https://github.com/libgit2/libgit2sharp) 0.31 |
+| Code Metrics | [Microsoft.CodeAnalysis](https://github.com/dotnet/roslyn) (Roslyn) |
 | Debugging | [netcoredbg](https://github.com/Samsung/netcoredbg) (MIT, auto-downloaded) |
 | Logging | [Serilog](https://serilog.net/) 4.2 |
 | Runtime | .NET 10 (preview) |
@@ -223,11 +251,11 @@ git push origin v0.2.0
 
 ## Testing
 
-746 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
+806 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
 
 - **NVS.Core.Tests** — Core model tests
 - **NVS.Plugins.Tests** — Plugin system tests
-- **NVS.Services.Tests** — EditorService, LanguageService, LSP, Git, Terminal, Registry, Solution, Build, DAP, Debug, Breakpoints, LLM Agent Tools, NuGet
+- **NVS.Services.Tests** — EditorService, LanguageService, LSP, Git, Terminal, Registry, Solution, Build, DAP, Debug, Breakpoints, LLM Agent Tools, NuGet, Code Metrics
 - **NVS.Tests** — ViewModel tests (Editor, Document, Settings, MainViewModel, Build/Run, LLM Chat, NuGet, Help, Welcome)
 
 Test naming convention: `MethodName_Scenario_ExpectedOutcome`
@@ -243,7 +271,7 @@ public void ParsePatch_MixedChanges_ParsesAllLineTypes()
 ## Versioning
 
 - Version lives in `Directory.Build.props`
-- Informational version appends the short git commit hash (e.g., `0.2.0+a3f72b1`)
+- Informational version appends the short git commit hash (e.g., `0.3.0+a3f72b1`)
 - Patch bumps on each commit, minor bumps on feature completion
 - Viewable in **Help → About**
 
