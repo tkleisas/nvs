@@ -132,17 +132,33 @@ public sealed class LanguageServerManager : ILanguageServerManager
 
     internal static string? FindBinaryOnPath(string binaryName)
     {
-        var pathVar = Environment.GetEnvironmentVariable("PATH");
-        if (pathVar is null)
-            return null;
+        var pathVar = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
 
-        var paths = pathVar.Split(Path.PathSeparator);
+        var searchDirs = new List<string>(pathVar.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
+
+        // On non-Windows, common tool install directories may not be in $PATH
+        // (especially when launched from a desktop shortcut rather than a shell).
+        if (!OperatingSystem.IsWindows())
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrEmpty(home))
+            {
+                searchDirs.Add(Path.Combine(home, ".dotnet", "tools"));
+                searchDirs.Add(Path.Combine(home, ".local", "bin"));
+                searchDirs.Add(Path.Combine(home, ".cargo", "bin"));
+                searchDirs.Add(Path.Combine(home, "go", "bin"));
+            }
+        }
+
         var extensions = OperatingSystem.IsWindows()
             ? new[] { ".exe", ".cmd", ".bat", "" }
             : new[] { "" };
 
-        foreach (var dir in paths)
+        foreach (var dir in searchDirs)
         {
+            if (string.IsNullOrEmpty(dir))
+                continue;
+
             foreach (var ext in extensions)
             {
                 var fullPath = Path.Combine(dir, binaryName + ext);
