@@ -12,14 +12,14 @@
     <Span color="Code" multiline="true" begin="```" end="```" />
     <Span color="Code" begin="`" end="`" />
 
-    <Rule color="Heading">^#{1,6}\s+\S.*$</Rule>
+    <Rule color="Heading">#{1,6}\s+\S+</Rule>
     <Rule color="Bold">\*\*.+?\*\*</Rule>
     <Rule color="Bold">__.+?__</Rule>
     <Rule color="Link">\[([^\]]+)\]\([^\)]+\)</Rule>
     <Rule color="Link">&lt;https?://[^&gt;]+&gt;</Rule>
-    <Rule color="ListMarker">^[-*+]\s</Rule>
-    <Rule color="ListMarker">^\d+\.\s</Rule>
-    <Rule color="Blockquote">^&gt;\s.*$</Rule>
-    <Rule color="HorizontalRule">^[-*_]{3,}\s*$</Rule>
+    <Rule color="ListMarker">[-*+]\s+\S</Rule>
+    <Rule color="ListMarker">\d+\.\s+\S</Rule>
+    <Rule color="Blockquote">&gt;\s+\S+</Rule>
+    <Rule color="HorizontalRule">[-*_]{3,}</Rule>
   </RuleSet>
 </SyntaxDefinition>
