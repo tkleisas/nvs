@@ -175,9 +175,13 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
 
         try
         {
-            await _client.DisconnectAsync(terminateDebuggee: true, cancellationToken).ConfigureAwait(false);
+            // Give the adapter a few seconds to disconnect gracefully;
+            // if the debuggee is blocked on I/O it may never respond.
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(3));
+            await _client.DisconnectAsync(terminateDebuggee: true, timeoutCts.Token).ConfigureAwait(false);
         }
-        catch { /* best effort */ }
+        catch { /* best effort — timeout or adapter already exited */ }
 
         await CleanupSessionAsync().ConfigureAwait(false);
     }

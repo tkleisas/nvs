@@ -723,12 +723,14 @@ public partial class MainViewModel : INotifyPropertyChanged
 
             if (isConsoleApp)
             {
-                _debugUsesTerminal = true;
-
                 // Wire up the RunInTerminal handler so netcoredbg launches
-                // the debuggee in the integrated terminal (enables console I/O)
+                // the debuggee in the integrated terminal (enables console I/O).
+                // _debugUsesTerminal is set only when the handler fires, so DAP
+                // output events still reach Build Output if the adapter doesn't
+                // support runInTerminal.
                 _debugService.RunInTerminalHandler = async (request) =>
                 {
+                    _debugUsesTerminal = true;
                     var terminalTool = FindTerminalTool();
                     if (terminalTool is not null)
                     {
@@ -762,12 +764,18 @@ public partial class MainViewModel : INotifyPropertyChanged
         try
         {
             await _debugService.StopDebuggingAsync();
-            StatusMessage = "Debug session ended";
         }
         catch (Exception ex)
         {
             StatusMessage = $"Stop debug error: {ex.Message}";
         }
+
+        // Ensure UI resets even if the DebuggingStopped event didn't fire
+        IsDebugging = false;
+        IsDebugPaused = false;
+        _debugUsesTerminal = false;
+        StatusMessage = "Debug session ended";
+        ClearDebugCurrentLine();
     }
 
     [RelayCommand]
