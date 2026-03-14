@@ -93,6 +93,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         Editor = editor;
 
         _gitService.StatusChanged += OnGitStatusChanged;
+        _editorService.DocumentOpened += OnEditorDocumentOpened;
 
         if (_debugService is not null)
         {
@@ -1426,6 +1427,13 @@ public partial class MainViewModel : INotifyPropertyChanged
     private void OnGitStatusChanged(object? sender, Core.Interfaces.RepositoryStatus status)
     {
         RefreshGitFiles();
+    }
+
+    private void OnEditorDocumentOpened(object? sender, Core.Models.Document e)
+    {
+        var editorDoc = FindToolInDock<EditorDocumentViewModel>();
+        if (editorDoc is not null)
+            ActivateToolInDock(editorDoc);
     }
 
     private void RefreshGitFiles()
