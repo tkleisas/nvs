@@ -1533,18 +1533,56 @@ public partial class MainViewModel : INotifyPropertyChanged
     {
         if (_workspacePath is null) return;
 
+        // Auto-detect project type and create .gitignore before init
+        var template = DetectGitignoreTemplate(_workspacePath);
+        if (template is not null)
+        {
+            await _gitService.CreateGitignoreAsync(_workspacePath, template);
+        }
+
         var result = await _gitService.InitRepositoryAsync(_workspacePath);
         if (result.Success)
         {
             CurrentBranch = _gitService.CurrentBranch ?? "";
             RefreshGitFiles();
             await RefreshGitBranches();
-            StatusMessage = "Repository initialized";
+            StatusMessage = template is not null
+                ? $"Repository initialized with .gitignore ({template})"
+                : "Repository initialized";
         }
         else
         {
             StatusMessage = $"Init failed: {result.ErrorMessage}";
         }
+    }
+
+    private static string? DetectGitignoreTemplate(string path)
+    {
+        if (Directory.EnumerateFiles(path, "*.csproj", SearchOption.AllDirectories).Any()
+            || Directory.EnumerateFiles(path, "*.sln", SearchOption.AllDirectories).Any()
+            || Directory.EnumerateFiles(path, "*.slnx", SearchOption.AllDirectories).Any()
+            || Directory.EnumerateFiles(path, "*.fsproj", SearchOption.AllDirectories).Any())
+            return "dotnet";
+
+        if (File.Exists(Path.Combine(path, "package.json")))
+            return "node";
+
+        if (File.Exists(Path.Combine(path, "requirements.txt"))
+            || File.Exists(Path.Combine(path, "pyproject.toml"))
+            || Directory.EnumerateFiles(path, "*.py", SearchOption.TopDirectoryOnly).Any())
+            return "python";
+
+        if (File.Exists(Path.Combine(path, "go.mod")))
+            return "go";
+
+        if (File.Exists(Path.Combine(path, "Cargo.toml")))
+            return "rust";
+
+        if (File.Exists(Path.Combine(path, "pom.xml"))
+            || File.Exists(Path.Combine(path, "build.gradle")))
+            return "java";
+
+        return null;
     }
 
     [RelayCommand]
