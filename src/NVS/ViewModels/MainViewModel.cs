@@ -1613,6 +1613,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             await _gitService.CheckoutAsync(branch.Name);
             CurrentBranch = _gitService.CurrentBranch ?? "";
             RefreshGitFiles();
+            await RefreshGitBranches();
 
             // Reload file tree and open documents to reflect new branch
             if (_workspacePath is not null)
@@ -2002,10 +2003,6 @@ public partial class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(GitIsNotRepository));
         OnPropertyChanged(nameof(HasGitStashes));
         OnPropertyChanged(nameof(HasGitTags));
-
-        // Update selected branch to current
-        _selectedGitBranch = GitBranches.FirstOrDefault(b => b.IsCurrent);
-        OnPropertyChanged(nameof(SelectedGitBranch));
     }
 
     [RelayCommand]
