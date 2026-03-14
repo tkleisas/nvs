@@ -157,6 +157,25 @@ public partial class MainViewModel : INotifyPropertyChanged
         set => SetProperty(ref _currentBranch, value);
     }
 
+    public bool GitIsRepository => _gitService.IsRepository;
+    public bool GitIsNotRepository => !_gitService.IsRepository;
+    public bool HasGitStashes => GitStashes.Count > 0;
+    public bool HasGitTags => GitTags.Count > 0;
+
+    private Branch? _selectedGitBranch;
+    public Branch? SelectedGitBranch
+    {
+        get => _selectedGitBranch;
+        set
+        {
+            if (value is not null && value != _selectedGitBranch && !value.IsCurrent)
+            {
+                _ = GitCheckoutBranch(value);
+            }
+            SetProperty(ref _selectedGitBranch, value);
+        }
+    }
+
     public EditorViewModel? Editor
     {
         get => _editor;
@@ -207,6 +226,11 @@ public partial class MainViewModel : INotifyPropertyChanged
     // Git properties
     public ObservableCollection<GitFileStatus> GitChangedFiles { get; } = [];
     public ObservableCollection<GitFileStatus> GitStagedFiles { get; } = [];
+    public ObservableCollection<Branch> GitBranches { get; } = [];
+    public ObservableCollection<StashEntry> GitStashes { get; } = [];
+    public ObservableCollection<Tag> GitTags { get; } = [];
+    public ObservableCollection<Commit> GitCommitLog { get; } = [];
+    public ObservableCollection<Remote> GitRemotes { get; } = [];
 
     public string CommitMessage
     {
@@ -1158,6 +1182,11 @@ public partial class MainViewModel : INotifyPropertyChanged
         await _gitService.InitializeAsync(folderPath);
         CurrentBranch = _gitService.CurrentBranch ?? "";
         RefreshGitFiles();
+        if (_gitService.IsRepository)
+        {
+            await RefreshGitBranches();
+            await RefreshGitExtras();
+        }
     }
 
     private async Task LoadFileTree(string folderPath)
@@ -1494,7 +1523,304 @@ public partial class MainViewModel : INotifyPropertyChanged
             await _gitService.InitializeAsync(_workspacePath);
             CurrentBranch = _gitService.CurrentBranch ?? "";
             RefreshGitFiles();
+            await RefreshGitBranches();
+            await RefreshGitExtras();
         }
+    }
+
+    [RelayCommand]
+    private async Task GitInitRepository()
+    {
+        if (_workspacePath is null) return;
+
+        var result = await _gitService.InitRepositoryAsync(_workspacePath);
+        if (result.Success)
+        {
+            CurrentBranch = _gitService.CurrentBranch ?? "";
+            RefreshGitFiles();
+            await RefreshGitBranches();
+            StatusMessage = "Repository initialized";
+        }
+        else
+        {
+            StatusMessage = $"Init failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitCreateGitignore(string? template)
+    {
+        if (_workspacePath is null || template is null) return;
+
+        var result = await _gitService.CreateGitignoreAsync(_workspacePath, template);
+        StatusMessage = result.Success ? ".gitignore created" : $"Failed: {result.ErrorMessage}";
+    }
+
+    [RelayCommand]
+    private async Task GitCheckoutBranch(Branch? branch)
+    {
+        if (branch is null) return;
+        try
+        {
+            await _gitService.CheckoutAsync(branch.Name);
+            CurrentBranch = _gitService.CurrentBranch ?? "";
+            RefreshGitFiles();
+            StatusMessage = $"Switched to branch: {branch.Name}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Checkout failed: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitCreateBranch(string? branchName)
+    {
+        if (string.IsNullOrWhiteSpace(branchName)) return;
+        await _gitService.CreateBranchAsync(branchName);
+        await _gitService.CheckoutAsync(branchName);
+        CurrentBranch = _gitService.CurrentBranch ?? "";
+        await RefreshGitBranches();
+        StatusMessage = $"Created and switched to: {branchName}";
+    }
+
+    [RelayCommand]
+    private async Task GitDeleteBranch(Branch? branch)
+    {
+        if (branch is null) return;
+        var result = await _gitService.DeleteBranchAsync(branch.Name);
+        if (result.Success)
+        {
+            await RefreshGitBranches();
+            StatusMessage = $"Deleted branch: {branch.Name}";
+        }
+        else
+        {
+            StatusMessage = $"Delete failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitMergeBranch(Branch? branch)
+    {
+        if (branch is null) return;
+        var result = await _gitService.MergeBranchAsync(branch.Name);
+        if (result.Success)
+        {
+            CurrentBranch = _gitService.CurrentBranch ?? "";
+            RefreshGitFiles();
+            StatusMessage = $"Merged {branch.Name} ({result.Status})";
+        }
+        else if (result.Status == Core.Interfaces.MergeStatus.Conflicts)
+        {
+            RefreshGitFiles();
+            StatusMessage = $"Merge conflicts in {result.ConflictedFiles.Count} file(s)";
+        }
+        else
+        {
+            StatusMessage = $"Merge failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitStashSave()
+    {
+        var result = await _gitService.StashSaveAsync(includeUntracked: true);
+        if (result.Success)
+        {
+            await RefreshGitExtras();
+            StatusMessage = "Changes stashed";
+        }
+        else
+        {
+            StatusMessage = $"Stash failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitStashPop()
+    {
+        var result = await _gitService.StashPopAsync();
+        if (result.Success)
+        {
+            await RefreshGitExtras();
+            StatusMessage = "Stash popped";
+        }
+        else
+        {
+            StatusMessage = $"Pop failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitStashApply(StashEntry? entry)
+    {
+        var index = entry?.Index ?? 0;
+        var result = await _gitService.StashApplyAsync(index);
+        StatusMessage = result.Success ? $"Stash @{{{index}}} applied" : $"Apply failed: {result.ErrorMessage}";
+    }
+
+    [RelayCommand]
+    private async Task GitStashDrop(StashEntry? entry)
+    {
+        var index = entry?.Index ?? 0;
+        var result = await _gitService.StashDropAsync(index);
+        if (result.Success) await RefreshGitExtras();
+        StatusMessage = result.Success ? $"Stash @{{{index}}} dropped" : $"Drop failed: {result.ErrorMessage}";
+    }
+
+    [RelayCommand]
+    private async Task GitCreateTag(string? tagName)
+    {
+        if (string.IsNullOrWhiteSpace(tagName)) return;
+        var result = await _gitService.CreateTagAsync(tagName);
+        if (result.Success)
+        {
+            await RefreshGitExtras();
+            StatusMessage = $"Created tag: {tagName}";
+        }
+        else
+        {
+            StatusMessage = $"Tag failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitDeleteTag(Tag? tag)
+    {
+        if (tag is null) return;
+        var result = await _gitService.DeleteTagAsync(tag.Name);
+        if (result.Success)
+        {
+            await RefreshGitExtras();
+            StatusMessage = $"Deleted tag: {tag.Name}";
+        }
+        else
+        {
+            StatusMessage = $"Delete tag failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitPush()
+    {
+        try
+        {
+            StatusMessage = "Pushing...";
+            await _gitService.PushAsync();
+            StatusMessage = "Push completed";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Push failed: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitPull()
+    {
+        try
+        {
+            StatusMessage = "Pulling...";
+            await _gitService.PullAsync();
+            CurrentBranch = _gitService.CurrentBranch ?? "";
+            RefreshGitFiles();
+            StatusMessage = "Pull completed";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Pull failed: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitFetch()
+    {
+        try
+        {
+            StatusMessage = "Fetching...";
+            await _gitService.FetchAsync();
+            StatusMessage = "Fetch completed";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Fetch failed: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitCherryPick(Commit? commit)
+    {
+        if (commit is null) return;
+        var result = await _gitService.CherryPickAsync(commit.Hash);
+        if (result.Success)
+        {
+            RefreshGitFiles();
+            StatusMessage = $"Cherry-picked: {commit.Hash[..7]}";
+        }
+        else
+        {
+            StatusMessage = $"Cherry-pick failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitAddRemote(string? args)
+    {
+        if (string.IsNullOrWhiteSpace(args)) return;
+        var parts = args.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2) return;
+        var result = await _gitService.AddRemoteAsync(parts[0], parts[1]);
+        if (result.Success) await RefreshGitExtras();
+        StatusMessage = result.Success ? $"Added remote: {parts[0]}" : $"Failed: {result.ErrorMessage}";
+    }
+
+    [RelayCommand]
+    private async Task GitRemoveRemote(Remote? remote)
+    {
+        if (remote is null) return;
+        var result = await _gitService.RemoveRemoteAsync(remote.Name);
+        if (result.Success) await RefreshGitExtras();
+        StatusMessage = result.Success ? $"Removed remote: {remote.Name}" : $"Failed: {result.ErrorMessage}";
+    }
+
+    [RelayCommand]
+    private async Task GitLoadMoreHistory()
+    {
+        var moreCommits = await _gitService.GetLogAsync(limit: 50, skip: GitCommitLog.Count);
+        foreach (var c in moreCommits)
+            GitCommitLog.Add(c);
+    }
+
+    private async Task RefreshGitBranches()
+    {
+        GitBranches.Clear();
+        var branches = await _gitService.GetBranchesAsync();
+        foreach (var b in branches)
+            GitBranches.Add(b);
+    }
+
+    private async Task RefreshGitExtras()
+    {
+        GitStashes.Clear();
+        GitTags.Clear();
+        GitRemotes.Clear();
+        GitCommitLog.Clear();
+
+        var stashes = await _gitService.GetStashListAsync();
+        foreach (var s in stashes) GitStashes.Add(s);
+
+        var tags = await _gitService.GetTagsAsync();
+        foreach (var t in tags) GitTags.Add(t);
+
+        var remotes = await _gitService.GetRemotesAsync();
+        foreach (var r in remotes) GitRemotes.Add(r);
+
+        var commits = await _gitService.GetLogAsync(limit: 50);
+        foreach (var c in commits) GitCommitLog.Add(c);
+
+        OnPropertyChanged(nameof(HasGitStashes));
+        OnPropertyChanged(nameof(HasGitTags));
     }
 
     [RelayCommand]
@@ -1581,6 +1907,15 @@ public partial class MainViewModel : INotifyPropertyChanged
             else
                 GitChangedFiles.Add(file);
         }
+
+        OnPropertyChanged(nameof(GitIsRepository));
+        OnPropertyChanged(nameof(GitIsNotRepository));
+        OnPropertyChanged(nameof(HasGitStashes));
+        OnPropertyChanged(nameof(HasGitTags));
+
+        // Update selected branch to current
+        _selectedGitBranch = GitBranches.FirstOrDefault(b => b.IsCurrent);
+        OnPropertyChanged(nameof(SelectedGitBranch));
     }
 
     [RelayCommand]

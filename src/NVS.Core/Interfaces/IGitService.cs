@@ -5,26 +5,80 @@ public interface IGitService
     bool IsRepository { get; }
     string? CurrentBranch { get; }
     RepositoryStatus Status { get; }
-    
+
     Task InitializeAsync(string path, CancellationToken cancellationToken = default);
-    
+
+    // Staging & committing
     Task<CommitResult> CommitAsync(string message, CancellationToken cancellationToken = default);
     Task StageAsync(string path, CancellationToken cancellationToken = default);
     Task StageAllAsync(CancellationToken cancellationToken = default);
     Task UnstageAsync(string path, CancellationToken cancellationToken = default);
-    
+
+    // Repository initialization
+    Task<GitOperationResult> InitRepositoryAsync(string path, CancellationToken cancellationToken = default);
+    Task<GitOperationResult> CreateGitignoreAsync(string repoPath, string template, CancellationToken cancellationToken = default);
+    IReadOnlyList<string> GetGitignoreTemplates();
+
+    // Branches
     Task<IReadOnlyList<Branch>> GetBranchesAsync(CancellationToken cancellationToken = default);
     Task CheckoutAsync(string branchName, CancellationToken cancellationToken = default);
     Task CreateBranchAsync(string branchName, CancellationToken cancellationToken = default);
-    
-    Task<IReadOnlyList<Commit>> GetLogAsync(int limit = 100, CancellationToken cancellationToken = default);
+    Task<GitOperationResult> DeleteBranchAsync(string branchName, CancellationToken cancellationToken = default);
+    Task<GitOperationResult> RenameBranchAsync(string oldName, string newName, CancellationToken cancellationToken = default);
+    Task<MergeResult> MergeBranchAsync(string branchName, CancellationToken cancellationToken = default);
+
+    // Stash
+    Task<GitOperationResult> StashSaveAsync(string? message = null, bool includeUntracked = false, CancellationToken cancellationToken = default);
+    Task<GitOperationResult> StashPopAsync(int index = 0, CancellationToken cancellationToken = default);
+    Task<GitOperationResult> StashApplyAsync(int index = 0, CancellationToken cancellationToken = default);
+    Task<GitOperationResult> StashDropAsync(int index = 0, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StashEntry>> GetStashListAsync(CancellationToken cancellationToken = default);
+
+    // Tags
+    Task<GitOperationResult> CreateTagAsync(string name, string? message = null, string? target = null, CancellationToken cancellationToken = default);
+    Task<GitOperationResult> DeleteTagAsync(string name, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Tag>> GetTagsAsync(CancellationToken cancellationToken = default);
+
+    // History & diff
+    Task<IReadOnlyList<Commit>> GetLogAsync(int limit = 100, int skip = 0, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DiffHunk>> GetDiffAsync(string? path = null, CancellationToken cancellationToken = default);
-    
+    Task<GitOperationResult> CherryPickAsync(string commitSha, CancellationToken cancellationToken = default);
+
+    // Remotes
     Task PullAsync(CancellationToken cancellationToken = default);
     Task PushAsync(CancellationToken cancellationToken = default);
     Task FetchAsync(CancellationToken cancellationToken = default);
-    
+    Task<IReadOnlyList<Remote>> GetRemotesAsync(CancellationToken cancellationToken = default);
+    Task<GitOperationResult> AddRemoteAsync(string name, string url, CancellationToken cancellationToken = default);
+    Task<GitOperationResult> RemoveRemoteAsync(string name, CancellationToken cancellationToken = default);
+    Task<GitOperationResult> SetRemoteUrlAsync(string name, string url, CancellationToken cancellationToken = default);
+
     event EventHandler<RepositoryStatus>? StatusChanged;
+}
+
+public sealed record GitOperationResult
+{
+    public bool Success { get; init; }
+    public string? ErrorMessage { get; init; }
+
+    public static GitOperationResult Ok() => new() { Success = true };
+    public static GitOperationResult Fail(string message) => new() { Success = false, ErrorMessage = message };
+}
+
+public sealed record MergeResult
+{
+    public bool Success { get; init; }
+    public MergeStatus Status { get; init; }
+    public string? ErrorMessage { get; init; }
+    public IReadOnlyList<string> ConflictedFiles { get; init; } = [];
+}
+
+public enum MergeStatus
+{
+    FastForward,
+    NonFastForward,
+    UpToDate,
+    Conflicts
 }
 
 public sealed record RepositoryStatus
@@ -80,6 +134,30 @@ public sealed record Commit
     public required string Author { get; init; }
     public required string AuthorEmail { get; init; }
     public DateTimeOffset Date { get; init; }
+}
+
+public sealed record StashEntry
+{
+    public required int Index { get; init; }
+    public required string Message { get; init; }
+    public DateTimeOffset Date { get; init; }
+}
+
+public sealed record Tag
+{
+    public required string Name { get; init; }
+    public required string TargetHash { get; init; }
+    public string? Message { get; init; }
+    public string? TaggerName { get; init; }
+    public DateTimeOffset? Date { get; init; }
+    public bool IsAnnotated { get; init; }
+}
+
+public sealed record Remote
+{
+    public required string Name { get; init; }
+    public required string Url { get; init; }
+    public string? PushUrl { get; init; }
 }
 
 public sealed record DiffHunk

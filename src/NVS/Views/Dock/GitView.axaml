@@ -8,69 +8,207 @@
              x:Class="NVS.Views.Dock.GitView"
              x:DataType="dock:GitToolViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,*" Margin="8,4">
-        <!-- Commit message -->
-        <TextBox Grid.Row="0"
-                 Text="{Binding Main.CommitMessage}"
-                 Watermark="Commit message"
-                 AcceptsReturn="True"
-                 Height="60"
-                 TextWrapping="Wrap"
-                 FontSize="12"
-                 Background="#3C3C3C"
-                 Foreground="#CCCCCC"
-                 BorderBrush="#555" />
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,4">
-            <Button Grid.Column="0" Content="✓ Commit"
-                    Command="{Binding Main.GitCommitCommand}"
-                    HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center"
-                    Background="#007ACC" Foreground="White" Padding="8,4" />
-            <Button Grid.Column="1" Content="⟳" Margin="4,0,0,0"
-                    Command="{Binding Main.GitRefreshCommand}"
-                    ToolTip.Tip="Refresh"
-                    Background="#3C3C3C" Foreground="#CCCCCC" Padding="8,4" />
-        </Grid>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="8,4" Spacing="4">
 
-        <!-- Staged Changes -->
-        <TextBlock Grid.Row="2" Text="STAGED CHANGES"
-                   FontWeight="Bold" FontSize="11" Foreground="#CCCCCC"
-                   Margin="0,8,0,4" />
-        <ItemsControl Grid.Row="3" ItemsSource="{Binding Main.GitStagedFiles}">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="core:GitFileStatus">
-                    <Grid ColumnDefinitions="Auto,*" Margin="0,1">
-                        <TextBlock Grid.Column="0" Text="{Binding Status}" FontSize="10"
-                                   Foreground="#4EC9B0" Width="16" Margin="0,0,4,0" />
-                        <TextBlock Grid.Column="1" Text="{Binding Path}"
-                                   FontSize="12" Foreground="#4EC9B0"
-                                   TextTrimming="CharacterEllipsis" />
-                    </Grid>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+            <!-- No Repository: Init Button -->
+            <StackPanel IsVisible="{Binding Main.GitIsNotRepository}" Spacing="8" Margin="0,12">
+                <TextBlock Text="No Git repository detected." Foreground="#999" FontSize="12"
+                           HorizontalAlignment="Center" />
+                <Button Content="Initialize Repository"
+                        Command="{Binding Main.GitInitRepositoryCommand}"
+                        HorizontalAlignment="Center"
+                        Background="#007ACC" Foreground="White" Padding="12,6" />
+            </StackPanel>
 
-        <!-- Changes -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,8,0,4" Spacing="4">
-            <TextBlock Text="CHANGES"
-                       FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
-            <Button Content="+" FontSize="10" Padding="4,0"
-                    Command="{Binding Main.GitStageAllCommand}"
-                    ToolTip.Tip="Stage All"
-                    Background="Transparent" Foreground="#CCCCCC" />
+            <!-- Repository Content -->
+            <StackPanel IsVisible="{Binding Main.GitIsRepository}" Spacing="4">
+
+                <!-- Branch Picker -->
+                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2">
+                    <TextBlock Grid.Column="0" Text="⎇" FontSize="14" Foreground="#CCCCCC"
+                               VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <ComboBox Grid.Column="1"
+                              ItemsSource="{Binding Main.GitBranches}"
+                              SelectedItem="{Binding Main.SelectedGitBranch}"
+                              FontSize="12" Background="#3C3C3C" Foreground="#CCCCCC"
+                              HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="core:Branch">
+                                <TextBlock Text="{Binding Name}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" Margin="4,0,0,0">
+                        <Button Content="↓" FontSize="11" Padding="6,3"
+                                Command="{Binding Main.GitPullCommand}"
+                                ToolTip.Tip="Pull" Background="#3C3C3C" Foreground="#CCCCCC" />
+                        <Button Content="↑" FontSize="11" Padding="6,3"
+                                Command="{Binding Main.GitPushCommand}"
+                                ToolTip.Tip="Push" Background="#3C3C3C" Foreground="#CCCCCC" />
+                        <Button Content="⟳" FontSize="11" Padding="6,3"
+                                Command="{Binding Main.GitRefreshCommand}"
+                                ToolTip.Tip="Refresh" Background="#3C3C3C" Foreground="#CCCCCC" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Commit message -->
+                <TextBox Text="{Binding Main.CommitMessage}"
+                         Watermark="Commit message"
+                         AcceptsReturn="True"
+                         Height="60"
+                         TextWrapping="Wrap"
+                         FontSize="12"
+                         Background="#3C3C3C"
+                         Foreground="#CCCCCC"
+                         BorderBrush="#555" />
+                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,2">
+                    <Button Grid.Column="0" Content="✓ Commit"
+                            Command="{Binding Main.GitCommitCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Background="#007ACC" Foreground="White" Padding="8,4" />
+                    <Button Grid.Column="1" Content="📦" Margin="4,0,0,0"
+                            Command="{Binding Main.GitStashSaveCommand}"
+                            ToolTip.Tip="Stash Changes"
+                            Background="#3C3C3C" Foreground="#CCCCCC" Padding="8,4" />
+                    <Button Grid.Column="2" Content="📦↩" Margin="4,0,0,0"
+                            Command="{Binding Main.GitStashPopCommand}"
+                            ToolTip.Tip="Pop Stash"
+                            Background="#3C3C3C" Foreground="#CCCCCC" Padding="8,4" />
+                </Grid>
+
+                <!-- Staged Changes -->
+                <TextBlock Text="STAGED CHANGES"
+                           FontWeight="Bold" FontSize="11" Foreground="#CCCCCC"
+                           Margin="0,8,0,2" />
+                <ItemsControl ItemsSource="{Binding Main.GitStagedFiles}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="core:GitFileStatus">
+                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1">
+                                <TextBlock Grid.Column="0" Text="{Binding Status}" FontSize="10"
+                                           Foreground="#4EC9B0" Width="16" Margin="0,0,4,0" />
+                                <TextBlock Grid.Column="1" Text="{Binding Path}"
+                                           FontSize="12" Foreground="#4EC9B0"
+                                           TextTrimming="CharacterEllipsis" />
+                                <Button Grid.Column="2" Content="−" FontSize="10" Padding="4,0"
+                                        Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitUnstageFileCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="Unstage"
+                                        Background="Transparent" Foreground="#999" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Changes -->
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,2" Spacing="4">
+                    <TextBlock Text="CHANGES"
+                               FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
+                    <Button Content="+" FontSize="10" Padding="4,0"
+                            Command="{Binding Main.GitStageAllCommand}"
+                            ToolTip.Tip="Stage All"
+                            Background="Transparent" Foreground="#CCCCCC" />
+                </StackPanel>
+                <ItemsControl ItemsSource="{Binding Main.GitChangedFiles}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="core:GitFileStatus">
+                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1">
+                                <TextBlock Grid.Column="0" Text="{Binding Status}" FontSize="10"
+                                           Foreground="#D7BA7D" Width="16" Margin="0,0,4,0" />
+                                <TextBlock Grid.Column="1" Text="{Binding Path}"
+                                           FontSize="12" Foreground="#D7BA7D"
+                                           TextTrimming="CharacterEllipsis" />
+                                <Button Grid.Column="2" Content="+" FontSize="10" Padding="4,0"
+                                        Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitStageFileCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="Stage"
+                                        Background="Transparent" Foreground="#999" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Stashes -->
+                <StackPanel IsVisible="{Binding Main.HasGitStashes}" Spacing="2" Margin="0,8,0,0">
+                    <TextBlock Text="STASHES" FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
+                    <ItemsControl ItemsSource="{Binding Main.GitStashes}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="core:StashEntry">
+                                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,1">
+                                    <TextBlock Grid.Column="0" Text="{Binding Message}"
+                                               FontSize="11" Foreground="#B5CEA8"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <Button Grid.Column="1" Content="↩" FontSize="10" Padding="4,0"
+                                            Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitStashApplyCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="Apply"
+                                            Background="Transparent" Foreground="#999" />
+                                    <Button Grid.Column="2" Content="✕" FontSize="10" Padding="4,0"
+                                            Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitStashDropCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="Drop"
+                                            Background="Transparent" Foreground="#999" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Tags -->
+                <StackPanel IsVisible="{Binding Main.HasGitTags}" Spacing="2" Margin="0,8,0,0">
+                    <TextBlock Text="TAGS" FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
+                    <ItemsControl ItemsSource="{Binding Main.GitTags}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="core:Tag">
+                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1">
+                                    <TextBlock Grid.Column="0" Text="🏷" FontSize="10" Margin="0,0,4,0" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                               FontSize="11" Foreground="#CE9178"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <Button Grid.Column="2" Content="✕" FontSize="10" Padding="4,0"
+                                            Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitDeleteTagCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="Delete Tag"
+                                            Background="Transparent" Foreground="#999" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Recent Commits -->
+                <StackPanel Spacing="2" Margin="0,8,0,0">
+                    <TextBlock Text="COMMIT LOG" FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
+                    <ItemsControl ItemsSource="{Binding Main.GitCommitLog}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="core:Commit">
+                                <StackPanel Margin="0,2">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding Hash, Converter={x:Static dock:GitToolViewModel.ShortHashConverter}}"
+                                                   FontSize="10" Foreground="#569CD6" FontFamily="Consolas,monospace"
+                                                   Margin="0,0,6,0" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Message}"
+                                                   FontSize="11" Foreground="#CCCCCC"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                    <TextBlock FontSize="9" Foreground="#666">
+                                        <Run Text="{Binding Author}" />
+                                        <Run Text=" · " />
+                                        <Run Text="{Binding Date, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="Load more..."
+                            Command="{Binding Main.GitLoadMoreHistoryCommand}"
+                            FontSize="11" Foreground="#569CD6" Padding="4,2"
+                            Background="Transparent"
+                            HorizontalAlignment="Left"
+                            Margin="0,4,0,0" />
+                </StackPanel>
+            </StackPanel>
         </StackPanel>
-        <ItemsControl Grid.Row="6" ItemsSource="{Binding Main.GitChangedFiles}">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="core:GitFileStatus">
-                    <Grid ColumnDefinitions="Auto,*" Margin="0,1">
-                        <TextBlock Grid.Column="0" Text="{Binding Status}" FontSize="10"
-                                   Foreground="#D7BA7D" Width="16" Margin="0,0,4,0" />
-                        <TextBlock Grid.Column="1" Text="{Binding Path}"
-                                   FontSize="12" Foreground="#D7BA7D"
-                                   TextTrimming="CharacterEllipsis" />
-                    </Grid>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-    </Grid>
+    </ScrollViewer>
 </UserControl>
