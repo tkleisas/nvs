@@ -48,6 +48,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     private bool _isDebugging;
     private bool _isDebugPaused;
     private bool _debugUsesTerminal;
+    private TerminalToolViewModel? _debugTerminal;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -724,21 +725,20 @@ public partial class MainViewModel : INotifyPropertyChanged
             if (isConsoleApp)
             {
                 // Wire up the RunInTerminal handler so netcoredbg launches
-                // the debuggee in the integrated terminal (enables console I/O).
-                // _debugUsesTerminal is set only when the handler fires, so DAP
-                // output events still reach Build Output if the adapter doesn't
-                // support runInTerminal.
+                // the debuggee in a dedicated debug terminal (enables console I/O).
                 _debugService.RunInTerminalHandler = async (request) =>
                 {
                     _debugUsesTerminal = true;
-                    var terminalTool = FindTerminalTool();
-                    if (terminalTool is not null)
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        ActivateToolInDock(terminalTool);
-                        var command = string.Join(" ", request.Args.Select(arg =>
-                            arg.Contains(' ') ? $"\"{arg}\"" : arg));
-                        await terminalTool.SendCommandToTerminalAsync(command);
-                    }
+                        CreateDebugTerminal(projectDir);
+                    });
+
+                    // Build the command and queue it; the PTY will flush it
+                    // once the Iciclecreek TerminalControl is ready.
+                    var command = string.Join(" ", request.Args.Select(arg =>
+                        arg.Contains(' ') ? $"\"{arg}\"" : arg));
+                    await _debugTerminal!.SendCommandToTerminalAsync(command);
                     return 0;
                 };
             }
@@ -776,6 +776,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         _debugUsesTerminal = false;
         StatusMessage = "Debug session ended";
         ClearDebugCurrentLine();
+        DestroyDebugTerminal();
     }
 
     [RelayCommand]
@@ -894,6 +895,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             _debugUsesTerminal = false;
             StatusMessage = "Debug session ended";
             ClearDebugCurrentLine();
+            DestroyDebugTerminal();
 
             // Clear call stack and variables
             FindToolInDock<CallStackToolViewModel>()?.ClearFrames();
@@ -1015,6 +1017,55 @@ public partial class MainViewModel : INotifyPropertyChanged
     private TerminalToolViewModel? FindTerminalTool()
     {
         return FindToolInDock<TerminalToolViewModel>();
+    }
+
+    private void CreateDebugTerminal(string workingDirectory)
+    {
+        DestroyDebugTerminal();
+
+        _debugTerminal = new TerminalToolViewModel(this)
+        {
+            Id = "DebugTerminal",
+            Title = "🐛 Debug",
+        };
+        _debugTerminal.WorkingDirectory = workingDirectory;
+
+        // Add the debug terminal to the same ToolDock as the regular terminal
+        var existingTerminal = FindTerminalTool();
+        if (existingTerminal is not null)
+        {
+            var parentDock = FindParentDock(DockLayout!, existingTerminal);
+            if (parentDock is not null)
+            {
+                parentDock.VisibleDockables?.Add(_debugTerminal);
+                parentDock.ActiveDockable = _debugTerminal;
+                return;
+            }
+        }
+    }
+
+    private void DestroyDebugTerminal()
+    {
+        if (_debugTerminal is null) return;
+
+        var parentDock = DockLayout is not null ? FindParentDock(DockLayout, _debugTerminal) : null;
+        parentDock?.VisibleDockables?.Remove(_debugTerminal);
+
+        _debugTerminal = null;
+    }
+
+    private static IDock? FindParentDock(IDockable root, IDockable target)
+    {
+        if (root is IDock dock && dock.VisibleDockables is not null)
+        {
+            foreach (var child in dock.VisibleDockables)
+            {
+                if (child == target) return dock;
+                var found = FindParentDock(child, target);
+                if (found is not null) return found;
+            }
+        }
+        return null;
     }
 
     private T? FindToolInDock<T>() where T : class
