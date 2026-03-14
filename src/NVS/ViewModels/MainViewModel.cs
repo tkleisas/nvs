@@ -51,6 +51,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     private bool _debugUsesTerminal;
     private TerminalToolViewModel? _debugTerminal;
     private System.Diagnostics.Process? _debuggeeProcess;
+    private System.Diagnostics.Process? _runningProcess;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -719,28 +720,48 @@ public partial class MainViewModel : INotifyPropertyChanged
                 return;
             }
 
-            // Run in the integrated terminal so the user can see console output
+            // Run — GUI apps (WinExe) launch as detached processes;
+            // console apps run in the integrated terminal.
             StatusMessage = "Running...";
 
-            var projectArg = startup is not null
-                ? $" --project \"{startup.FilePath}\""
-                : "";
-            var runCommand = $"dotnet run{projectArg} --nologo";
+            var isGuiApp = startup is not null
+                && string.Equals(startup.OutputType, "WinExe", StringComparison.OrdinalIgnoreCase);
 
-            // Ensure terminal panel is visible
-            IsTerminalVisible = true;
-
-            var terminalTool = FindTerminalTool();
-            if (terminalTool is not null)
+            if (isGuiApp)
             {
-                // Queue the command — the terminal will deliver it
-                // once the PTY is ready (may need a brief delay).
-                await terminalTool.SendCommandToTerminalAsync(runCommand);
-                StatusMessage = "Application started in terminal";
+                var projectArg = $" --project \"{startup!.FilePath}\"";
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = $"run{projectArg} --nologo",
+                    WorkingDirectory = WorkspacePath,
+                    UseShellExecute = false,
+                    CreateNoWindow = false,
+                };
+                _runningProcess = System.Diagnostics.Process.Start(psi);
+                StatusMessage = _runningProcess is not null
+                    ? $"{startup.Name} launched (PID {_runningProcess.Id})"
+                    : "Failed to start application";
             }
             else
             {
-                StatusMessage = "Terminal not available — open a terminal first";
+                var projectArg = startup is not null
+                    ? $" --project \"{startup.FilePath}\""
+                    : "";
+                var runCommand = $"dotnet run{projectArg} --nologo";
+
+                IsTerminalVisible = true;
+
+                var terminalTool = FindTerminalTool();
+                if (terminalTool is not null)
+                {
+                    await terminalTool.SendCommandToTerminalAsync(runCommand);
+                    StatusMessage = "Application started in terminal";
+                }
+                else
+                {
+                    StatusMessage = "Terminal not available — open a terminal first";
+                }
             }
         }
         catch (Exception ex)
@@ -756,6 +777,16 @@ public partial class MainViewModel : INotifyPropertyChanged
     [RelayCommand]
     private async Task StopExecution()
     {
+        // Kill a detached GUI process if running
+        if (_runningProcess is not null && !_runningProcess.HasExited)
+        {
+            try { _runningProcess.Kill(entireProcessTree: true); } catch { /* best effort */ }
+            _runningProcess.Dispose();
+            _runningProcess = null;
+            StatusMessage = "Application stopped";
+            return;
+        }
+
         // Kill the process tree immediately, then cancel the token
         await _buildService.CancelAsync();
 
