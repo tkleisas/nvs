@@ -712,6 +712,31 @@ public partial class MainViewModel : INotifyPropertyChanged
             var isConsoleApp = string.Equals(startup.OutputType, "Exe", StringComparison.OrdinalIgnoreCase)
                             || startup.OutputType is null;
 
+            int? serverPort = null;
+
+            if (isConsoleApp)
+            {
+                // netcoredbg doesn't support DAP runInTerminal, so we run it
+                // in TCP server mode inside a debug terminal. The debuggee's
+                // console I/O goes through the terminal's PTY.
+                _debugUsesTerminal = true;
+                var adapterPath = await _debugService.ResolveAdapterPathAsync("coreclr");
+
+                serverPort = GetFreeTcpPort();
+                CreateDebugTerminal(projectDir);
+
+                // Launch netcoredbg in server mode inside the debug terminal
+                var serverCommand = $"\"{adapterPath}\" --server={serverPort} --interpreter=vscode";
+                await _debugTerminal!.SendCommandToTerminalAsync(serverCommand);
+
+                // Wait for netcoredbg to start listening
+                await WaitForTcpPortAsync(serverPort.Value, TimeSpan.FromSeconds(10));
+            }
+            else
+            {
+                _debugUsesTerminal = false;
+            }
+
             var config = new NVS.Core.Models.Settings.DebugConfiguration
             {
                 Name = startup.Name,
@@ -719,34 +744,8 @@ public partial class MainViewModel : INotifyPropertyChanged
                 Request = "launch",
                 Program = programPath,
                 Cwd = projectDir,
-                Console = isConsoleApp ? "integratedTerminal" : null,
+                ServerPort = serverPort,
             };
-
-            if (isConsoleApp)
-            {
-                // Wire up the RunInTerminal handler so netcoredbg launches
-                // the debuggee in a dedicated debug terminal (enables console I/O).
-                _debugService.RunInTerminalHandler = async (request) =>
-                {
-                    _debugUsesTerminal = true;
-                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        CreateDebugTerminal(projectDir);
-                    });
-
-                    // Build the command and queue it; the PTY will flush it
-                    // once the Iciclecreek TerminalControl is ready.
-                    var command = string.Join(" ", request.Args.Select(arg =>
-                        arg.Contains(' ') ? $"\"{arg}\"" : arg));
-                    await _debugTerminal!.SendCommandToTerminalAsync(command);
-                    return 0;
-                };
-            }
-            else
-            {
-                _debugUsesTerminal = false;
-                _debugService.RunInTerminalHandler = null;
-            }
 
             await _debugService.StartDebuggingAsync(config);
         }
@@ -1066,6 +1065,34 @@ public partial class MainViewModel : INotifyPropertyChanged
             }
         }
         return null;
+    }
+
+    private static int GetFreeTcpPort()
+    {
+        using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
+    }
+
+    private static async Task WaitForTcpPortAsync(int port, TimeSpan timeout)
+    {
+        using var cts = new CancellationTokenSource(timeout);
+        while (!cts.Token.IsCancellationRequested)
+        {
+            try
+            {
+                using var tcp = new System.Net.Sockets.TcpClient();
+                await tcp.ConnectAsync("127.0.0.1", port, cts.Token);
+                return;
+            }
+            catch (Exception) when (!cts.Token.IsCancellationRequested)
+            {
+                await Task.Delay(200, cts.Token);
+            }
+        }
+        throw new TimeoutException($"Debug adapter did not start listening on port {port} within {timeout.TotalSeconds}s.");
     }
 
     private T? FindToolInDock<T>() where T : class

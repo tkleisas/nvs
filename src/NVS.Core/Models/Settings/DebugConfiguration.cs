@@ -9,5 +9,12 @@ public sealed record DebugConfiguration
     public string? Cwd { get; init; }
     public IReadOnlyList<string> Args { get; init; } = [];
     public string? Console { get; init; }
+
+    /// <summary>
+    /// When set, connect to an already-running adapter via TCP on this port
+    /// instead of launching a new adapter process.
+    /// </summary>
+    public int? ServerPort { get; init; }
+
     public IReadOnlyDictionary<string, object> AdditionalProperties { get; init; } = new Dictionary<string, object>();
 }

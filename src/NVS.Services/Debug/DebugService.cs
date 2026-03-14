@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Text.Json;
 using NVS.Core.Debug;
 using NVS.Core.Interfaces;
@@ -16,6 +17,7 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
     private readonly IBreakpointStore? _breakpointStore;
     private DapClient? _client;
     private Process? _adapterProcess;
+    private TcpClient? _tcpClient;
     private int _activeThreadId;
 
     public bool IsDebugging { get; private set; }
@@ -46,6 +48,39 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         _client = client;
     }
 
+    public async Task<string> ResolveAdapterPathAsync(string adapterType, CancellationToken cancellationToken = default)
+    {
+        var adapterInfo = _adapterRegistry.GetAdapter(adapterType)
+            ?? throw new InvalidOperationException($"No debug adapter registered for type '{adapterType}'.");
+
+        var adapterPath = _adapterRegistry.FindAdapterExecutable(adapterType);
+
+        if (adapterPath is null && adapterInfo.ExecutableName == "netcoredbg")
+        {
+            OutputReceived?.Invoke(this, new OutputEvent
+            {
+                Output = "netcoredbg not found — downloading automatically...\n",
+                Category = OutputCategory.Console,
+            });
+
+            var progress = new Progress<string>(msg =>
+                OutputReceived?.Invoke(this, new OutputEvent
+                {
+                    Output = msg + "\n",
+                    Category = OutputCategory.Console,
+                }));
+
+            adapterPath = await _adapterRegistry.Downloader
+                .EnsureNetcoredbgAsync(progress, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return adapterPath
+            ?? throw new InvalidOperationException(
+                $"Debug adapter '{adapterInfo.DisplayName}' not found. " +
+                $"Please install {adapterInfo.ExecutableName} and ensure it's on your PATH.");
+    }
+
     public async Task<DebugSession> StartDebuggingAsync(DebugConfiguration configuration, CancellationToken cancellationToken = default)
     {
         if (IsDebugging)
@@ -57,55 +92,41 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
 
         if (_client is null)
         {
-            var adapterPath = _adapterRegistry.FindAdapterExecutable(adapterType);
-
-            // Auto-download if not found locally
-            if (adapterPath is null && adapterInfo.ExecutableName == "netcoredbg")
+            if (configuration.ServerPort is int port)
             {
-                OutputReceived?.Invoke(this, new OutputEvent
-                {
-                    Output = "netcoredbg not found — downloading automatically...\n",
-                    Category = OutputCategory.Console,
-                });
-
-                var progress = new Progress<string>(msg =>
-                    OutputReceived?.Invoke(this, new OutputEvent
-                    {
-                        Output = msg + "\n",
-                        Category = OutputCategory.Console,
-                    }));
-
-                adapterPath = await _adapterRegistry.Downloader
-                    .EnsureNetcoredbgAsync(progress, cancellationToken)
-                    .ConfigureAwait(false);
+                // Connect via TCP to an adapter already running in server mode
+                _tcpClient = new TcpClient();
+                await _tcpClient.ConnectAsync("127.0.0.1", port, cancellationToken).ConfigureAwait(false);
+                var stream = _tcpClient.GetStream();
+                var transport = new DapTransport(stream, stream);
+                _client = new DapClient(transport);
             }
-
-            if (adapterPath is null)
-                throw new InvalidOperationException(
-                    $"Debug adapter '{adapterInfo.DisplayName}' not found. " +
-                    $"Please install {adapterInfo.ExecutableName} and ensure it's on your PATH.");
-
-            _adapterProcess = new Process
+            else
             {
-                StartInfo = new ProcessStartInfo
+                var adapterPath = await ResolveAdapterPathAsync(adapterType, cancellationToken).ConfigureAwait(false);
+
+                _adapterProcess = new Process
                 {
-                    FileName = adapterPath,
-                    Arguments = string.Join(' ', adapterInfo.Arguments),
-                    UseShellExecute = false,
-                    RedirectStandardInput = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                },
-            };
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = adapterPath,
+                        Arguments = string.Join(' ', adapterInfo.Arguments),
+                        UseShellExecute = false,
+                        RedirectStandardInput = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                    },
+                };
 
-            _adapterProcess.Start();
+                _adapterProcess.Start();
 
-            var transport = new DapTransport(
-                _adapterProcess.StandardOutput.BaseStream,
-                _adapterProcess.StandardInput.BaseStream);
+                var transport = new DapTransport(
+                    _adapterProcess.StandardOutput.BaseStream,
+                    _adapterProcess.StandardInput.BaseStream);
 
-            _client = new DapClient(transport);
+                _client = new DapClient(transport);
+            }
         }
 
         SubscribeToClientEvents(_client);
@@ -470,6 +491,12 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
 
             _adapterProcess.Dispose();
             _adapterProcess = null;
+        }
+
+        if (_tcpClient is not null)
+        {
+            _tcpClient.Dispose();
+            _tcpClient = null;
         }
 
         if (session is not null)

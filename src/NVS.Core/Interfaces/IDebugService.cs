@@ -15,6 +15,11 @@ public interface IDebugService
     /// Returns the launched process ID (or 0 if unknown).
     /// </summary>
     Func<RunInTerminalRequest, Task<int>>? RunInTerminalHandler { get; set; }
+
+    /// <summary>
+    /// Resolves the full path to the debug adapter executable, auto-downloading if needed.
+    /// </summary>
+    Task<string> ResolveAdapterPathAsync(string adapterType, CancellationToken cancellationToken = default);
     
     Task<DebugSession> StartDebuggingAsync(DebugConfiguration configuration, CancellationToken cancellationToken = default);
     Task StopDebuggingAsync(CancellationToken cancellationToken = default);
