@@ -190,7 +190,7 @@
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Max Tokens" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding LlmMaxTokens}"
-                                           Minimum="128" Maximum="65536" Increment="256"
+                                           Minimum="128" Maximum="1048576" Increment="256"
                                            MaxWidth="180" HorizontalAlignment="Left" Margin="0,8,0,0" />
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Temperature" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
