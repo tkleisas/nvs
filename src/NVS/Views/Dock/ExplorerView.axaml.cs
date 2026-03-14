@@ -36,7 +36,11 @@ public partial class ExplorerView : UserControl
         {
             return GetMain()?.WorkspacePath ?? "";
         }
-        return node.IsDirectory ? node.Path : System.IO.Path.GetDirectoryName(node.Path) ?? "";
+        var dir = node.IsDirectory ? node.Path : System.IO.Path.GetDirectoryName(node.Path) ?? "";
+        // If the path is not actually a directory on disk, use its parent
+        if (!string.IsNullOrEmpty(dir) && !System.IO.Directory.Exists(dir))
+            dir = System.IO.Path.GetDirectoryName(dir) ?? "";
+        return dir;
     }
 
     private async void OnNewFileInExplorerClick(object? sender, RoutedEventArgs e)
