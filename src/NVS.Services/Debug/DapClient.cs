@@ -66,6 +66,7 @@ public sealed class DapClient : IDapClient
             ClientId = "nvs",
             ClientName = "NVS IDE",
             AdapterId = "coreclr",
+            SupportsRunInTerminalRequest = true,
         };
 
         var response = await SendRequestAsync("initialize", args, cancellationToken).ConfigureAwait(false);
