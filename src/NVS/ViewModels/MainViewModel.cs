@@ -168,9 +168,11 @@ public partial class MainViewModel : INotifyPropertyChanged
         get => _selectedGitBranch;
         set
         {
-            if (value is not null && value != _selectedGitBranch && !value.IsCurrent)
+            if (value is not null && value.Name != (_selectedGitBranch?.Name) && !value.IsCurrent)
             {
+                SetProperty(ref _selectedGitBranch, value);
                 _ = GitCheckoutBranch(value);
+                return;
             }
             SetProperty(ref _selectedGitBranch, value);
         }
