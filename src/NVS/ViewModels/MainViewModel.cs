@@ -1863,6 +1863,9 @@ public partial class MainViewModel : INotifyPropertyChanged
         var branches = await _gitService.GetBranchesAsync();
         foreach (var b in branches)
             GitBranches.Add(b);
+
+        _selectedGitBranch = GitBranches.FirstOrDefault(b => b.IsCurrent);
+        OnPropertyChanged(nameof(SelectedGitBranch));
     }
 
     private async Task RefreshGitExtras()
