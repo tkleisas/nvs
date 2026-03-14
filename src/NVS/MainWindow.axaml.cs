@@ -101,10 +101,13 @@ public partial class MainWindow : Window
 
         var dockSettings = ExtractDockProportions();
 
+        var mainVm = DataContext as MainViewModel;
+
         var newSettings = settingsService.AppSettings with
         {
             Window = windowSettings,
             Dock = dockSettings,
+            LastWorkspacePath = mainVm?.WorkspacePath,
         };
         try
         {

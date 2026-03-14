@@ -58,6 +58,22 @@ public partial class App : Application
                 mainViewModel.StorageProvider = mainWindow.StorageProvider;
                 mainViewModel.InitializeDock();
                 RegisterLlmTools(mainViewModel);
+
+                // Restore previous workspace if the setting is enabled
+                if (settingsService?.AppSettings is { RestorePreviousSession: true, LastWorkspacePath: { } lastPath })
+                {
+                    if (Directory.Exists(lastPath))
+                    {
+                        _ = mainViewModel.OpenWorkspaceAsync(lastPath);
+                    }
+                    else
+                    {
+                        // Path no longer exists — clear it so we don't retry every launch
+                        mainViewModel.StatusMessage = $"Previous workspace not found: {lastPath}";
+                        var cleaned = settingsService.AppSettings with { LastWorkspacePath = null };
+                        _ = settingsService.SaveAppSettingsAsync(cleaned);
+                    }
+                }
             }
             mainWindow.DataContext = mainViewModel;
             desktop.MainWindow = mainWindow;
