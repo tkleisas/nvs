@@ -59,8 +59,13 @@ public partial class App : Application
                 mainViewModel.InitializeDock();
                 RegisterLlmTools(mainViewModel);
 
-                // Restore previous workspace if the setting is enabled
-                if (settingsService?.AppSettings is { RestorePreviousSession: true, LastWorkspacePath: { } lastPath })
+                // CLI argument takes precedence over session restore
+                var cliPath = desktop.Args?.FirstOrDefault(a => !a.StartsWith('-'));
+                if (cliPath is not null)
+                {
+                    _ = OpenFromCliAsync(mainViewModel, cliPath);
+                }
+                else if (settingsService?.AppSettings is { RestorePreviousSession: true, LastWorkspacePath: { } lastPath })
                 {
                     if (Directory.Exists(lastPath))
                     {
@@ -68,7 +73,6 @@ public partial class App : Application
                     }
                     else
                     {
-                        // Path no longer exists — clear it so we don't retry every launch
                         mainViewModel.StatusMessage = $"Previous workspace not found: {lastPath}";
                         var cleaned = settingsService.AppSettings with { LastWorkspacePath = null };
                         _ = settingsService.SaveAppSettingsAsync(cleaned);
@@ -80,6 +84,38 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static async Task OpenFromCliAsync(MainViewModel vm, string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+
+        if (File.Exists(fullPath))
+        {
+            var ext = Path.GetExtension(fullPath);
+            if (ext is ".sln" or ".slnx")
+            {
+                await vm.OpenSolutionFromPathAsync(fullPath);
+            }
+            else
+            {
+                // Single file — open its parent as workspace, then open the file
+                var dir = Path.GetDirectoryName(fullPath);
+                if (dir is not null)
+                {
+                    await vm.OpenWorkspaceAsync(dir);
+                    await vm.OpenFileAsync(fullPath);
+                }
+            }
+        }
+        else if (Directory.Exists(fullPath))
+        {
+            await vm.OpenWorkspaceAsync(fullPath);
+        }
+        else
+        {
+            vm.StatusMessage = $"Path not found: {fullPath}";
+        }
     }
 
     private void ConfigureServices()

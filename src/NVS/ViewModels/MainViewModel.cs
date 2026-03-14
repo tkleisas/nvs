@@ -398,6 +398,31 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public async Task OpenSolutionFromPathAsync(string solutionPath)
+    {
+        var solutionDir = Path.GetDirectoryName(solutionPath);
+        if (solutionDir is null) return;
+
+        WorkspacePath = solutionDir;
+        IsWorkspaceOpen = true;
+        Title = $"NVS - {Path.GetFileNameWithoutExtension(solutionPath)}";
+
+        await LoadFileTree(solutionDir);
+        await InitializeGitAsync(solutionDir);
+
+        try
+        {
+            var solution = await _solutionService.LoadSolutionAsync(solutionPath);
+            LoadSolutionTree(solution);
+            RefreshProjectList();
+            StatusMessage = $"Solution loaded: {solution.Name} ({solution.Projects.Count} projects)";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to load solution: {ex.Message}";
+        }
+    }
+
     public async Task OpenWorkspaceAsync(string folderPath)
     {
         WorkspacePath = folderPath;
