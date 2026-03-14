@@ -326,30 +326,51 @@ public partial class EditorViewModel : INotifyPropertyChanged
 
         docVm.GoToDefinitionCommand = new AsyncRelayCommand(async () =>
         {
-            var pos = new Position { Line = docVm.CursorLine - 1, Column = docVm.CursorColumn - 1 };
-            var location = await _lspSessionManager.GetDefinitionAsync(docVm.Document, pos);
-            if (location is not null)
+            try
             {
-                await _editorService.OpenDocumentAsync(location.FilePath);
+                var pos = new Position { Line = docVm.CursorLine - 1, Column = docVm.CursorColumn - 1 };
+                var location = await _lspSessionManager.GetDefinitionAsync(docVm.Document, pos);
+                if (location is not null)
+                {
+                    await _editorService.OpenDocumentAsync(location.FilePath);
+                }
+            }
+            catch (Exception)
+            {
+                // Language server unavailable — silently ignore
             }
         });
 
         docVm.RequestCompletionCommand = new AsyncRelayCommand<LspRequestContext?>(async (ctx) =>
         {
             if (ctx is null) return;
-            await FlushLspDidChangeAsync(docVm, ctx.Text).ConfigureAwait(false);
-            var pos = new Position { Line = ctx.Line - 1, Column = ctx.Column - 1 };
-            var completions = await _lspSessionManager.GetCompletionsAsync(docVm.Document, pos, ctx.TriggerCharacter);
-            docVm.LastCompletionResults = completions;
+            try
+            {
+                await FlushLspDidChangeAsync(docVm, ctx.Text).ConfigureAwait(false);
+                var pos = new Position { Line = ctx.Line - 1, Column = ctx.Column - 1 };
+                var completions = await _lspSessionManager.GetCompletionsAsync(docVm.Document, pos, ctx.TriggerCharacter);
+                docVm.LastCompletionResults = completions;
+            }
+            catch (Exception)
+            {
+                docVm.LastCompletionResults = [];
+            }
         });
 
         docVm.RequestSignatureHelpCommand = new AsyncRelayCommand<LspRequestContext?>(async (ctx) =>
         {
             if (ctx is null) return;
-            await FlushLspDidChangeAsync(docVm, ctx.Text).ConfigureAwait(false);
-            var pos = new Position { Line = ctx.Line - 1, Column = ctx.Column - 1 };
-            var sigHelp = await _lspSessionManager.GetSignatureHelpAsync(docVm.Document, pos, ctx.TriggerCharacter);
-            docVm.LastSignatureHelp = sigHelp;
+            try
+            {
+                await FlushLspDidChangeAsync(docVm, ctx.Text).ConfigureAwait(false);
+                var pos = new Position { Line = ctx.Line - 1, Column = ctx.Column - 1 };
+                var sigHelp = await _lspSessionManager.GetSignatureHelpAsync(docVm.Document, pos, ctx.TriggerCharacter);
+                docVm.LastSignatureHelp = sigHelp;
+            }
+            catch (Exception)
+            {
+                docVm.LastSignatureHelp = null;
+            }
         });
     }
 

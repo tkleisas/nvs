@@ -768,35 +768,70 @@ public partial class MainViewModel : INotifyPropertyChanged
     private async Task DebugStepOver()
     {
         if (_debugService is null || !_debugService.IsPaused) return;
-        await _debugService.StepOverAsync();
+        try
+        {
+            await _debugService.StepOverAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Debug step-over error: {ex.Message}";
+        }
     }
 
     [RelayCommand]
     private async Task DebugStepInto()
     {
         if (_debugService is null || !_debugService.IsPaused) return;
-        await _debugService.StepIntoAsync();
+        try
+        {
+            await _debugService.StepIntoAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Debug step-into error: {ex.Message}";
+        }
     }
 
     [RelayCommand]
     private async Task DebugStepOut()
     {
         if (_debugService is null || !_debugService.IsPaused) return;
-        await _debugService.StepOutAsync();
+        try
+        {
+            await _debugService.StepOutAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Debug step-out error: {ex.Message}";
+        }
     }
 
     [RelayCommand]
     private async Task DebugContinue()
     {
         if (_debugService is null || !_debugService.IsPaused) return;
-        await _debugService.ContinueAsync();
+        try
+        {
+            await _debugService.ContinueAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Debug continue error: {ex.Message}";
+        }
     }
 
     [RelayCommand]
     private async Task DebugPause()
     {
         if (_debugService is null || !_debugService.IsDebugging || _debugService.IsPaused) return;
-        await _debugService.PauseAsync();
+        try
+        {
+            await _debugService.PauseAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Debug pause error: {ex.Message}";
+        }
     }
 
     [RelayCommand]
