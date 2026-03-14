@@ -1502,6 +1502,12 @@ public partial class MainViewModel : INotifyPropertyChanged
     {
         if (string.IsNullOrWhiteSpace(CommitMessage)) return;
 
+        // Auto-stage all changes if nothing is staged (like VS Code)
+        if (GitStagedFiles.Count == 0 && GitChangedFiles.Count > 0)
+        {
+            await _gitService.StageAllAsync();
+        }
+
         var result = await _gitService.CommitAsync(CommitMessage);
         if (result.Success)
         {
