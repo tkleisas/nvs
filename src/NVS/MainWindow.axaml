@@ -147,6 +147,15 @@
                         Command="{Binding BuildSolutionCommand}">
                     <TextBlock Text="🔨" FontSize="14" />
                 </Button>
+                <!-- Startup project selector -->
+                <ComboBox ItemsSource="{Binding ProjectNames}"
+                          SelectedItem="{Binding SelectedStartupProject}"
+                          MinWidth="140" MaxWidth="250" Height="26"
+                          VerticalAlignment="Center" Margin="4,0"
+                          FontSize="11" Background="#3C3C3C" Foreground="#CCCCCC"
+                          BorderBrush="#555" Padding="6,2"
+                          IsVisible="{Binding IsWorkspaceOpen}"
+                          ToolTip.Tip="Startup Project" />
                 <Button Width="28" Height="28" ToolTip.Tip="Run Without Debugging (Ctrl+F5)"
                         Command="{Binding RunProjectCommand}">
                     <PathIcon Width="14" Height="14" Foreground="#4EC9B0"

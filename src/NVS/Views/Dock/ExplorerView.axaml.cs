@@ -143,6 +143,20 @@ public partial class ExplorerView : UserControl
         await main.AddProjectToSolutionAsync(result.Value.Name, result.Value.Template ?? "console");
     }
 
+    private void OnSetStartupProjectClick(object? sender, RoutedEventArgs e)
+    {
+        var node = GetSelectedTreeNode();
+        if (node is null || !node.IsDirectory) return;
+
+        var main = GetMain();
+        if (main is null) return;
+
+        // Use the node name (strip ▶ prefix if present)
+        var projectName = node.Name.StartsWith("▶ ") ? node.Name[2..] : node.Name;
+        main.SelectedStartupProject = projectName;
+        main.StatusMessage = $"Startup project: {projectName}";
+    }
+
     private async Task RefreshExplorer()
     {
         if (GetMain() is { } main)

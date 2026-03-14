@@ -293,6 +293,47 @@ public partial class MainViewModel : INotifyPropertyChanged
     public bool CanRun => !IsRunning && IsWorkspaceOpen;
     public bool CanStop => IsRunning || IsBuilding;
 
+    public ObservableCollection<string> ProjectNames { get; } = [];
+
+    private string? _selectedStartupProject;
+    public string? SelectedStartupProject
+    {
+        get => _selectedStartupProject;
+        set
+        {
+            if (SetProperty(ref _selectedStartupProject, value) && value is not null)
+            {
+                _solutionService.SetStartupProject(value);
+                RefreshExplorerStartupMarker();
+            }
+        }
+    }
+
+    private void RefreshProjectList()
+    {
+        ProjectNames.Clear();
+        foreach (var p in _solutionService.GetLoadedProjects())
+            ProjectNames.Add(p.Name);
+
+        var startup = _solutionService.GetStartupProject();
+        _selectedStartupProject = startup?.Name;
+        OnPropertyChanged(nameof(SelectedStartupProject));
+    }
+
+    private void RefreshExplorerStartupMarker()
+    {
+        if (FileTree.Count == 0) return;
+        var solutionNode = FileTree[0];
+        foreach (var child in solutionNode.Children)
+        {
+            var baseName = child.Name.StartsWith("▶ ") ? child.Name[2..] : child.Name;
+            child.Name = (_selectedStartupProject is not null
+                && string.Equals(baseName, _selectedStartupProject, StringComparison.OrdinalIgnoreCase))
+                ? $"▶ {baseName}"
+                : baseName;
+        }
+    }
+
     [RelayCommand]
     private async Task OpenFolder()
     {
@@ -346,6 +387,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             {
                 var solution = await _solutionService.LoadSolutionAsync(solutionPath);
                 LoadSolutionTree(solution);
+                RefreshProjectList();
                 StatusMessage = $"Solution loaded: {solution.Name} ({solution.Projects.Count} projects)";
             }
             catch (Exception ex)
@@ -376,6 +418,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             {
                 var solution = await _solutionService.LoadSolutionAsync(solutionFile);
                 LoadSolutionTree(solution);
+                RefreshProjectList();
                 StatusMessage = $"Solution loaded: {solution.Name} ({solution.Projects.Count} projects)";
             }
         }
@@ -2330,8 +2373,20 @@ public partial class MainViewModel : INotifyPropertyChanged
 public class FileTreeNode : INotifyPropertyChanged
 {
     private bool _isExpanded;
+    private string _name = "";
 
-    public string Name { get; init; } = "";
+    public string Name
+    {
+        get => _name;
+        set
+        {
+            if (_name != value)
+            {
+                _name = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+            }
+        }
+    }
     public string Path { get; init; } = "";
     public bool IsDirectory { get; init; }
     public ObservableCollection<FileTreeNode> Children { get; } = [];

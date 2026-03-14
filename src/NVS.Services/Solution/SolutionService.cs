@@ -10,6 +10,7 @@ public sealed partial class SolutionService : ISolutionService
 {
     private SolutionModel? _currentSolution;
     private readonly List<ProjectModel> _loadedProjects = [];
+    private string? _startupProjectName;
 
     public SolutionModel? CurrentSolution => _currentSolution;
     public bool IsSolutionLoaded => _currentSolution is not null;
@@ -78,6 +79,7 @@ public sealed partial class SolutionService : ISolutionService
     {
         _currentSolution = null;
         _loadedProjects.Clear();
+        _startupProjectName = null;
         SolutionClosed?.Invoke(this, EventArgs.Empty);
         return Task.CompletedTask;
     }
@@ -103,8 +105,26 @@ public sealed partial class SolutionService : ISolutionService
 
     public ProjectModel? GetStartupProject()
     {
+        // If user explicitly set a startup project, prefer that
+        if (_startupProjectName is not null)
+        {
+            var named = _loadedProjects.FirstOrDefault(p =>
+                string.Equals(p.Name, _startupProjectName, StringComparison.OrdinalIgnoreCase));
+            if (named is not null) return named;
+        }
         return _loadedProjects.FirstOrDefault(p => p.IsExecutable);
     }
+
+    public bool SetStartupProject(string projectName)
+    {
+        var project = _loadedProjects.FirstOrDefault(p =>
+            string.Equals(p.Name, projectName, StringComparison.OrdinalIgnoreCase));
+        if (project is null) return false;
+        _startupProjectName = project.Name;
+        return true;
+    }
+
+    public IReadOnlyList<ProjectModel> GetLoadedProjects() => _loadedProjects.AsReadOnly();
 
     public async Task<string> CreateSolutionAsync(string solutionName, string directory, CancellationToken cancellationToken = default)
     {

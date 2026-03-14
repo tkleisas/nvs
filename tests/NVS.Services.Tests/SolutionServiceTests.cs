@@ -381,6 +381,105 @@ public sealed class SolutionServiceTests : IDisposable
         _service.GetStartupProject().Should().BeNull();
     }
 
+    [Fact]
+    public async Task SetStartupProject_ShouldOverrideDefault()
+    {
+        // Create two executable projects
+        var appDir = Path.Combine(_tempDir, "src", "App");
+        var cliDir = Path.Combine(_tempDir, "src", "Cli");
+        Directory.CreateDirectory(appDir);
+        Directory.CreateDirectory(cliDir);
+
+        var exeCsproj = """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <OutputType>Exe</OutputType>
+              </PropertyGroup>
+            </Project>
+            """;
+        File.WriteAllText(Path.Combine(appDir, "App.csproj"), exeCsproj);
+        File.WriteAllText(Path.Combine(cliDir, "Cli.csproj"), exeCsproj);
+
+        var slnxPath = Path.Combine(_tempDir, "Test.slnx");
+        await File.WriteAllTextAsync(slnxPath, """
+            <Solution>
+              <Project Path="src\App\App.csproj" />
+              <Project Path="src\Cli\Cli.csproj" />
+            </Solution>
+            """);
+
+        await _service.LoadSolutionAsync(slnxPath);
+
+        // Default should be first exe project
+        _service.GetStartupProject()!.Name.Should().Be("App");
+
+        // Override to Cli
+        _service.SetStartupProject("Cli").Should().BeTrue();
+        _service.GetStartupProject()!.Name.Should().Be("Cli");
+    }
+
+    [Fact]
+    public async Task SetStartupProject_WithUnknownName_ShouldReturnFalse()
+    {
+        var projDir = Path.Combine(_tempDir, "src", "App");
+        Directory.CreateDirectory(projDir);
+        File.WriteAllText(Path.Combine(projDir, "App.csproj"), """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <OutputType>Exe</OutputType>
+              </PropertyGroup>
+            </Project>
+            """);
+
+        var slnxPath = Path.Combine(_tempDir, "Test.slnx");
+        await File.WriteAllTextAsync(slnxPath, """
+            <Solution>
+              <Project Path="src\App\App.csproj" />
+            </Solution>
+            """);
+
+        await _service.LoadSolutionAsync(slnxPath);
+
+        _service.SetStartupProject("NonExistent").Should().BeFalse();
+        _service.GetStartupProject()!.Name.Should().Be("App");
+    }
+
+    [Fact]
+    public async Task GetLoadedProjects_ShouldReturnAllParsed()
+    {
+        var appDir = Path.Combine(_tempDir, "src", "App");
+        var libDir = Path.Combine(_tempDir, "src", "Lib");
+        Directory.CreateDirectory(appDir);
+        Directory.CreateDirectory(libDir);
+
+        File.WriteAllText(Path.Combine(appDir, "App.csproj"), """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
+            </Project>
+            """);
+        File.WriteAllText(Path.Combine(libDir, "Lib.csproj"), """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+            </Project>
+            """);
+
+        var slnxPath = Path.Combine(_tempDir, "Test.slnx");
+        await File.WriteAllTextAsync(slnxPath, """
+            <Solution>
+              <Project Path="src\App\App.csproj" />
+              <Project Path="src\Lib\Lib.csproj" />
+            </Solution>
+            """);
+
+        await _service.LoadSolutionAsync(slnxPath);
+
+        var projects = _service.GetLoadedProjects();
+        projects.Should().HaveCount(2);
+        projects.Select(p => p.Name).Should().Contain("App").And.Contain("Lib");
+    }
+
     #endregion
 
     #region Edge cases

@@ -18,9 +18,19 @@ public interface ISolutionService
     Task<string?> DetectSolutionFileAsync(string directoryPath, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets the startup project (first Exe project, or null).
+    /// Gets the startup project (first Exe project, or the one set via SetStartupProject).
     /// </summary>
     ProjectModel? GetStartupProject();
+
+    /// <summary>
+    /// Sets the startup project by name. Returns true if the project was found.
+    /// </summary>
+    bool SetStartupProject(string projectName);
+
+    /// <summary>
+    /// Gets all loaded project models.
+    /// </summary>
+    IReadOnlyList<ProjectModel> GetLoadedProjects();
 
     /// <summary>
     /// Creates a new solution file using <c>dotnet new sln</c>.

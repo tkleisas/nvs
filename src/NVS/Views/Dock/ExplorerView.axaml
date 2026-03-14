@@ -21,6 +21,8 @@
                 <MenuItem Header="New Folder..." Click="OnNewFolderInExplorerClick" />
                 <MenuItem Header="Add Project..." Click="OnAddProjectClick" />
                 <Separator />
+                <MenuItem Header="Set as Startup Project" Click="OnSetStartupProjectClick" />
+                <Separator />
                 <MenuItem Header="Rename..." Click="OnRenameInExplorerClick" />
                 <MenuItem Header="Delete" Click="OnDeleteInExplorerClick" />
                 <Separator />
