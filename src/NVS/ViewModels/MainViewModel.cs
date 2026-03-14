@@ -1508,6 +1508,8 @@ public partial class MainViewModel : INotifyPropertyChanged
             StatusMessage = $"Committed: {result.CommitHash?[..7]}";
             CommitMessage = "";
             CurrentBranch = _gitService.CurrentBranch ?? "";
+            RefreshGitFiles();
+            await RefreshGitExtras();
         }
         else
         {
