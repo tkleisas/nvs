@@ -1619,26 +1619,45 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    [RelayCommand]
-    private async Task GitCreateBranch(string? branchName)
+    public async Task GitCreateBranchAsync(string branchName, bool includeChanges = true)
     {
         if (string.IsNullOrWhiteSpace(branchName)) return;
-        await _gitService.CreateBranchAsync(branchName);
-        await _gitService.CheckoutAsync(branchName);
+        var name = branchName.Trim();
+
+        if (!includeChanges)
+        {
+            // Stash changes before switching, then drop the stash
+            var hasChanges = _gitService.Status.Files.Count > 0;
+            if (hasChanges)
+                await _gitService.StashSaveAsync("temp-branch-create");
+
+            await _gitService.CreateBranchAsync(name);
+            await _gitService.CheckoutAsync(name);
+
+            if (hasChanges)
+                await _gitService.StashDropAsync(0);
+        }
+        else
+        {
+            await _gitService.CreateBranchAsync(name);
+            await _gitService.CheckoutAsync(name);
+        }
+
         CurrentBranch = _gitService.CurrentBranch ?? "";
+        RefreshGitFiles();
         await RefreshGitBranches();
-        StatusMessage = $"Created and switched to: {branchName}";
+        await RefreshGitExtras();
+        StatusMessage = $"Created and switched to: {name}";
     }
 
-    [RelayCommand]
-    private async Task GitDeleteBranch(Branch? branch)
+    public async Task GitDeleteBranchAsync(string branchName)
     {
-        if (branch is null) return;
-        var result = await _gitService.DeleteBranchAsync(branch.Name);
+        if (string.IsNullOrWhiteSpace(branchName)) return;
+        var result = await _gitService.DeleteBranchAsync(branchName.Trim());
         if (result.Success)
         {
             await RefreshGitBranches();
-            StatusMessage = $"Deleted branch: {branch.Name}";
+            StatusMessage = $"Deleted branch: {branchName}";
         }
         else
         {

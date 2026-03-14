@@ -50,6 +50,56 @@ internal static class DialogHelper
         return result;
     }
 
+    public static async Task<(string? Name, bool IncludeChanges)?> PromptNewBranchAsync(Window owner)
+    {
+        var dialog = new Window
+        {
+            Title = "Create Branch",
+            Width = 380, Height = 160,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Background = Avalonia.Media.Brush.Parse("#2D2D30"),
+            CanResize = false,
+        };
+
+        (string? Name, bool IncludeChanges)? result = null;
+        var panel = new StackPanel { Margin = new Avalonia.Thickness(16), Spacing = 8 };
+        var input = new TextBox
+        {
+            Watermark = "Branch name",
+            Background = Avalonia.Media.Brush.Parse("#3C3C3C"),
+            Foreground = Avalonia.Media.Brush.Parse("#CCCCCC"),
+        };
+        var checkbox = new CheckBox
+        {
+            Content = "Include uncommitted changes",
+            IsChecked = true,
+            Foreground = Avalonia.Media.Brush.Parse("#CCCCCC"),
+        };
+        var okBtn = new Button
+        {
+            Content = "Create",
+            Background = Avalonia.Media.Brush.Parse("#007ACC"),
+            Foreground = Avalonia.Media.Brush.Parse("White"),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+            Padding = new Avalonia.Thickness(20, 6),
+        };
+
+        okBtn.Click += (_, _) => { result = (input.Text, checkbox.IsChecked == true); dialog.Close(); };
+        input.KeyDown += (_, ke) =>
+        {
+            if (ke.Key == Key.Enter) { result = (input.Text, checkbox.IsChecked == true); dialog.Close(); ke.Handled = true; }
+            if (ke.Key == Key.Escape) { dialog.Close(); ke.Handled = true; }
+        };
+
+        panel.Children.Add(input);
+        panel.Children.Add(checkbox);
+        panel.Children.Add(okBtn);
+        dialog.Content = panel;
+
+        await dialog.ShowDialog(owner);
+        return result;
+    }
+
     public static async Task<bool> ConfirmDeleteAsync(Window owner, string name)
     {
         var dialog = new Window
