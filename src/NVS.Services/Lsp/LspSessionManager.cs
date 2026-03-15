@@ -17,6 +17,7 @@ public sealed class LspSessionManager : ILspSessionManager
     private readonly ILspClientFactory _factory;
     private readonly ConcurrentDictionary<Language, Task<ILspClient?>> _clients = new();
     private readonly ConcurrentDictionary<Language, ILspClient> _activeClients = new();
+    private readonly ConcurrentDictionary<string, Document> _openDocuments = new();
     private string? _rootPath;
     private bool _disposed;
 
@@ -63,21 +64,39 @@ public sealed class LspSessionManager : ILspSessionManager
             Logger.Information("Disposed old LSP client for {Language}", language);
         }
 
-        // Eagerly create the new client if we have a root path
+        // Create the new client in the background (OmniSharp can take 30-60s)
         if (_rootPath is not null)
         {
-            try
+            var rootPath = _rootPath;
+            _ = Task.Run(async () =>
             {
-                var clientTask = _clients.GetOrAdd(language, lang =>
-                    CreateAndTrackClientAsync(lang, _rootPath, cancellationToken));
-                await clientTask.ConfigureAwait(false);
-                Logger.Information("New LSP client created for {Language}", language);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Failed to create new LSP client for {Language}", language);
-                _clients.TryRemove(language, out _);
-            }
+                try
+                {
+                    var clientTask = _clients.GetOrAdd(language, lang =>
+                        CreateAndTrackClientAsync(lang, rootPath, cancellationToken));
+                    var newClient = await clientTask.ConfigureAwait(false);
+
+                    if (newClient is not null)
+                    {
+                        Logger.Information("New LSP client created for {Language}, re-registering open documents", language);
+
+                        // Re-register all open documents for this language
+                        foreach (var doc in _openDocuments.Values)
+                        {
+                            if (doc.Language == language)
+                            {
+                                newClient.NotifyDocumentOpened(doc);
+                                Logger.Debug("Re-registered document {Path} with new LSP client", doc.Path);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Failed to create new LSP client for {Language}", language);
+                    _clients.TryRemove(language, out _);
+                }
+            }, cancellationToken);
         }
     }
 
@@ -179,6 +198,9 @@ public sealed class LspSessionManager : ILspSessionManager
 
     public void NotifyDocumentOpened(Document document)
     {
+        var key = document.FilePath ?? document.Path;
+        _openDocuments[key] = document;
+
         if (_activeClients.TryGetValue(document.Language, out var client))
             client.NotifyDocumentOpened(document);
     }
@@ -197,6 +219,9 @@ public sealed class LspSessionManager : ILspSessionManager
 
     public void NotifyDocumentClosed(Document document)
     {
+        var key = document.FilePath ?? document.Path;
+        _openDocuments.TryRemove(key, out _);
+
         if (_activeClients.TryGetValue(document.Language, out var client))
             client.NotifyDocumentClosed(document);
     }

@@ -309,12 +309,17 @@ public partial class MainWindow : Window
 
                 foreach (var language in changedLanguages)
                 {
+                    var serverId = newPreferred.GetValueOrDefault(language.ToString(), "default");
+                    mainVm.StatusMessage = $"Restarting language server for {language} ({serverId})...";
+
                     try
                     {
                         await lspSessionManager.RestartLanguageServerAsync(language);
+                        mainVm.StatusMessage = $"Language server for {language} is initializing (this may take a moment)...";
                     }
                     catch (Exception ex)
                     {
+                        mainVm.StatusMessage = $"Failed to restart language server for {language}";
                         Serilog.Log.Warning(ex, "Failed to restart LSP for {Language}", language);
                     }
                 }

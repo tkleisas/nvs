@@ -524,9 +524,41 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
         // Old client should have been disposed
         await ((IAsyncDisposable)oldClient).Received(1).DisposeAsync();
 
-        // New client should be returned on next request
+        // Background task creates the new client; wait a moment then request
+        await Task.Delay(100);
         var second = await _manager.GetClientAsync(doc);
         second.Should().BeSameAs(newClient);
+    }
+
+    [Fact]
+    public async Task RestartLanguageServerAsync_ShouldReRegisterOpenDocuments()
+    {
+        var oldClient = Substitute.For<ILspClient, IAsyncDisposable>();
+        oldClient.Language.Returns(Language.CSharp);
+        oldClient.IsConnected.Returns(true);
+        var newClient = CreateMockClient(Language.CSharp);
+
+        var callCount = 0;
+        _factory.CreateClientAsync(Language.CSharp, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                callCount++;
+                return Task.FromResult<ILspClient?>(callCount == 1 ? oldClient : newClient);
+            });
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        await _manager.GetClientAsync(doc);
+
+        // Open a document (tracked internally)
+        _manager.NotifyDocumentOpened(doc);
+
+        await _manager.RestartLanguageServerAsync(Language.CSharp);
+
+        // Wait for background client creation + re-registration
+        await Task.Delay(200);
+
+        // The new client should have received NotifyDocumentOpened
+        newClient.Received(1).NotifyDocumentOpened(doc);
     }
 
     [Fact]
@@ -536,6 +568,9 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
         SetupFactory(Language.CSharp, mockClient);
 
         await _manager.RestartLanguageServerAsync(Language.CSharp);
+
+        // Wait for background creation
+        await Task.Delay(100);
 
         var doc = CreateDocument("test.cs", Language.CSharp);
         var result = await _manager.GetClientAsync(doc);
