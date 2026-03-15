@@ -15,6 +15,7 @@ public sealed class LspSessionManager : ILspSessionManager
 {
     private static readonly ILogger Logger = Log.ForContext<LspSessionManager>();
     private readonly ILspClientFactory _factory;
+    private readonly IRoslynCompletionService? _roslynCompletionService;
     private readonly ConcurrentDictionary<Language, Task<ILspClient?>> _clients = new();
     private readonly ConcurrentDictionary<Language, ILspClient> _activeClients = new();
     private readonly ConcurrentDictionary<string, Document> _openDocuments = new();
@@ -23,9 +24,10 @@ public sealed class LspSessionManager : ILspSessionManager
 
     public event EventHandler<DocumentDiagnosticsEventArgs>? DiagnosticsChanged;
 
-    public LspSessionManager(ILspClientFactory factory)
+    public LspSessionManager(ILspClientFactory factory, IRoslynCompletionService? roslynCompletionService = null)
     {
         _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+        _roslynCompletionService = roslynCompletionService;
     }
 
     /// <summary>
@@ -64,7 +66,7 @@ public sealed class LspSessionManager : ILspSessionManager
             Logger.Information("Disposed old LSP client for {Language}", language);
         }
 
-        // Create the new client in the background (OmniSharp can take 30-60s)
+        // Create the new client in the background (may take a moment)
         if (_rootPath is not null)
         {
             var rootPath = _rootPath;
@@ -126,6 +128,25 @@ public sealed class LspSessionManager : ILspSessionManager
 
     public async Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(Document document, Position position, string? triggerChar = null, CancellationToken cancellationToken = default)
     {
+        // For C# files, prefer Roslyn completions when workspace is loaded
+        if (document.Language == Language.CSharp
+            && _roslynCompletionService is { IsWorkspaceLoaded: true }
+            && document.FilePath is not null)
+        {
+            try
+            {
+                var results = await _roslynCompletionService.GetCompletionsAsync(
+                    document.FilePath, position.Line, position.Column, cancellationToken).ConfigureAwait(false);
+                if (results.Count > 0)
+                    return results;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Roslyn completions failed, falling back to LSP");
+            }
+        }
+
+        // Fall back to LSP
         var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
         if (client is null)
             return [];
@@ -209,12 +230,19 @@ public sealed class LspSessionManager : ILspSessionManager
     {
         if (_activeClients.TryGetValue(document.Language, out var client))
             client.NotifyDocumentChanged(document, content);
+
+        // Keep Roslyn workspace in sync for C# files
+        if (document.Language == Language.CSharp && document.FilePath is not null)
+            _roslynCompletionService?.UpdateDocumentContent(document.FilePath, content);
     }
 
     public async Task NotifyDocumentChangedAsync(Document document, string content)
     {
         if (_activeClients.TryGetValue(document.Language, out var client))
             await client.NotifyDocumentChangedAsync(document, content).ConfigureAwait(false);
+
+        if (document.Language == Language.CSharp && document.FilePath is not null)
+            _roslynCompletionService?.UpdateDocumentContent(document.FilePath, content);
     }
 
     public void NotifyDocumentClosed(Document document)

@@ -26,6 +26,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     private readonly IDebugService? _debugService;
     private readonly IBreakpointStore? _breakpointStore;
     private readonly ICodeMetricsService? _codeMetricsService;
+    private readonly IRoslynCompletionService? _roslynCompletionService;
 
     private string _title = "NVS - No Vim Substitute";
     private bool _isWorkspaceOpen;
@@ -85,7 +86,8 @@ public partial class MainViewModel : INotifyPropertyChanged
         IBuildService buildService,
         IDebugService? debugService = null,
         IBreakpointStore? breakpointStore = null,
-        ICodeMetricsService? codeMetricsService = null)
+        ICodeMetricsService? codeMetricsService = null,
+        IRoslynCompletionService? roslynCompletionService = null)
     {
         _workspaceService = workspaceService;
         _editorService = editorService;
@@ -97,6 +99,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         _debugService = debugService;
         _breakpointStore = breakpointStore;
         _codeMetricsService = codeMetricsService;
+        _roslynCompletionService = roslynCompletionService;
         SettingsService = settingsService;
         Editor = editor;
 
@@ -391,6 +394,9 @@ public partial class MainViewModel : INotifyPropertyChanged
                 LoadSolutionTree(solution);
                 RefreshProjectList();
                 StatusMessage = $"Solution loaded: {solution.Name} ({solution.Projects.Count} projects)";
+
+                // Load Roslyn workspace for C# completions (fire-and-forget)
+                _ = LoadRoslynWorkspaceAsync(solutionPath);
             }
             catch (Exception ex)
             {
@@ -417,10 +423,26 @@ public partial class MainViewModel : INotifyPropertyChanged
             LoadSolutionTree(solution);
             RefreshProjectList();
             StatusMessage = $"Solution loaded: {solution.Name} ({solution.Projects.Count} projects)";
+
+            // Load Roslyn workspace for C# completions (fire-and-forget)
+            _ = LoadRoslynWorkspaceAsync(solutionPath);
         }
         catch (Exception ex)
         {
             StatusMessage = $"Failed to load solution: {ex.Message}";
+        }
+    }
+
+    private async Task LoadRoslynWorkspaceAsync(string solutionPath)
+    {
+        if (_roslynCompletionService is null) return;
+        try
+        {
+            await _roslynCompletionService.LoadWorkspaceAsync(solutionPath);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Roslyn workspace load failed: {ex.Message}";
         }
     }
 

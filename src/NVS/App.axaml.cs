@@ -11,6 +11,7 @@ using NVS.Services.FileSystem;
 using NVS.Services.Git;
 using NVS.Services.Languages;
 using NVS.Services.Lsp;
+using NVS.Services.Roslyn;
 using NVS.Services.Settings;
 using NVS.Services.Solution;
 using NVS.Services.Template;
@@ -139,6 +140,7 @@ public partial class App : Application
         services.AddSingleton<IBuildService, BuildService>();
         services.AddSingleton<IDebugService, DebugService>();
         services.AddSingleton<IBreakpointStore, BreakpointStore>();
+        services.AddSingleton<IRoslynCompletionService, RoslynCompletionService>();
         services.AddSingleton<DebugAdapterDownloader>();
         services.AddSingleton<DebugAdapterRegistry>();
         services.AddSingleton<ITemplateService, TemplateService>();

@@ -576,4 +576,172 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
         var result = await _manager.GetClientAsync(doc);
         result.Should().BeSameAs(mockClient);
     }
+
+    // ─── Roslyn Completion Routing ──────────────────────────────────────────
+
+    [Fact]
+    public async Task GetCompletionsAsync_WithRoslyn_ShouldPreferRoslynForCSharp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+
+        var roslynItems = new List<CompletionItem>
+        {
+            new() { Label = "Console", Kind = CompletionItemKind.Class },
+        };
+        roslynService.GetCompletionsAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(roslynItems);
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetCompletionsAsync(doc, Position.Zero);
+
+        result.Should().HaveCount(1);
+        result[0].Label.Should().Be("Console");
+    }
+
+    [Fact]
+    public async Task GetCompletionsAsync_RoslynEmpty_ShouldFallbackToLsp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+        roslynService.GetCompletionsAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new List<CompletionItem>());
+
+        var mockClient = CreateMockClient(Language.CSharp);
+        var lspItems = new List<CompletionItem>
+        {
+            new() { Label = "Convert", Kind = CompletionItemKind.Class },
+        };
+        mockClient.GetCompletionsAsync(
+            Arg.Any<Document>(), Arg.Any<Position>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(lspItems);
+        SetupFactory(Language.CSharp, mockClient);
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetCompletionsAsync(doc, Position.Zero);
+
+        result.Should().HaveCount(1);
+        result[0].Label.Should().Be("Convert");
+    }
+
+    [Fact]
+    public async Task GetCompletionsAsync_RoslynNotLoaded_ShouldUseLsp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(false);
+
+        var mockClient = CreateMockClient(Language.CSharp);
+        var lspItems = new List<CompletionItem> { new() { Label = "var" } };
+        mockClient.GetCompletionsAsync(
+            Arg.Any<Document>(), Arg.Any<Position>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(lspItems);
+        SetupFactory(Language.CSharp, mockClient);
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetCompletionsAsync(doc, Position.Zero);
+
+        result.Should().HaveCount(1);
+        result[0].Label.Should().Be("var");
+    }
+
+    [Fact]
+    public async Task GetCompletionsAsync_NonCSharp_ShouldAlwaysUseLsp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+
+        var mockClient = CreateMockClient(Language.TypeScript);
+        var lspItems = new List<CompletionItem> { new() { Label = "document" } };
+        mockClient.GetCompletionsAsync(
+            Arg.Any<Document>(), Arg.Any<Position>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(lspItems);
+        SetupFactory(Language.TypeScript, mockClient);
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.ts", Language.TypeScript);
+        var result = await manager.GetCompletionsAsync(doc, Position.Zero);
+
+        result.Should().HaveCount(1);
+        result[0].Label.Should().Be("document");
+
+        // Roslyn should NOT have been called
+        await roslynService.DidNotReceive().GetCompletionsAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task NotifyDocumentChanged_CSharp_ShouldForwardToRoslyn()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        var mockClient = CreateMockClient(Language.CSharp);
+        SetupFactory(Language.CSharp, mockClient);
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        await manager.GetClientAsync(doc);
+
+        manager.NotifyDocumentChanged(doc, "new content");
+
+        roslynService.Received(1).UpdateDocumentContent(doc.FilePath!, "new content");
+    }
+
+    [Fact]
+    public async Task NotifyDocumentChanged_NonCSharp_ShouldNotCallRoslyn()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        var mockClient = CreateMockClient(Language.Python);
+        SetupFactory(Language.Python, mockClient);
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.py", Language.Python);
+        await manager.GetClientAsync(doc);
+
+        manager.NotifyDocumentChanged(doc, "new content");
+
+        roslynService.DidNotReceive().UpdateDocumentContent(
+            Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task GetCompletionsAsync_RoslynThrows_ShouldFallbackToLsp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+        roslynService.GetCompletionsAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns<IReadOnlyList<CompletionItem>>(_ => throw new InvalidOperationException("Roslyn failure"));
+
+        var mockClient = CreateMockClient(Language.CSharp);
+        var lspItems = new List<CompletionItem> { new() { Label = "fallback" } };
+        mockClient.GetCompletionsAsync(
+            Arg.Any<Document>(), Arg.Any<Position>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(lspItems);
+        SetupFactory(Language.CSharp, mockClient);
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetCompletionsAsync(doc, Position.Zero);
+
+        result.Should().HaveCount(1);
+        result[0].Label.Should().Be("fallback");
+    }
 }
