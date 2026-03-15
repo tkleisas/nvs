@@ -8,7 +8,7 @@ public sealed record LanguageServerUserConfig
 
     /// <summary>
     /// When set, overrides the default language server for this server's language(s).
-    /// Value is the server ID (e.g. "omnisharp" or "csharp-ls").
+    /// Value is the server ID (e.g. "csharp-ls" or "pylsp").
     /// Stored per-language in AppSettings.PreferredLanguageServers instead.
     /// </summary>
     public string? PreferredServerId { get; init; }

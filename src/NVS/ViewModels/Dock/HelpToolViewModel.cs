@@ -327,7 +327,7 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
         NVS supports the Language Server Protocol (LSP) for rich editor features.
 
         Supported Servers (auto-detected on PATH):
-          • C#: OmniSharp
+          • C#: csharp-ls
           • Python: Pyright, pylsp
           • JavaScript/TypeScript: typescript-language-server
           • Rust: rust-analyzer

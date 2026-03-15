@@ -14,6 +14,11 @@ public sealed class LanguageServerProcess : IAsyncDisposable
 
     public Stream? InputStream => _process?.StandardInput.BaseStream;
     public Stream? OutputStream => _process?.StandardOutput.BaseStream;
+    /// <summary>
+    /// The StreamReader wrapping stdout. Use this for reading instead of OutputStream
+    /// to avoid buffering conflicts between StreamReader and BaseStream.
+    /// </summary>
+    public StreamReader? OutputReader => _process?.StandardOutput;
     public bool IsRunning => _process is { HasExited: false };
     public int? ProcessId => _process?.Id;
 

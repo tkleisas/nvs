@@ -5,6 +5,7 @@ using NVS.Core.Interfaces;
 using NVS.Core.Models;
 using NVS.Core.Models.Settings;
 using NVS.Services.Lsp.Protocol;
+using Serilog;
 using Range = NVS.Core.Models.Range;
 
 namespace NVS.Services.Lsp;
@@ -14,6 +15,7 @@ namespace NVS.Services.Lsp;
 /// </summary>
 public sealed class LspClient : ILspClient, IAsyncDisposable
 {
+    private static readonly ILogger Logger = Log.ForContext<LspClient>();
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -43,6 +45,8 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _languageService = languageService ?? throw new ArgumentNullException(nameof(languageService));
         _serverProcess = new LanguageServerProcess();
+        _serverProcess.ErrorDataReceived += (_, data) => Logger.Debug("[LSP-Stderr] {Language}: {Data}", Language, data);
+        _serverProcess.Exited += (_, code) => Logger.Warning("[LSP-Process] {Language} exited with code {ExitCode}", Language, code);
     }
 
     // Allow injecting a pre-built transport for testing (bypasses process management)
@@ -60,12 +64,18 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
         if (IsConnected)
             throw new InvalidOperationException("Client is already initialized.");
 
+        Logger.Information("[LSP-Init] Starting initialization for {Language}", Language);
+
         if (_transport is null)
         {
             await _serverProcess.StartAsync(_config, rootPath, cancellationToken).ConfigureAwait(false);
+            Logger.Information("[LSP-Init] Process started for {Language}", Language);
 
+            // Use the StreamReader (OutputReader) for reading instead of raw BaseStream.
+            // The Process class wraps stdout in a StreamReader that has its own buffer —
+            // reading from BaseStream bypasses this buffer and can miss data.
             _transport = new JsonRpcTransport(
-                _serverProcess.OutputStream!,
+                _serverProcess.OutputReader!,
                 _serverProcess.InputStream!);
         }
 
@@ -117,15 +127,18 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
             },
         };
 
+        Logger.Information("[LSP-Init] Sending initialize request for {Language}", Language);
         var result = await SendRequestAsync<InitializeResult>("initialize", initParams, cancellationToken)
             .ConfigureAwait(false);
 
         ServerCapabilities = result?.Capabilities;
+        Logger.Information("[LSP-Init] Got initialize response for {Language}, caps={HasCaps}", Language, result?.Capabilities is not null);
 
         // Send initialized notification
         await SendNotificationAsync("initialized", new { }, cancellationToken).ConfigureAwait(false);
 
         IsConnected = true;
+        Logger.Information("[LSP-Init] Initialization complete for {Language}", Language);
     }
 
     public async Task ShutdownAsync(CancellationToken cancellationToken = default)
@@ -527,23 +540,34 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
 
     private async Task ListenForMessagesAsync(CancellationToken cancellationToken)
     {
+        var messageCount = 0;
+        Logger.Debug("[LSP-Listener] Started for {Language}", Language);
+
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
                 var message = await _transport!.ReadMessageAsync(cancellationToken).ConfigureAwait(false);
                 if (message is null)
+                {
+                    Logger.Warning("[LSP-Listener] Stream closed (null message) for {Language} after {Count} messages", Language, messageCount);
                     break;
+                }
+
+                messageCount++;
 
                 switch (message)
                 {
                     case JsonRpcResponse response:
+                        Logger.Debug("[LSP-Listener] Response id={Id} for {Language} (msg #{Count})", response.Id, Language, messageCount);
                         HandleResponse(response);
                         break;
                     case JsonRpcNotification notification:
+                        Logger.Debug("[LSP-Listener] Notification {Method} for {Language}", notification.Method, Language);
                         HandleNotification(notification);
                         break;
                     case JsonRpcRequest request:
+                        Logger.Debug("[LSP-Listener] Server request {Method} id={Id} for {Language}", request.Method, request.Id, Language);
                         await HandleServerRequestAsync(request, cancellationToken).ConfigureAwait(false);
                         break;
                 }
@@ -552,13 +576,15 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
             {
                 break;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
-                // Log and continue — don't crash the listener on one bad message
+                Logger.Error(ex, "[LSP-Listener] Error processing message #{Count} for {Language}", messageCount, Language);
             }
         }
+
+        Logger.Information("[LSP-Listener] Exited for {Language} after {Count} messages", Language, messageCount);
 
         // Cancel all pending requests on disconnect
         foreach (var (_, tcs) in _pendingRequests)
@@ -571,11 +597,17 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
 
     private void HandleResponse(JsonRpcResponse response)
     {
-        // Normalize id to long for lookup
         var key = NormalizeId(response.Id);
         if (_pendingRequests.TryRemove(key, out var tcs))
         {
+            Logger.Debug("[LSP-Listener] Matched response id={Id} for {Language}, hasError={HasError}",
+                response.Id, Language, response.Error is not null);
             tcs.TrySetResult(response);
+        }
+        else
+        {
+            Logger.Warning("[LSP-Listener] Unmatched response id={Id} for {Language}, pendingKeys=[{Keys}]",
+                response.Id, Language, string.Join(",", _pendingRequests.Keys));
         }
     }
 
@@ -600,8 +632,8 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
 
     private async Task HandleServerRequestAsync(JsonRpcRequest request, CancellationToken cancellationToken)
     {
-        // Some servers send requests to the client (e.g., window/showMessage, client/registerCapability)
-        // Respond with an empty result to acknowledge
+        // Respond to server requests without blocking the listener.
+        // Fire-and-forget to prevent pipe deadlock when server is flooding stdout.
         if (_transport is not null)
         {
             var response = new JsonRpcResponse
@@ -609,7 +641,18 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
                 Id = request.Id,
                 Result = JsonSerializer.SerializeToElement(new { }),
             };
-            await _transport.WriteMessageAsync(response, cancellationToken).ConfigureAwait(false);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _transport.WriteMessageAsync(response, cancellationToken).ConfigureAwait(false);
+                    Logger.Debug("[LSP-Listener] Responded to server request {Method} id={Id}", request.Method, request.Id);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "[LSP-Listener] Failed to respond to server request {Method}", request.Method);
+                }
+            }, cancellationToken);
         }
     }
 

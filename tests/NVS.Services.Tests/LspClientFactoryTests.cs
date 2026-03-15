@@ -26,34 +26,33 @@ public sealed class LspClientFactoryTests
     }
 
     [Fact]
-    public void ResolveServerDefinition_WithPreference_ShouldReturnPreferred()
+    public void ResolveServerDefinition_WithPreference_RegistrySupportsLookup()
     {
-        // Verify that the registry has omnisharp and it can be looked up
-        var def = LanguageServerRegistry.GetById("omnisharp");
+        // Verify that the registry supports looking up servers by ID
+        var def = LanguageServerRegistry.GetById("csharp-ls");
 
         def.Should().NotBeNull();
         def!.Languages.Should().Contain(Language.CSharp);
     }
 
     [Fact]
-    public void PreferredLanguageServers_ShouldOverrideDefault()
+    public void PreferredLanguageServers_ShouldResolveFromSettings()
     {
         var settings = new AppSettings
         {
             PreferredLanguageServers = new Dictionary<string, string>
             {
-                ["CSharp"] = "omnisharp",
+                ["CSharp"] = "csharp-ls",
             },
         };
 
-        // The preferred server ID should be "omnisharp"
         settings.PreferredLanguageServers.TryGetValue("CSharp", out var preferredId)
             .Should().BeTrue();
-        preferredId.Should().Be("omnisharp");
+        preferredId.Should().Be("csharp-ls");
 
         var def = LanguageServerRegistry.GetById(preferredId!);
         def.Should().NotBeNull();
-        def!.Id.Should().Be("omnisharp");
+        def!.Id.Should().Be("csharp-ls");
     }
 
     [Fact]
@@ -75,30 +74,6 @@ public sealed class LspClientFactoryTests
         var defaultDef = LanguageServerRegistry.GetForLanguage(Language.CSharp);
         defaultDef.Should().NotBeNull();
         defaultDef!.Id.Should().Be("csharp-ls");
-    }
-
-    [Fact]
-    public void OmniSharp_BuildConfig_ShouldIncludeSolutionArg()
-    {
-        var def = LanguageServerRegistry.GetById("omnisharp")!;
-        var rootPath = "/home/user/project";
-
-        // Simulate what BuildConfig does for OmniSharp
-        var baseArgs = def.DefaultArgs;
-        var argsList = new List<string>();
-
-        if (def.RequiresSolutionArg && !string.IsNullOrEmpty(def.SolutionArgPrefix))
-        {
-            argsList.Add(def.SolutionArgPrefix);
-            argsList.Add(rootPath);
-        }
-
-        argsList.AddRange(baseArgs);
-
-        argsList.Should().HaveCount(3);
-        argsList[0].Should().Be("-s");
-        argsList[1].Should().Be(rootPath);
-        argsList[2].Should().Be("--languageserver");
     }
 
     [Fact]

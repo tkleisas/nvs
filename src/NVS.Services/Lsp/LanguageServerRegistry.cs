@@ -32,22 +32,6 @@ public static class LanguageServerRegistry
             },
             new()
             {
-                Id = "omnisharp",
-                Name = "OmniSharp",
-                Description = "Full-featured Roslyn-based C# language server with implicit usings and import suggestions",
-                License = "MIT",
-                Languages = [Language.CSharp],
-                BinaryName = "OmniSharp",
-                DefaultArgs = ["--languageserver"],
-                InstallMethod = InstallMethod.GitHubRelease,
-                HomepageUrl = "https://github.com/OmniSharp/omnisharp-roslyn",
-                DownloadUrlTemplate = "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/{version}/omnisharp-{rid}-net6.0.{ext}",
-                Version = "v1.39.15",
-                RequiresSolutionArg = true,
-                SolutionArgPrefix = "-s",
-            },
-            new()
-            {
                 Id = "clangd",
                 Name = "clangd",
                 Description = "LLVM-based C/C++ language server",

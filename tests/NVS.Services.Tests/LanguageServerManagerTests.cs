@@ -14,7 +14,7 @@ public sealed class LanguageServerManagerTests
         var servers = _manager.GetAvailableServers();
 
         servers.Should().NotBeEmpty();
-        servers.Count.Should().BeGreaterOrEqualTo(13);
+        servers.Count.Should().BeGreaterOrEqualTo(12);
     }
 
     [Theory]
@@ -122,11 +122,11 @@ public sealed class LanguageServerManagerTests
     [Fact]
     public void GetNvsToolsDir_ShouldReturnAppDataPath()
     {
-        var dir = LanguageServerManager.GetNvsToolsDir("omnisharp");
+        var dir = LanguageServerManager.GetNvsToolsDir("csharp-ls");
 
         dir.Should().Contain("NVS");
         dir.Should().Contain("tools");
-        dir.Should().Contain("omnisharp");
+        dir.Should().Contain("csharp-ls");
     }
 
     [Fact]
@@ -137,14 +137,4 @@ public sealed class LanguageServerManagerTests
         path.Should().BeNull();
     }
 
-    [Fact]
-    public async Task CheckServerStatusAsync_WithOmniSharp_ShouldReturnStatus()
-    {
-        var status = await _manager.CheckServerStatusAsync("omnisharp");
-
-        // OmniSharp probably isn't installed in test environment
-        status.Should().BeOneOf(
-            LanguageServerStatus.Installed,
-            LanguageServerStatus.NotInstalled);
-    }
 }

@@ -12,7 +12,7 @@ public sealed class LanguageServerRegistryTests
         var servers = LanguageServerRegistry.GetAll();
 
         servers.Should().NotBeEmpty();
-        servers.Count.Should().BeGreaterOrEqualTo(13);
+        servers.Count.Should().BeGreaterOrEqualTo(12);
     }
 
     [Fact]
@@ -26,7 +26,6 @@ public sealed class LanguageServerRegistryTests
 
     [Theory]
     [InlineData("csharp-ls")]
-    [InlineData("omnisharp")]
     [InlineData("clangd")]
     [InlineData("typescript-language-server")]
     [InlineData("pylsp")]
@@ -92,7 +91,6 @@ public sealed class LanguageServerRegistryTests
 
     [Theory]
     [InlineData("csharp-ls", InstallMethod.DotnetTool)]
-    [InlineData("omnisharp", InstallMethod.GitHubRelease)]
     [InlineData("clangd", InstallMethod.BinaryDownload)]
     [InlineData("typescript-language-server", InstallMethod.Npm)]
     [InlineData("pylsp", InstallMethod.Pip)]
@@ -157,13 +155,12 @@ public sealed class LanguageServerRegistryTests
     }
 
     [Fact]
-    public void GetAllForLanguage_CSharp_ShouldReturnBothServers()
+    public void GetAllForLanguage_CSharp_ShouldReturnSingleServer()
     {
         var servers = LanguageServerRegistry.GetAllForLanguage(Language.CSharp);
 
-        servers.Should().HaveCountGreaterOrEqualTo(2);
-        servers.Select(s => s.Id).Should().Contain("csharp-ls");
-        servers.Select(s => s.Id).Should().Contain("omnisharp");
+        servers.Should().HaveCount(1);
+        servers[0].Id.Should().Be("csharp-ls");
     }
 
     [Fact]
@@ -191,24 +188,6 @@ public sealed class LanguageServerRegistryTests
 
         def.Should().NotBeNull();
         def!.Id.Should().Be("csharp-ls");
-    }
-
-    [Fact]
-    public void OmniSharp_ShouldHaveCorrectConfiguration()
-    {
-        var def = LanguageServerRegistry.GetById("omnisharp");
-
-        def.Should().NotBeNull();
-        def!.Name.Should().Be("OmniSharp");
-        def.License.Should().Be("MIT");
-        def.Languages.Should().Contain(Language.CSharp);
-        def.BinaryName.Should().Be("OmniSharp");
-        def.DefaultArgs.Should().Contain("--languageserver");
-        def.InstallMethod.Should().Be(InstallMethod.GitHubRelease);
-        def.DownloadUrlTemplate.Should().NotBeNullOrWhiteSpace();
-        def.Version.Should().NotBeNullOrWhiteSpace();
-        def.RequiresSolutionArg.Should().BeTrue();
-        def.SolutionArgPrefix.Should().Be("-s");
     }
 
     [Fact]

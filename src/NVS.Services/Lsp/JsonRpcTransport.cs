@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Text;
 using System.Text.Json;
 
@@ -10,11 +9,8 @@ namespace NVS.Services.Lsp;
 /// </summary>
 public sealed class JsonRpcTransport : IAsyncDisposable
 {
-    private static readonly byte[] ContentLengthHeader = "Content-Length: "u8.ToArray();
-    private static readonly byte[] HeaderTerminator = "\r\n\r\n"u8.ToArray();
-    private static readonly byte[] LineTerminator = "\r\n"u8.ToArray();
-
-    private readonly Stream _input;
+    private readonly TextReader? _reader;
+    private readonly Stream? _input;
     private readonly Stream _output;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private readonly SemaphoreSlim _readLock = new(1, 1);
@@ -27,6 +23,19 @@ public sealed class JsonRpcTransport : IAsyncDisposable
         WriteIndented = false,
     };
 
+    /// <summary>
+    /// Creates a transport using a TextReader for input (preferred for process stdout
+    /// to avoid buffering conflicts between StreamReader and BaseStream).
+    /// </summary>
+    public JsonRpcTransport(TextReader reader, Stream output)
+    {
+        _reader = reader ?? throw new ArgumentNullException(nameof(reader));
+        _output = output ?? throw new ArgumentNullException(nameof(output));
+    }
+
+    /// <summary>
+    /// Creates a transport using raw streams (for testing or non-process streams).
+    /// </summary>
     public JsonRpcTransport(Stream input, Stream output)
     {
         _input = input ?? throw new ArgumentNullException(nameof(input));
@@ -44,30 +53,128 @@ public sealed class JsonRpcTransport : IAsyncDisposable
         await _readLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var contentLength = await ReadContentLengthAsync(cancellationToken).ConfigureAwait(false);
-            if (contentLength < 0)
-                return null;
-
-            var body = new byte[contentLength];
-            var totalRead = 0;
-            while (totalRead < contentLength)
-            {
-                var read = await _input.ReadAsync(
-                    body.AsMemory(totalRead, contentLength - totalRead),
-                    cancellationToken).ConfigureAwait(false);
-
-                if (read == 0)
-                    return null;
-
-                totalRead += read;
-            }
-
-            var json = Encoding.UTF8.GetString(body);
-            return Deserialize(json);
+            // Run all synchronous pipe reads on a thread-pool thread to avoid
+            // issues with async-over-sync on non-overlapped pipe handles.
+            var result = await Task.Run(() => ReadMessageSync(cancellationToken), cancellationToken)
+                .ConfigureAwait(false);
+            return result;
         }
         finally
         {
             _readLock.Release();
+        }
+    }
+
+    private JsonRpcMessage? ReadMessageSync(CancellationToken cancellationToken)
+    {
+        var contentLength = ReadContentLengthSync(cancellationToken);
+        if (contentLength < 0)
+            return null;
+
+        string json;
+        if (_reader is not null)
+        {
+            // Read body as characters via TextReader (Content-Length is bytes, but for
+            // UTF-8 JSON with ASCII-safe escaping, bytes ≈ chars). Read char-by-char
+            // to handle the rare case of multi-byte characters correctly.
+            var chars = new char[contentLength];
+            var totalRead = 0;
+            while (totalRead < contentLength)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var read = _reader.Read(chars, totalRead, contentLength - totalRead);
+                if (read == 0)
+                    return null;
+                totalRead += read;
+            }
+            json = new string(chars, 0, totalRead);
+
+            // If the UTF-8 byte length doesn't match Content-Length, we over-read.
+            // Re-read the remaining bytes that belong to the next message header.
+            var actualBytes = Encoding.UTF8.GetByteCount(json);
+            if (actualBytes < contentLength)
+            {
+                // Multi-byte chars: we read too few bytes. Read more chars.
+                var remaining = contentLength - actualBytes;
+                var extra = new char[remaining];
+                var extraRead = 0;
+                while (extraRead < remaining)
+                {
+                    var r = _reader.Read(extra, extraRead, remaining - extraRead);
+                    if (r == 0) break;
+                    extraRead += r;
+                }
+                json += new string(extra, 0, extraRead);
+            }
+        }
+        else
+        {
+            var body = new byte[contentLength];
+            var totalRead = 0;
+            while (totalRead < contentLength)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var read = _input!.Read(body, totalRead, contentLength - totalRead);
+                if (read == 0)
+                    return null;
+                totalRead += read;
+            }
+            json = Encoding.UTF8.GetString(body);
+        }
+
+        return Deserialize(json);
+    }
+
+    private int ReadContentLengthSync(CancellationToken cancellationToken)
+    {
+        var contentLength = -1;
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var line = ReadLineSync();
+            if (line is null)
+                return -1;
+
+            if (line.Length == 0)
+                break;
+
+            if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
+            {
+                var value = line["Content-Length:".Length..].Trim();
+                if (int.TryParse(value, out var parsed))
+                    contentLength = parsed;
+            }
+        }
+
+        return contentLength;
+    }
+
+    private string? ReadLineSync()
+    {
+        if (_reader is not null)
+        {
+            // Use TextReader.ReadLine() which handles the StreamReader buffer correctly
+            return _reader.ReadLine();
+        }
+
+        // Fallback: raw byte-by-byte reading for Stream-based transport
+        var buffer = new List<byte>(128);
+        while (true)
+        {
+            var b = _input!.ReadByte();
+            if (b == -1)
+                return null;
+
+            if (b == '\n')
+            {
+                if (buffer.Count > 0 && buffer[^1] == (byte)'\r')
+                    buffer.RemoveAt(buffer.Count - 1);
+
+                return Encoding.ASCII.GetString(buffer.ToArray());
+            }
+
+            buffer.Add((byte)b);
         }
     }
 
@@ -93,58 +200,6 @@ public sealed class JsonRpcTransport : IAsyncDisposable
         finally
         {
             _writeLock.Release();
-        }
-    }
-
-    private async Task<int> ReadContentLengthAsync(CancellationToken cancellationToken)
-    {
-        var contentLength = -1;
-
-        while (true)
-        {
-            var line = await ReadLineAsync(cancellationToken).ConfigureAwait(false);
-            if (line is null)
-                return -1;
-
-            if (line.Length == 0)
-            {
-                // Empty line = end of headers
-                break;
-            }
-
-            if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
-            {
-                var value = line["Content-Length:".Length..].Trim();
-                if (int.TryParse(value, out var parsed))
-                    contentLength = parsed;
-            }
-            // Other headers (e.g., Content-Type) are ignored per LSP spec
-        }
-
-        return contentLength;
-    }
-
-    private async Task<string?> ReadLineAsync(CancellationToken cancellationToken)
-    {
-        var buffer = new List<byte>(128);
-
-        while (true)
-        {
-            var b = new byte[1];
-            var read = await _input.ReadAsync(b, cancellationToken).ConfigureAwait(false);
-            if (read == 0)
-                return null;
-
-            if (b[0] == (byte)'\n')
-            {
-                // Strip trailing \r if present
-                if (buffer.Count > 0 && buffer[^1] == (byte)'\r')
-                    buffer.RemoveAt(buffer.Count - 1);
-
-                return Encoding.ASCII.GetString(buffer.ToArray());
-            }
-
-            buffer.Add(b[0]);
         }
     }
 

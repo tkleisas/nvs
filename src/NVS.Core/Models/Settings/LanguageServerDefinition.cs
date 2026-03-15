@@ -18,7 +18,7 @@ public sealed record LanguageServerDefinition
 
     /// <summary>
     /// URL template for GitHubRelease installs. Placeholders: {version}, {rid}, {ext}.
-    /// Example: "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/{version}/omnisharp-{rid}-net6.0.{ext}"
+    /// Example: "https://github.com/example/releases/download/{version}/binary-{rid}.{ext}"
     /// </summary>
     public string? DownloadUrlTemplate { get; init; }
 
