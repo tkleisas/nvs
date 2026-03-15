@@ -289,11 +289,61 @@ public partial class MainWindow : Window
         var serverManager = app.Services.GetService(typeof(NVS.Core.Interfaces.ILanguageServerManager)) as NVS.Core.Interfaces.ILanguageServerManager;
         if (settingsService is null || serverManager is null) return;
 
+        // Snapshot current preferred servers before opening settings
+        var previousPreferred = new Dictionary<string, string>(settingsService.AppSettings.PreferredLanguageServers);
+
         var vm = new ViewModels.SettingsViewModel(settingsService, serverManager);
         await vm.InitializeAsync();
 
         var window = new SettingsWindow { DataContext = vm };
         await window.ShowDialog(this);
+
+        // If settings were saved, restart LSP servers whose preference changed
+        if (vm.IsSaved && DataContext is ViewModels.MainViewModel mainVm)
+        {
+            var lspSessionManager = app.Services.GetService(typeof(NVS.Core.Interfaces.ILspSessionManager)) as NVS.Core.Interfaces.ILspSessionManager;
+            if (lspSessionManager is not null)
+            {
+                var newPreferred = settingsService.AppSettings.PreferredLanguageServers;
+                var changedLanguages = FindChangedLanguages(previousPreferred, newPreferred);
+
+                foreach (var language in changedLanguages)
+                {
+                    try
+                    {
+                        await lspSessionManager.RestartLanguageServerAsync(language);
+                    }
+                    catch (Exception ex)
+                    {
+                        Serilog.Log.Warning(ex, "Failed to restart LSP for {Language}", language);
+                    }
+                }
+            }
+        }
+    }
+
+    private static List<NVS.Core.Enums.Language> FindChangedLanguages(
+        Dictionary<string, string> previous,
+        Dictionary<string, string> current)
+    {
+        var changed = new List<NVS.Core.Enums.Language>();
+
+        // Check all languages in either dictionary
+        var allKeys = new HashSet<string>(previous.Keys);
+        allKeys.UnionWith(current.Keys);
+
+        foreach (var key in allKeys)
+        {
+            previous.TryGetValue(key, out var oldId);
+            current.TryGetValue(key, out var newId);
+
+            if (oldId != newId && Enum.TryParse<NVS.Core.Enums.Language>(key, out var language))
+            {
+                changed.Add(language);
+            }
+        }
+
+        return changed;
     }
 
     private async void OnNewProjectClick(object? sender, RoutedEventArgs e)

@@ -496,4 +496,49 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
 
         await mockClient.Received(1).ApplyWorkspaceEditAsync(edit, Arg.Any<CancellationToken>());
     }
+
+    // ─── Restart ────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task RestartLanguageServerAsync_ShouldDisposeOldAndCreateNew()
+    {
+        var oldClient = Substitute.For<ILspClient, IAsyncDisposable>();
+        oldClient.Language.Returns(Language.CSharp);
+        oldClient.IsConnected.Returns(true);
+        var newClient = CreateMockClient(Language.CSharp);
+
+        var callCount = 0;
+        _factory.CreateClientAsync(Language.CSharp, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                callCount++;
+                return Task.FromResult<ILspClient?>(callCount == 1 ? oldClient : newClient);
+            });
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var first = await _manager.GetClientAsync(doc);
+        first.Should().BeSameAs(oldClient);
+
+        await _manager.RestartLanguageServerAsync(Language.CSharp);
+
+        // Old client should have been disposed
+        await ((IAsyncDisposable)oldClient).Received(1).DisposeAsync();
+
+        // New client should be returned on next request
+        var second = await _manager.GetClientAsync(doc);
+        second.Should().BeSameAs(newClient);
+    }
+
+    [Fact]
+    public async Task RestartLanguageServerAsync_WithNoExistingClient_ShouldCreateNew()
+    {
+        var mockClient = CreateMockClient(Language.CSharp);
+        SetupFactory(Language.CSharp, mockClient);
+
+        await _manager.RestartLanguageServerAsync(Language.CSharp);
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await _manager.GetClientAsync(doc);
+        result.Should().BeSameAs(mockClient);
+    }
 }

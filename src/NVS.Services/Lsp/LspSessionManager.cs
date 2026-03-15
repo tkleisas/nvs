@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using NVS.Core.Enums;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
+using Serilog;
 using Range = NVS.Core.Models.Range;
 
 namespace NVS.Services.Lsp;
@@ -12,6 +13,7 @@ namespace NVS.Services.Lsp;
 /// </summary>
 public sealed class LspSessionManager : ILspSessionManager
 {
+    private static readonly ILogger Logger = Log.ForContext<LspSessionManager>();
     private readonly ILspClientFactory _factory;
     private readonly ConcurrentDictionary<Language, Task<ILspClient?>> _clients = new();
     private readonly ConcurrentDictionary<Language, ILspClient> _activeClients = new();
@@ -31,6 +33,52 @@ public sealed class LspSessionManager : ILspSessionManager
     public void SetRootPath(string rootPath)
     {
         _rootPath = rootPath ?? throw new ArgumentNullException(nameof(rootPath));
+    }
+
+    /// <inheritdoc />
+    public async Task RestartLanguageServerAsync(Language language, CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        Logger.Information("Restarting LSP server for {Language}", language);
+
+        // Remove the cached task so a new client will be created
+        _clients.TryRemove(language, out _);
+
+        // Dispose the active client if it exists
+        if (_activeClients.TryRemove(language, out var oldClient))
+        {
+            oldClient.DiagnosticsReceived -= OnDiagnosticsReceived;
+            if (oldClient is IAsyncDisposable disposable)
+            {
+                try
+                {
+                    await disposable.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning(ex, "Error disposing old LSP client for {Language}", language);
+                }
+            }
+            Logger.Information("Disposed old LSP client for {Language}", language);
+        }
+
+        // Eagerly create the new client if we have a root path
+        if (_rootPath is not null)
+        {
+            try
+            {
+                var clientTask = _clients.GetOrAdd(language, lang =>
+                    CreateAndTrackClientAsync(lang, _rootPath, cancellationToken));
+                await clientTask.ConfigureAwait(false);
+                Logger.Information("New LSP client created for {Language}", language);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to create new LSP client for {Language}", language);
+                _clients.TryRemove(language, out _);
+            }
+        }
     }
 
     public async Task<ILspClient?> GetClientAsync(Document document, CancellationToken cancellationToken = default)
@@ -161,14 +209,20 @@ public sealed class LspSessionManager : ILspSessionManager
 
     private async Task<ILspClient?> CreateAndTrackClientAsync(Language language, string rootPath, CancellationToken cancellationToken)
     {
+        Logger.Information("Creating LSP client for {Language} with root {RootPath}", language, rootPath);
+
         var client = await _factory.CreateClientAsync(language, rootPath, cancellationToken)
             .ConfigureAwait(false);
 
         if (client is null)
+        {
+            Logger.Warning("No LSP client available for {Language}", language);
             return null;
+        }
 
         _activeClients[language] = client;
         client.DiagnosticsReceived += OnDiagnosticsReceived;
+        Logger.Information("LSP client ready for {Language}", language);
         return client;
     }
 

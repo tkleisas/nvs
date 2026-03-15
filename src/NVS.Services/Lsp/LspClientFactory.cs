@@ -1,6 +1,7 @@
 using NVS.Core.Enums;
 using NVS.Core.Interfaces;
 using NVS.Core.Models.Settings;
+using Serilog;
 
 namespace NVS.Services.Lsp;
 
@@ -10,6 +11,7 @@ namespace NVS.Services.Lsp;
 /// </summary>
 public sealed class LspClientFactory : ILspClientFactory
 {
+    private static readonly ILogger Logger = Log.ForContext<LspClientFactory>();
     private readonly ILanguageService _languageService;
     private readonly ISettingsService _settingsService;
 
@@ -21,19 +23,29 @@ public sealed class LspClientFactory : ILspClientFactory
 
     public async Task<ILspClient?> CreateClientAsync(Language language, string rootPath, CancellationToken cancellationToken = default)
     {
-        // Check if user has a preferred server for this language
         var definition = ResolveServerDefinition(language);
         if (definition is null)
+        {
+            Logger.Warning("No language server definition found for {Language}", language);
             return null;
+        }
+
+        Logger.Information("Using LSP server {ServerId} ({ServerName}) for {Language}",
+            definition.Id, definition.Name, language);
 
         // Check user config for overrides or disabled state
         var userConfig = _settingsService.AppSettings.LanguageServers
             .GetValueOrDefault(definition.Id);
 
         if (userConfig is { Enabled: false })
+        {
+            Logger.Information("LSP server {ServerId} is disabled by user", definition.Id);
             return null;
+        }
 
         var config = BuildConfig(definition, userConfig, rootPath);
+        Logger.Information("Starting LSP server: {Command} {Args}",
+            config.Command, string.Join(" ", config.Args));
 
         var client = new LspClient(language, config, _languageService);
         await client.InitializeAsync(rootPath, cancellationToken).ConfigureAwait(false);
@@ -47,9 +59,11 @@ public sealed class LspClientFactory : ILspClientFactory
 
         if (preferred.TryGetValue(languageName, out var preferredId))
         {
+            Logger.Information("User prefers {PreferredId} for {Language}", preferredId, language);
             var preferredDef = LanguageServerRegistry.GetById(preferredId);
             if (preferredDef is not null)
                 return preferredDef;
+            Logger.Warning("Preferred server {PreferredId} not found in registry, falling back to default", preferredId);
         }
 
         return LanguageServerRegistry.GetForLanguage(language);
@@ -80,6 +94,8 @@ public sealed class LspClientFactory : ILspClientFactory
         var resolvedCommand = LanguageServerManager.FindBinaryOnPath(command)
             ?? FindInNvsTools(definition.Id, command)
             ?? command;
+
+        Logger.Information("Resolved LSP command for {ServerId}: {Command}", definition.Id, resolvedCommand);
 
         return new LanguageServerConfig
         {

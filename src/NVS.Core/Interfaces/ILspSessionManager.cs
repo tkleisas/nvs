@@ -1,3 +1,4 @@
+using NVS.Core.Enums;
 using NVS.Core.Models;
 using Range = NVS.Core.Models.Range;
 
@@ -24,6 +25,12 @@ public interface ILspSessionManager : IAsyncDisposable
     Task<IReadOnlyList<TextEdit>> FormatDocumentAsync(Document document, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CodeAction>> GetCodeActionsAsync(Document document, Range range, IReadOnlyList<Diagnostic> diagnostics, CancellationToken cancellationToken = default);
     Task ApplyWorkspaceEditAsync(Document document, WorkspaceEdit edit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Restarts the LSP client for the given language. Disposes the current
+    /// client (if any) and creates a new one on the next request.
+    /// </summary>
+    Task RestartLanguageServerAsync(Language language, CancellationToken cancellationToken = default);
 
     void NotifyDocumentOpened(Document document);
     void NotifyDocumentChanged(Document document, string content);
