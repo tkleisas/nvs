@@ -28,7 +28,8 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private OverloadInsightWindow? _insightWindow;
     private CancellationTokenSource? _autoCompleteCts;
     private CancellationTokenSource? _hoverCts;
-    private Avalonia.Controls.Primitives.Popup? _debugHoverPopup;
+    private bool _debugHoverShowing;
+    private string? _lastHoverWord;
     private bool _updating;
 
     public static readonly StyledProperty<string> TextProperty =
@@ -247,6 +248,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _autoCompleteCts?.Dispose();
             _hoverCts?.Cancel();
             _hoverCts?.Dispose();
+            _lastHoverWord = null;
             CloseDebugHoverPopup();
 
             if (_diagnosticRenderer != null)
@@ -525,6 +527,11 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         if (string.IsNullOrWhiteSpace(word))
             return;
 
+        // Skip if already showing tooltip for this word
+        if (_debugHoverShowing && word == _lastHoverWord)
+            return;
+
+        _lastHoverWord = word;
         _hoverCts?.Cancel();
         _hoverCts?.Dispose();
         var cts = _hoverCts = new CancellationTokenSource();
@@ -535,64 +542,53 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             if (cts.Token.IsCancellationRequested || string.IsNullOrEmpty(result))
                 return;
 
-            ShowDebugHoverPopup(word, result, e.GetPosition(_textEditor));
+            ShowDebugHoverPopup(word, result);
         }
         catch (OperationCanceledException)
         {
             // Expected
         }
-        catch
+        catch (Exception ex)
         {
-            // Best effort
+            Serilog.Log.Warning(ex, "[Hover] Evaluate failed for '{Word}'", word);
         }
     }
 
     private void OnTextViewPointerHoverStopped(object? sender, PointerEventArgs e)
     {
         _hoverCts?.Cancel();
+        _lastHoverWord = null;
         CloseDebugHoverPopup();
     }
 
-    private void ShowDebugHoverPopup(string expression, string value, Avalonia.Point position)
+    private void ShowDebugHoverPopup(string expression, string value)
     {
         CloseDebugHoverPopup();
 
-        var border = new Avalonia.Controls.Border
+        if (_textEditor?.TextArea?.TextView is not { } textView)
+            return;
+
+        var content = new Avalonia.Controls.TextBlock
         {
-            Background = Avalonia.Media.Brushes.Black,
-            BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(0x3F, 0x3F, 0x46)),
-            BorderThickness = new Avalonia.Thickness(1),
-            CornerRadius = new Avalonia.CornerRadius(3),
-            Padding = new Avalonia.Thickness(8, 4),
-            Child = new Avalonia.Controls.TextBlock
-            {
-                Text = $"{expression} = {value}",
-                Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(0xDC, 0xDC, 0xDC)),
-                FontFamily = new Avalonia.Media.FontFamily("Cascadia Code, Consolas, Courier New, monospace"),
-                FontSize = 13,
-            },
+            Text = $"{expression} = {value}",
+            FontFamily = new Avalonia.Media.FontFamily("Cascadia Code, Consolas, Courier New, monospace"),
+            FontSize = 13,
         };
 
-        _debugHoverPopup = new Avalonia.Controls.Primitives.Popup
-        {
-            Child = border,
-            PlacementTarget = _textEditor,
-            Placement = Avalonia.Controls.PlacementMode.Pointer,
-            HorizontalOffset = 0,
-            VerticalOffset = 16,
-            IsLightDismissEnabled = true,
-        };
-
-        _debugHoverPopup.Closed += (_, _) => _debugHoverPopup = null;
-        _debugHoverPopup.IsOpen = true;
+        Avalonia.Controls.ToolTip.SetTip(textView, content);
+        Avalonia.Controls.ToolTip.SetPlacement(textView, Avalonia.Controls.PlacementMode.Pointer);
+        Avalonia.Controls.ToolTip.SetShowDelay(textView, 0);
+        Avalonia.Controls.ToolTip.SetIsOpen(textView, true);
+        _debugHoverShowing = true;
     }
 
     private void CloseDebugHoverPopup()
     {
-        if (_debugHoverPopup is not null)
+        if (_debugHoverShowing && _textEditor?.TextArea?.TextView is { } textView)
         {
-            _debugHoverPopup.IsOpen = false;
-            _debugHoverPopup = null;
+            Avalonia.Controls.ToolTip.SetIsOpen(textView, false);
+            Avalonia.Controls.ToolTip.SetTip(textView, null);
+            _debugHoverShowing = false;
         }
     }
 
