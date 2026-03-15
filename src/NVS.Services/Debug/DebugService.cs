@@ -91,7 +91,7 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         if (cleanup is not null)
         {
             try { await cleanup.ConfigureAwait(false); }
-            catch { /* cleanup errors are non-fatal */ }
+            catch { /* previous cleanup error — ignored */ }
             _pendingCleanup = null;
         }
 
@@ -473,7 +473,8 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
     /// </summary>
     private async Task SyncBreakpointsToAdapterAsync(CancellationToken cancellationToken)
     {
-        if (_breakpointStore is null || _client is null) return;
+        if (_breakpointStore is null || _client is null)
+            return;
 
         var allBreakpoints = _breakpointStore.GetAllBreakpoints();
         if (allBreakpoints.Count == 0) return;
@@ -504,7 +505,7 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
             }
             catch
             {
-                // Best effort — don't fail the whole debug session for one file's breakpoints
+                // SetBreakpoints failed for this file — skip
             }
         }
     }

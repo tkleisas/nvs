@@ -49,6 +49,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     private bool _isDebugging;
     private bool _isDebugPaused;
     private bool _debugUsesTerminal;
+    private int _debugSessionGeneration;
     private TerminalToolViewModel? _debugTerminal;
     private System.Diagnostics.Process? _debuggeeProcess;
     private System.Diagnostics.Process? _runningProcess;
@@ -861,6 +862,10 @@ public partial class MainViewModel : INotifyPropertyChanged
 
         try
         {
+            // Bump generation so stale OnDebuggingStopped posts from a previous
+            // session will skip their cleanup and not destroy our new terminal.
+            _debugSessionGeneration++;
+
             // Build first — debugger needs compiled output
             StatusMessage = "Building before debug...";
             var buildOutput = FindBuildOutputTool();
@@ -1127,8 +1132,15 @@ public partial class MainViewModel : INotifyPropertyChanged
         _pauseCts?.Dispose();
         _pauseCts = null;
 
+        // Capture the current generation so the posted lambda can detect
+        // whether a newer debug session has started in the meantime.
+        var gen = _debugSessionGeneration;
+
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
+            // A newer session is already running — don't destroy its state.
+            if (gen != _debugSessionGeneration) return;
+
             IsDebugging = false;
             IsDebugPaused = false;
             _debugUsesTerminal = false;
