@@ -12,7 +12,7 @@ public sealed class LanguageServerRegistryTests
         var servers = LanguageServerRegistry.GetAll();
 
         servers.Should().NotBeEmpty();
-        servers.Count.Should().BeGreaterOrEqualTo(12);
+        servers.Count.Should().BeGreaterOrEqualTo(13);
     }
 
     [Fact]
@@ -26,6 +26,7 @@ public sealed class LanguageServerRegistryTests
 
     [Theory]
     [InlineData("csharp-ls")]
+    [InlineData("omnisharp")]
     [InlineData("clangd")]
     [InlineData("typescript-language-server")]
     [InlineData("pylsp")]
@@ -91,6 +92,7 @@ public sealed class LanguageServerRegistryTests
 
     [Theory]
     [InlineData("csharp-ls", InstallMethod.DotnetTool)]
+    [InlineData("omnisharp", InstallMethod.GitHubRelease)]
     [InlineData("clangd", InstallMethod.BinaryDownload)]
     [InlineData("typescript-language-server", InstallMethod.Npm)]
     [InlineData("pylsp", InstallMethod.Pip)]
@@ -133,7 +135,7 @@ public sealed class LanguageServerRegistryTests
     public void AllNonBinaryServers_ShouldHaveInstallCommand()
     {
         var servers = LanguageServerRegistry.GetAll()
-            .Where(s => s.InstallMethod != InstallMethod.BinaryDownload);
+            .Where(s => s.InstallMethod is not InstallMethod.BinaryDownload and not InstallMethod.GitHubRelease);
 
         foreach (var server in servers)
         {
@@ -152,5 +154,75 @@ public sealed class LanguageServerRegistryTests
         all.Should().NotBeEmpty();
         all.Should().ContainKey("clangd");
         all.Should().ContainKey("gopls");
+    }
+
+    [Fact]
+    public void GetAllForLanguage_CSharp_ShouldReturnBothServers()
+    {
+        var servers = LanguageServerRegistry.GetAllForLanguage(Language.CSharp);
+
+        servers.Should().HaveCountGreaterOrEqualTo(2);
+        servers.Select(s => s.Id).Should().Contain("csharp-ls");
+        servers.Select(s => s.Id).Should().Contain("omnisharp");
+    }
+
+    [Fact]
+    public void GetAllForLanguage_Python_ShouldReturnSingleServer()
+    {
+        var servers = LanguageServerRegistry.GetAllForLanguage(Language.Python);
+
+        servers.Should().HaveCount(1);
+        servers[0].Id.Should().Be("pylsp");
+    }
+
+    [Fact]
+    public void GetAllForLanguage_Unknown_ShouldReturnEmpty()
+    {
+        var servers = LanguageServerRegistry.GetAllForLanguage(Language.Unknown);
+
+        servers.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GetForLanguage_CSharp_ShouldReturnDefault()
+    {
+        // GetForLanguage returns the first registered (default), not omnisharp
+        var def = LanguageServerRegistry.GetForLanguage(Language.CSharp);
+
+        def.Should().NotBeNull();
+        def!.Id.Should().Be("csharp-ls");
+    }
+
+    [Fact]
+    public void OmniSharp_ShouldHaveCorrectConfiguration()
+    {
+        var def = LanguageServerRegistry.GetById("omnisharp");
+
+        def.Should().NotBeNull();
+        def!.Name.Should().Be("OmniSharp");
+        def.License.Should().Be("MIT");
+        def.Languages.Should().Contain(Language.CSharp);
+        def.BinaryName.Should().Be("OmniSharp");
+        def.DefaultArgs.Should().Contain("--languageserver");
+        def.InstallMethod.Should().Be(InstallMethod.GitHubRelease);
+        def.DownloadUrlTemplate.Should().NotBeNullOrWhiteSpace();
+        def.Version.Should().NotBeNullOrWhiteSpace();
+        def.RequiresSolutionArg.Should().BeTrue();
+        def.SolutionArgPrefix.Should().Be("-s");
+    }
+
+    [Fact]
+    public void GitHubReleaseServers_ShouldHaveDownloadUrlAndVersion()
+    {
+        var servers = LanguageServerRegistry.GetAll()
+            .Where(s => s.InstallMethod == InstallMethod.GitHubRelease);
+
+        foreach (var server in servers)
+        {
+            server.DownloadUrlTemplate.Should().NotBeNullOrWhiteSpace(
+                $"Server {server.Id} (GitHubRelease) should have a download URL template");
+            server.Version.Should().NotBeNullOrWhiteSpace(
+                $"Server {server.Id} (GitHubRelease) should have a version");
+        }
     }
 }

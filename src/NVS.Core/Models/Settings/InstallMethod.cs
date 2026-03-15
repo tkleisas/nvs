@@ -8,4 +8,5 @@ public enum InstallMethod
     Cargo,
     GoInstall,
     BinaryDownload,
+    GitHubRelease,
 }

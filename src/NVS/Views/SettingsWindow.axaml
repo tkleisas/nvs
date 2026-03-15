@@ -118,6 +118,10 @@
                                                            Foreground="#4EC9B0" />
                                                 <TextBlock Text="{Binding LanguageDisplay}" FontSize="11"
                                                            Foreground="#888888" VerticalAlignment="Center" />
+                                                <CheckBox Content="Preferred" IsChecked="{Binding IsPreferred}"
+                                                          IsVisible="{Binding HasAlternatives}"
+                                                          FontSize="11" Foreground="#DCDCAA"
+                                                          VerticalAlignment="Center" Margin="8,0,0,0" />
                                             </StackPanel>
 
                                             <!-- Install button -->

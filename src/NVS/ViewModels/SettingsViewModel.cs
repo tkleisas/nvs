@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.Input;
 using NVS.Core.Interfaces;
 using NVS.Core.Models.Settings;
+using NVS.Services.Lsp;
 
 namespace NVS.ViewModels;
 
@@ -315,6 +316,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     private async Task LoadLanguageServersAsync()
     {
         var servers = _serverManager.GetAvailableServers();
+        var preferredServers = _settings.PreferredLanguageServers;
         LanguageServers.Clear();
 
         foreach (var server in servers)
@@ -322,10 +324,20 @@ public partial class SettingsViewModel : INotifyPropertyChanged
             var status = await _serverManager.CheckServerStatusAsync(server.Id);
             var userConfig = _settings.LanguageServers.GetValueOrDefault(server.Id);
 
+            // Check if this language has multiple servers registered
+            var hasAlternatives = server.Languages.Any(lang =>
+                LanguageServerRegistry.GetAllForLanguage(lang).Count > 1);
+
+            // Determine if this is the preferred server for its language
+            var isPreferred = server.Languages.Any(lang =>
+                preferredServers.TryGetValue(lang.ToString(), out var prefId) && prefId == server.Id);
+
             var item = new LanguageServerItemViewModel(server)
             {
                 Status = status,
                 IsEnabled = userConfig?.Enabled ?? true,
+                IsPreferred = isPreferred,
+                HasAlternatives = hasAlternatives,
                 CustomCommand = userConfig?.CustomCommand,
                 CustomArgs = userConfig?.CustomArgs is { Count: > 0 }
                     ? string.Join(" ", userConfig.CustomArgs)
@@ -398,6 +410,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
                 BufferSize = TerminalBufferSize,
             },
             LanguageServers = BuildLanguageServerConfigs(),
+            PreferredLanguageServers = BuildPreferredLanguageServers(),
         };
 
         await _settingsService.SaveAppSettingsAsync(newSettings);
@@ -419,6 +432,22 @@ public partial class SettingsViewModel : INotifyPropertyChanged
             };
         }
         return configs;
+    }
+
+    private Dictionary<string, string> BuildPreferredLanguageServers()
+    {
+        var preferred = new Dictionary<string, string>();
+        foreach (var item in LanguageServers)
+        {
+            if (!item.IsPreferred || !item.HasAlternatives)
+                continue;
+
+            foreach (var lang in item.Definition.Languages)
+            {
+                preferred[lang.ToString()] = item.Definition.Id;
+            }
+        }
+        return preferred;
     }
 
     public bool IsSaved { get; private set; }
@@ -443,6 +472,7 @@ public sealed class LanguageServerItemViewModel : INotifyPropertyChanged
     private LanguageServerStatus _status;
     private bool _isEnabled;
     private bool _isInstalling;
+    private bool _isPreferred;
     private string _statusText = "";
     private string? _customCommand;
     private string? _customArgs;
@@ -460,6 +490,7 @@ public sealed class LanguageServerItemViewModel : INotifyPropertyChanged
             InstallMethod.DotnetTool => "dotnet tool",
             InstallMethod.Cargo => "cargo",
             InstallMethod.GoInstall => "go install",
+            InstallMethod.GitHubRelease => "Auto-download",
             InstallMethod.BinaryDownload => "Manual download",
             _ => "Unknown",
         };
@@ -558,6 +589,28 @@ public sealed class LanguageServerItemViewModel : INotifyPropertyChanged
     };
 
     public bool CanInstall => _status == LanguageServerStatus.NotInstalled && !_isInstalling;
+
+    /// <summary>
+    /// Whether this server is the preferred one for its language(s).
+    /// Only meaningful when HasAlternatives is true.
+    /// </summary>
+    public bool IsPreferred
+    {
+        get => _isPreferred;
+        set
+        {
+            if (_isPreferred != value)
+            {
+                _isPreferred = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// True when multiple servers are registered for the same language.
+    /// </summary>
+    public bool HasAlternatives { get; init; }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {

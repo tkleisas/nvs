@@ -14,7 +14,7 @@ public sealed class LanguageServerManagerTests
         var servers = _manager.GetAvailableServers();
 
         servers.Should().NotBeEmpty();
-        servers.Count.Should().BeGreaterOrEqualTo(12);
+        servers.Count.Should().BeGreaterOrEqualTo(13);
     }
 
     [Theory]
@@ -108,5 +108,43 @@ public sealed class LanguageServerManagerTests
         var path = LanguageServerManager.FindBinaryOnPath("this-binary-does-not-exist-xyzzy");
 
         path.Should().BeNull();
+    }
+
+    [Fact]
+    public void GetCurrentRid_ShouldReturnValidRid()
+    {
+        var rid = LanguageServerManager.GetCurrentRid();
+
+        rid.Should().NotBeNull();
+        rid.Should().MatchRegex(@"^(win|linux|osx)-(x64|arm64)$");
+    }
+
+    [Fact]
+    public void GetNvsToolsDir_ShouldReturnAppDataPath()
+    {
+        var dir = LanguageServerManager.GetNvsToolsDir("omnisharp");
+
+        dir.Should().Contain("NVS");
+        dir.Should().Contain("tools");
+        dir.Should().Contain("omnisharp");
+    }
+
+    [Fact]
+    public void FindInNvsTools_WithNonexistentDir_ShouldReturnNull()
+    {
+        var path = LanguageServerManager.FindInNvsTools("nonexistent-server-xyz", "binary");
+
+        path.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CheckServerStatusAsync_WithOmniSharp_ShouldReturnStatus()
+    {
+        var status = await _manager.CheckServerStatusAsync("omnisharp");
+
+        // OmniSharp probably isn't installed in test environment
+        status.Should().BeOneOf(
+            LanguageServerStatus.Installed,
+            LanguageServerStatus.NotInstalled);
     }
 }

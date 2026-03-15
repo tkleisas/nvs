@@ -14,5 +14,12 @@ public sealed record AppSettings
     public DockLayoutSettings Dock { get; init; } = new();
     public LlmSettings Llm { get; init; } = new();
     public Dictionary<string, LanguageServerUserConfig> LanguageServers { get; init; } = new();
+
+    /// <summary>
+    /// Maps language name (e.g. "CSharp") to preferred server ID (e.g. "omnisharp").
+    /// When not set for a language, the registry default is used.
+    /// </summary>
+    public Dictionary<string, string> PreferredLanguageServers { get; init; } = new();
+
     public Dictionary<string, object> Properties { get; init; } = new();
 }

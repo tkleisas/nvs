@@ -15,4 +15,25 @@ public sealed record LanguageServerDefinition
     public string? InstallCommand { get; init; }
     public string? InstallPackage { get; init; }
     public string? HomepageUrl { get; init; }
+
+    /// <summary>
+    /// URL template for GitHubRelease installs. Placeholders: {version}, {rid}, {ext}.
+    /// Example: "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/{version}/omnisharp-{rid}-net6.0.{ext}"
+    /// </summary>
+    public string? DownloadUrlTemplate { get; init; }
+
+    /// <summary>
+    /// Pinned version for GitHubRelease installs (e.g. "v1.39.15").
+    /// </summary>
+    public string? Version { get; init; }
+
+    /// <summary>
+    /// When true, the server expects a solution/project path argument (e.g. "-s &lt;path&gt;").
+    /// </summary>
+    public bool RequiresSolutionArg { get; init; }
+
+    /// <summary>
+    /// The argument prefix for passing the solution path (e.g. "-s").
+    /// </summary>
+    public string? SolutionArgPrefix { get; init; }
 }

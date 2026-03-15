@@ -10,6 +10,7 @@ public static class LanguageServerRegistry
 {
     private static readonly Dictionary<string, LanguageServerDefinition> Servers;
     private static readonly Dictionary<Language, string> LanguageToServerId;
+    private static readonly Dictionary<Language, List<string>> LanguageToAllServerIds;
 
     static LanguageServerRegistry()
     {
@@ -28,6 +29,22 @@ public static class LanguageServerRegistry
                 InstallCommand = "dotnet",
                 InstallPackage = "csharp-ls",
                 HomepageUrl = "https://github.com/razzmatazz/csharp-language-server",
+            },
+            new()
+            {
+                Id = "omnisharp",
+                Name = "OmniSharp",
+                Description = "Full-featured Roslyn-based C# language server with implicit usings and import suggestions",
+                License = "MIT",
+                Languages = [Language.CSharp],
+                BinaryName = "OmniSharp",
+                DefaultArgs = ["--languageserver"],
+                InstallMethod = InstallMethod.GitHubRelease,
+                HomepageUrl = "https://github.com/OmniSharp/omnisharp-roslyn",
+                DownloadUrlTemplate = "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/{version}/omnisharp-{rid}-net6.0.{ext}",
+                Version = "v1.39.15",
+                RequiresSolutionArg = true,
+                SolutionArgPrefix = "-s",
             },
             new()
             {
@@ -181,11 +198,18 @@ public static class LanguageServerRegistry
 
         Servers = definitions.ToDictionary(d => d.Id);
         LanguageToServerId = new Dictionary<Language, string>();
+        LanguageToAllServerIds = new Dictionary<Language, List<string>>();
         foreach (var def in definitions)
         {
             foreach (var lang in def.Languages)
             {
                 LanguageToServerId.TryAdd(lang, def.Id);
+                if (!LanguageToAllServerIds.TryGetValue(lang, out var list))
+                {
+                    list = [];
+                    LanguageToAllServerIds[lang] = list;
+                }
+                list.Add(def.Id);
             }
         }
     }
@@ -198,6 +222,14 @@ public static class LanguageServerRegistry
 
     public static LanguageServerDefinition? GetForLanguage(Language language) =>
         LanguageToServerId.TryGetValue(language, out var id) ? Servers[id] : null;
+
+    /// <summary>
+    /// Returns all registered language server definitions that support the given language.
+    /// </summary>
+    public static IReadOnlyList<LanguageServerDefinition> GetAllForLanguage(Language language) =>
+        LanguageToAllServerIds.TryGetValue(language, out var ids)
+            ? ids.Select(id => Servers[id]).ToList().AsReadOnly()
+            : [];
 
     public static IReadOnlyDictionary<string, LanguageServerDefinition> All => Servers;
 }
