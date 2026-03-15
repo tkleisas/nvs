@@ -71,4 +71,55 @@ public sealed class RoslynCompletionServiceTests : IAsyncDisposable
         var act = () => _service.LoadWorkspaceAsync(@"C:\nonexistent\fake.csproj");
         await act.Should().ThrowAsync<Exception>();
     }
+
+    // ─── New Feature Methods (No Workspace) ─────────────────────────────────
+
+    [Fact]
+    public async Task GetHoverAsync_WithNoWorkspace_ShouldReturnNull()
+    {
+        var result = await _service.GetHoverAsync(@"C:\test\Program.cs", 0, 0);
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetDefinitionAsync_WithNoWorkspace_ShouldReturnNull()
+    {
+        var result = await _service.GetDefinitionAsync(@"C:\test\Program.cs", 0, 0);
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetReferencesAsync_WithNoWorkspace_ShouldReturnEmpty()
+    {
+        var results = await _service.GetReferencesAsync(@"C:\test\Program.cs", 0, 0);
+        results.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetDocumentSymbolsAsync_WithNoWorkspace_ShouldReturnEmpty()
+    {
+        var results = await _service.GetDocumentSymbolsAsync(@"C:\test\Program.cs");
+        results.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetDiagnosticsAsync_WithNoWorkspace_ShouldReturnEmpty()
+    {
+        var results = await _service.GetDiagnosticsAsync(@"C:\test\Program.cs");
+        results.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetSignatureHelpAsync_WithNoWorkspace_ShouldReturnNull()
+    {
+        var result = await _service.GetSignatureHelpAsync(@"C:\test\Program.cs", 0, 0);
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetFormattingEditsAsync_WithNoWorkspace_ShouldReturnEmpty()
+    {
+        var results = await _service.GetFormattingEditsAsync(@"C:\test\Program.cs");
+        results.Should().BeEmpty();
+    }
 }

@@ -744,4 +744,231 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
         result.Should().HaveCount(1);
         result[0].Label.Should().Be("fallback");
     }
+
+    // ─── Roslyn Hover Routing ───────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetHoverAsync_WithRoslyn_ShouldPreferRoslynForCSharp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+        roslynService.GetHoverAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new HoverInfo { Content = "Roslyn hover" });
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetHoverAsync(doc, Position.Zero);
+
+        result.Should().NotBeNull();
+        result!.Content.Should().Be("Roslyn hover");
+    }
+
+    [Fact]
+    public async Task GetHoverAsync_RoslynReturnsNull_ShouldFallbackToLsp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+        roslynService.GetHoverAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns((HoverInfo?)null);
+
+        var mockClient = CreateMockClient(Language.CSharp);
+        mockClient.GetHoverAsync(Arg.Any<Document>(), Arg.Any<Position>(), Arg.Any<CancellationToken>())
+            .Returns(new HoverInfo { Content = "LSP hover" });
+        SetupFactory(Language.CSharp, mockClient);
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetHoverAsync(doc, Position.Zero);
+
+        result.Should().NotBeNull();
+        result!.Content.Should().Be("LSP hover");
+    }
+
+    // ─── Roslyn Definition Routing ──────────────────────────────────────────
+
+    [Fact]
+    public async Task GetDefinitionAsync_WithRoslyn_ShouldPreferRoslynForCSharp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+        roslynService.GetDefinitionAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new Location { FilePath = @"C:\project\Def.cs", Range = Range.Empty });
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetDefinitionAsync(doc, Position.Zero);
+
+        result.Should().NotBeNull();
+        result!.FilePath.Should().Be(@"C:\project\Def.cs");
+    }
+
+    [Fact]
+    public async Task GetDefinitionAsync_RoslynReturnsNull_ShouldFallbackToLsp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+        roslynService.GetDefinitionAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns((Location?)null);
+
+        var mockClient = CreateMockClient(Language.CSharp);
+        mockClient.GetDefinitionAsync(Arg.Any<Document>(), Arg.Any<Position>(), Arg.Any<CancellationToken>())
+            .Returns(new Location { FilePath = @"C:\project\LspDef.cs", Range = Range.Empty });
+        SetupFactory(Language.CSharp, mockClient);
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetDefinitionAsync(doc, Position.Zero);
+
+        result.Should().NotBeNull();
+        result!.FilePath.Should().Be(@"C:\project\LspDef.cs");
+    }
+
+    // ─── Roslyn References Routing ──────────────────────────────────────────
+
+    [Fact]
+    public async Task GetReferencesAsync_WithRoslyn_ShouldPreferRoslynForCSharp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+        roslynService.GetReferencesAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new List<Location> { new() { FilePath = "ref1.cs", Range = Range.Empty } });
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetReferencesAsync(doc, Position.Zero);
+
+        result.Should().HaveCount(1);
+        result[0].FilePath.Should().Be("ref1.cs");
+    }
+
+    // ─── Roslyn Formatting Routing ──────────────────────────────────────────
+
+    [Fact]
+    public async Task FormatDocumentAsync_WithRoslyn_ShouldPreferRoslynForCSharp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+        roslynService.GetFormattingEditsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new List<TextEdit> { new() { NewText = " ", Range = Range.Empty } });
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.FormatDocumentAsync(doc);
+
+        result.Should().HaveCount(1);
+    }
+
+    // ─── Roslyn Diagnostics Routing ─────────────────────────────────────────
+
+    [Fact]
+    public async Task GetDiagnosticsAsync_WithRoslyn_ShouldPreferRoslynForCSharp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+        roslynService.GetDiagnosticsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new List<Diagnostic>
+            {
+                new() { Message = "CS0001", Severity = DiagnosticSeverity.Error, Range = Range.Empty, Source = "Roslyn" },
+            });
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetDiagnosticsAsync(doc);
+
+        result.Should().HaveCount(1);
+        result[0].Source.Should().Be("Roslyn");
+    }
+
+    // ─── Roslyn Document Symbols Routing ────────────────────────────────────
+
+    [Fact]
+    public async Task GetDocumentSymbolsAsync_WithRoslyn_ShouldPreferRoslynForCSharp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+        roslynService.GetDocumentSymbolsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new List<DocumentSymbol>
+            {
+                new() { Name = "MyClass", Kind = NVS.Core.Enums.SymbolKind.Class },
+            });
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetDocumentSymbolsAsync(doc);
+
+        result.Should().HaveCount(1);
+        result[0].Name.Should().Be("MyClass");
+    }
+
+    // ─── Roslyn Signature Help Routing ──────────────────────────────────────
+
+    [Fact]
+    public async Task GetSignatureHelpAsync_WithRoslyn_ShouldPreferRoslynForCSharp()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+        roslynService.GetSignatureHelpAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new SignatureHelp
+            {
+                Signatures = [new SignatureInformation { Label = "void Method(int x)" }],
+                ActiveSignature = 0,
+                ActiveParameter = 0,
+            });
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.cs", Language.CSharp);
+        var result = await manager.GetSignatureHelpAsync(doc, Position.Zero);
+
+        result.Should().NotBeNull();
+        result!.Signatures.Should().HaveCount(1);
+        result.Signatures[0].Label.Should().Be("void Method(int x)");
+    }
+
+    // ─── Non-CSharp should always bypass Roslyn ─────────────────────────────
+
+    [Fact]
+    public async Task GetHoverAsync_NonCSharp_ShouldBypassRoslyn()
+    {
+        var roslynService = Substitute.For<IRoslynCompletionService>();
+        roslynService.IsWorkspaceLoaded.Returns(true);
+
+        var mockClient = CreateMockClient(Language.Python);
+        mockClient.GetHoverAsync(Arg.Any<Document>(), Arg.Any<Position>(), Arg.Any<CancellationToken>())
+            .Returns(new HoverInfo { Content = "Python hover" });
+        SetupFactory(Language.Python, mockClient);
+
+        await using var manager = new LspSessionManager(_factory, roslynService);
+        manager.SetRootPath(@"C:\project");
+
+        var doc = CreateDocument("test.py", Language.Python);
+        var result = await manager.GetHoverAsync(doc, Position.Zero);
+
+        result!.Content.Should().Be("Python hover");
+        await roslynService.DidNotReceive().GetHoverAsync(
+            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
 }

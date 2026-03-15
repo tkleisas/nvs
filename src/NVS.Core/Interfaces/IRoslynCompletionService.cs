@@ -1,39 +1,37 @@
 using NVS.Core.Models;
+using Range = NVS.Core.Models.Range;
 
 namespace NVS.Core.Interfaces;
 
 /// <summary>
-/// Provides Roslyn-powered C# code completions using MSBuildWorkspace.
-/// Used alongside csharp-ls (which handles diagnostics/navigation/hover).
+/// Provides Roslyn-powered C# language features using MSBuildWorkspace.
+/// Replaces csharp-ls for completions, hover, go-to-definition, references,
+/// diagnostics, document symbols, and signature help.
 /// </summary>
 public interface IRoslynCompletionService : IAsyncDisposable
 {
-    /// <summary>
-    /// Whether a Roslyn workspace is currently loaded and ready for completion requests.
-    /// </summary>
     bool IsWorkspaceLoaded { get; }
 
-    /// <summary>
-    /// Loads a solution (.sln/.slnx) or project (.csproj) into the Roslyn workspace.
-    /// Must be called before GetCompletionsAsync will work.
-    /// </summary>
     Task LoadWorkspaceAsync(string solutionOrProjectPath, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Returns C# completions at the given position using Roslyn's CompletionService.
-    /// Returns empty list if workspace is not loaded or file is not found.
-    /// </summary>
     Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(
         string filePath, int line, int column, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Updates the in-memory document content to match the editor's current text.
-    /// Call this on document changes so completions reflect the latest edits.
-    /// </summary>
+    Task<HoverInfo?> GetHoverAsync(string filePath, int line, int column, CancellationToken cancellationToken = default);
+
+    Task<Location?> GetDefinitionAsync(string filePath, int line, int column, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Location>> GetReferencesAsync(string filePath, int line, int column, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<DocumentSymbol>> GetDocumentSymbolsAsync(string filePath, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(string filePath, CancellationToken cancellationToken = default);
+
+    Task<SignatureHelp?> GetSignatureHelpAsync(string filePath, int line, int column, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<TextEdit>> GetFormattingEditsAsync(string filePath, CancellationToken cancellationToken = default);
+
     void UpdateDocumentContent(string filePath, string content);
 
-    /// <summary>
-    /// Unloads the current workspace and frees resources.
-    /// </summary>
     void UnloadWorkspace();
 }

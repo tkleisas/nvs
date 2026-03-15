@@ -156,6 +156,23 @@ public sealed class LspSessionManager : ILspSessionManager
 
     public async Task<SignatureHelp?> GetSignatureHelpAsync(Document document, Position position, string? triggerChar = null, CancellationToken cancellationToken = default)
     {
+        if (document.Language == Language.CSharp
+            && _roslynCompletionService is { IsWorkspaceLoaded: true }
+            && document.FilePath is not null)
+        {
+            try
+            {
+                var result = await _roslynCompletionService.GetSignatureHelpAsync(
+                    document.FilePath, position.Line, position.Column, cancellationToken).ConfigureAwait(false);
+                if (result is not null)
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Roslyn signature help failed, falling back to LSP");
+            }
+        }
+
         var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
         if (client is null)
             return null;
@@ -165,6 +182,23 @@ public sealed class LspSessionManager : ILspSessionManager
 
     public async Task<Location?> GetDefinitionAsync(Document document, Position position, CancellationToken cancellationToken = default)
     {
+        if (document.Language == Language.CSharp
+            && _roslynCompletionService is { IsWorkspaceLoaded: true }
+            && document.FilePath is not null)
+        {
+            try
+            {
+                var result = await _roslynCompletionService.GetDefinitionAsync(
+                    document.FilePath, position.Line, position.Column, cancellationToken).ConfigureAwait(false);
+                if (result is not null)
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Roslyn go-to-definition failed, falling back to LSP");
+            }
+        }
+
         var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
         if (client is null)
             return null;
@@ -174,6 +208,23 @@ public sealed class LspSessionManager : ILspSessionManager
 
     public async Task<IReadOnlyList<Location>> GetReferencesAsync(Document document, Position position, CancellationToken cancellationToken = default)
     {
+        if (document.Language == Language.CSharp
+            && _roslynCompletionService is { IsWorkspaceLoaded: true }
+            && document.FilePath is not null)
+        {
+            try
+            {
+                var results = await _roslynCompletionService.GetReferencesAsync(
+                    document.FilePath, position.Line, position.Column, cancellationToken).ConfigureAwait(false);
+                if (results.Count > 0)
+                    return results;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Roslyn find-references failed, falling back to LSP");
+            }
+        }
+
         var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
         if (client is null)
             return [];
@@ -183,6 +234,23 @@ public sealed class LspSessionManager : ILspSessionManager
 
     public async Task<HoverInfo?> GetHoverAsync(Document document, Position position, CancellationToken cancellationToken = default)
     {
+        if (document.Language == Language.CSharp
+            && _roslynCompletionService is { IsWorkspaceLoaded: true }
+            && document.FilePath is not null)
+        {
+            try
+            {
+                var result = await _roslynCompletionService.GetHoverAsync(
+                    document.FilePath, position.Line, position.Column, cancellationToken).ConfigureAwait(false);
+                if (result is not null)
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Roslyn hover failed, falling back to LSP");
+            }
+        }
+
         var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
         if (client is null)
             return null;
@@ -192,11 +260,78 @@ public sealed class LspSessionManager : ILspSessionManager
 
     public async Task<IReadOnlyList<TextEdit>> FormatDocumentAsync(Document document, CancellationToken cancellationToken = default)
     {
+        if (document.Language == Language.CSharp
+            && _roslynCompletionService is { IsWorkspaceLoaded: true }
+            && document.FilePath is not null)
+        {
+            try
+            {
+                var results = await _roslynCompletionService.GetFormattingEditsAsync(
+                    document.FilePath, cancellationToken).ConfigureAwait(false);
+                if (results.Count > 0)
+                    return results;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Roslyn formatting failed, falling back to LSP");
+            }
+        }
+
         var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
         if (client is null)
             return [];
 
         return await client.GetFormattingEditsAsync(document, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<DocumentSymbol>> GetDocumentSymbolsAsync(Document document, CancellationToken cancellationToken = default)
+    {
+        if (document.Language == Language.CSharp
+            && _roslynCompletionService is { IsWorkspaceLoaded: true }
+            && document.FilePath is not null)
+        {
+            try
+            {
+                var results = await _roslynCompletionService.GetDocumentSymbolsAsync(
+                    document.FilePath, cancellationToken).ConfigureAwait(false);
+                if (results.Count > 0)
+                    return results;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Roslyn document symbols failed, falling back to LSP");
+            }
+        }
+
+        var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
+        if (client is null)
+            return [];
+
+        return await client.GetDocumentSymbolsAsync(document, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(Document document, CancellationToken cancellationToken = default)
+    {
+        if (document.Language == Language.CSharp
+            && _roslynCompletionService is { IsWorkspaceLoaded: true }
+            && document.FilePath is not null)
+        {
+            try
+            {
+                return await _roslynCompletionService.GetDiagnosticsAsync(
+                    document.FilePath, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Roslyn diagnostics failed, falling back to LSP");
+            }
+        }
+
+        var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
+        if (client is null)
+            return [];
+
+        return await client.GetDiagnosticsAsync(document, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<CodeAction>> GetCodeActionsAsync(Document document, Range range, IReadOnlyList<Diagnostic> diagnostics, CancellationToken cancellationToken = default)
