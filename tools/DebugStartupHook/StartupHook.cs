@@ -6,8 +6,8 @@ using System.Threading;
 /// <summary>
 /// .NET startup hook loaded via DOTNET_STARTUP_HOOKS.
 /// Writes the process ID to a temp file, then waits for a debugger to attach
-/// before letting the application continue. This prevents the race condition
-/// where the app runs past breakpoints before the debugger can attach.
+/// and for NVS to signal that breakpoints are set, before letting the
+/// application continue.
 /// </summary>
 internal class StartupHook
 {
@@ -16,6 +16,8 @@ internal class StartupHook
         var pidFile = Environment.GetEnvironmentVariable("NVS_DEBUG_PID_FILE");
         if (string.IsNullOrEmpty(pidFile))
             return;
+
+        var readyFile = Environment.GetEnvironmentVariable("NVS_DEBUG_READY_FILE");
 
         // Write our PID so NVS can attach the debugger
         File.WriteAllText(pidFile, Process.GetCurrentProcess().Id.ToString());
@@ -28,8 +30,24 @@ internal class StartupHook
             waited += 50;
         }
 
-        // Brief extra pause for breakpoints to be fully set
-        if (Debugger.IsAttached)
+        if (!Debugger.IsAttached)
+            return;
+
+        // Wait for NVS to write the ready signal file (meaning ConfigurationDone
+        // completed and breakpoints are set). Falls back to a fixed delay if no
+        // ready file path was provided (legacy behavior).
+        if (!string.IsNullOrEmpty(readyFile))
+        {
+            int readyWaited = 0;
+            while (!File.Exists(readyFile) && readyWaited < 10_000)
+            {
+                Thread.Sleep(50);
+                readyWaited += 50;
+            }
+        }
+        else
+        {
             Thread.Sleep(200);
+        }
     }
 }

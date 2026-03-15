@@ -944,6 +944,10 @@ public partial class MainViewModel : INotifyPropertyChanged
                 var pidFile = System.IO.Path.Combine(
                     System.IO.Path.GetTempPath(), $"nvs_debug_{Guid.NewGuid():N}.pid");
 
+                // Signal file NVS writes after ConfigurationDone so the hook
+                // knows breakpoints are set and the program can continue.
+                var readyFile = pidFile + ".ready";
+
                 CreateDebugTerminal(projectDir);
 
                 // Build the terminal command to launch the debuggee with the hook
@@ -952,12 +956,14 @@ public partial class MainViewModel : INotifyPropertyChanged
                 {
                     terminalCommand = $"$env:DOTNET_STARTUP_HOOKS='{hookDll}'; " +
                                       $"$env:NVS_DEBUG_PID_FILE='{pidFile}'; " +
+                                      $"$env:NVS_DEBUG_READY_FILE='{readyFile}'; " +
                                       $"dotnet exec \"{programPath}\"";
                 }
                 else
                 {
                     terminalCommand = $"DOTNET_STARTUP_HOOKS='{hookDll}' " +
                                       $"NVS_DEBUG_PID_FILE='{pidFile}' " +
+                                      $"NVS_DEBUG_READY_FILE='{readyFile}' " +
                                       $"dotnet exec \"{programPath}\"";
                 }
 
@@ -976,6 +982,11 @@ public partial class MainViewModel : INotifyPropertyChanged
                 };
 
                 await _debugService.StartDebuggingAsync(config);
+
+                // Signal the startup hook that breakpoints are set and it can
+                // let the debuggee continue. This replaces the old fixed 200ms wait.
+                try { await System.IO.File.WriteAllTextAsync(readyFile, "ready"); }
+                catch { /* best effort */ }
             }
             else
             {
