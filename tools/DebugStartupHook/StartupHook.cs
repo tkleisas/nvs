@@ -18,6 +18,8 @@ internal class StartupHook
             return;
 
         var readyFile = Environment.GetEnvironmentVariable("NVS_DEBUG_READY_FILE");
+        var goFile = Environment.GetEnvironmentVariable("NVS_DEBUG_GO_FILE");
+        var programDll = Environment.GetEnvironmentVariable("NVS_DEBUG_PROGRAM");
 
         // Write our PID so NVS can attach the debugger
         File.WriteAllText(pidFile, Process.GetCurrentProcess().Id.ToString());
@@ -33,9 +35,7 @@ internal class StartupHook
         if (!Debugger.IsAttached)
             return;
 
-        // Wait for NVS to write the ready signal file (meaning ConfigurationDone
-        // completed and breakpoints are set). Falls back to a fixed delay if no
-        // ready file path was provided (legacy behavior).
+        // Phase 1: Wait for NVS to signal that ConfigurationDone is complete.
         if (!string.IsNullOrEmpty(readyFile))
         {
             int readyWaited = 0;
@@ -43,6 +43,31 @@ internal class StartupHook
             {
                 Thread.Sleep(50);
                 readyWaited += 50;
+            }
+        }
+
+        // Pre-load the main assembly so netcoredbg can resolve breakpoints
+        // while this hook is still holding execution.
+        if (!string.IsNullOrEmpty(programDll))
+        {
+            try
+            {
+                System.Reflection.Assembly.LoadFrom(programDll);
+            }
+            catch
+            {
+                // Best effort — if pre-load fails, breakpoints may not resolve
+            }
+        }
+
+        // Phase 2: Wait for NVS to signal breakpoints have been re-synced.
+        if (!string.IsNullOrEmpty(goFile))
+        {
+            int goWaited = 0;
+            while (!File.Exists(goFile) && goWaited < 10_000)
+            {
+                Thread.Sleep(50);
+                goWaited += 50;
             }
         }
         else

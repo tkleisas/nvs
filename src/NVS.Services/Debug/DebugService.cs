@@ -22,6 +22,7 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
     private Process? _adapterProcess;
     private TcpClient? _tcpClient;
     private int _activeThreadId;
+    public int ActiveThreadId => _activeThreadId;
 
     public bool IsDebugging { get; private set; }
     public bool IsPaused { get; private set; }
@@ -468,8 +469,14 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
     // ── Helpers ───────────────────────────────────────────────────────
 
     /// <summary>
+    /// Re-sends all breakpoints from the store to the debug adapter.
+    /// Useful after modules load so pending breakpoints get resolved.
+    /// </summary>
+    public Task ResyncBreakpointsAsync(CancellationToken cancellationToken = default)
+        => SyncBreakpointsToAdapterAsync(cancellationToken);
+
+    /// <summary>
     /// Sends all breakpoints from the store to the debug adapter.
-    /// Must be called after initialize/launch and before configurationDone.
     /// </summary>
     private async Task SyncBreakpointsToAdapterAsync(CancellationToken cancellationToken)
     {
@@ -492,6 +499,9 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
                 Breakpoints = group.Select(b => new DapSourceBreakpoint { Line = b.Line }).ToList(),
             };
 
+            Serilog.Log.Debug("[Debug] SetBreakpoints for {File}: lines={Lines}",
+                group.Key, string.Join(",", group.Select(b => b.Line)));
+
             try
             {
                 var result = await _client.SetBreakpointsAsync(args, cancellationToken).ConfigureAwait(false);
@@ -503,9 +513,9 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
                         _breakpointStore.UpdateVerifiedStatus(group.Key, bp.Line.Value, bp.Verified);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // SetBreakpoints failed for this file — skip
+                Serilog.Log.Warning(ex, "SetBreakpoints failed for {File}", group.Key);
             }
         }
     }

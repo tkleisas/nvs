@@ -944,9 +944,12 @@ public partial class MainViewModel : INotifyPropertyChanged
                 var pidFile = System.IO.Path.Combine(
                     System.IO.Path.GetTempPath(), $"nvs_debug_{Guid.NewGuid():N}.pid");
 
-                // Signal file NVS writes after ConfigurationDone so the hook
-                // knows breakpoints are set and the program can continue.
+                // Signal files for the two-phase handshake with the startup hook:
+                // ready = ConfigurationDone complete, go = breakpoints re-synced
                 var readyFile = pidFile + ".ready";
+                var goFile = pidFile + ".go";
+
+                Serilog.Log.Debug("Debug session: pidFile={PidFile}", pidFile);
 
                 CreateDebugTerminal(projectDir);
 
@@ -957,6 +960,8 @@ public partial class MainViewModel : INotifyPropertyChanged
                     terminalCommand = $"$env:DOTNET_STARTUP_HOOKS='{hookDll}'; " +
                                       $"$env:NVS_DEBUG_PID_FILE='{pidFile}'; " +
                                       $"$env:NVS_DEBUG_READY_FILE='{readyFile}'; " +
+                                      $"$env:NVS_DEBUG_GO_FILE='{goFile}'; " +
+                                      $"$env:NVS_DEBUG_PROGRAM='{programPath}'; " +
                                       $"dotnet exec \"{programPath}\"";
                 }
                 else
@@ -964,6 +969,8 @@ public partial class MainViewModel : INotifyPropertyChanged
                     terminalCommand = $"DOTNET_STARTUP_HOOKS='{hookDll}' " +
                                       $"NVS_DEBUG_PID_FILE='{pidFile}' " +
                                       $"NVS_DEBUG_READY_FILE='{readyFile}' " +
+                                      $"NVS_DEBUG_GO_FILE='{goFile}' " +
+                                      $"NVS_DEBUG_PROGRAM='{programPath}' " +
                                       $"dotnet exec \"{programPath}\"";
                 }
 
@@ -983,9 +990,18 @@ public partial class MainViewModel : INotifyPropertyChanged
 
                 await _debugService.StartDebuggingAsync(config);
 
-                // Signal the startup hook that breakpoints are set and it can
-                // let the debuggee continue. This replaces the old fixed 200ms wait.
+                // Phase 1: Signal that ConfigurationDone is complete.
+                // The hook will pre-load the assembly, triggering module load in netcoredbg.
                 try { await System.IO.File.WriteAllTextAsync(readyFile, "ready"); }
+                catch { /* best effort */ }
+
+                // Wait for the assembly to be loaded by the hook, then re-sync
+                // breakpoints so they resolve against the now-loaded module.
+                await Task.Delay(500);
+                await _debugService.ResyncBreakpointsAsync();
+
+                // Phase 2: Signal that breakpoints are re-synced — program can run.
+                try { await System.IO.File.WriteAllTextAsync(goFile, "go"); }
                 catch { /* best effort */ }
             }
             else
@@ -1184,11 +1200,12 @@ public partial class MainViewModel : INotifyPropertyChanged
         try
         {
             var threads = await _debugService.GetThreadsAsync(cts.Token);
+            var activeThreadId = _debugService.ActiveThreadId;
             if (cts.Token.IsCancellationRequested) return;
 
             if (threads.Count > 0)
             {
-                var frames = await _debugService.GetStackTraceAsync(threads[0].Id, cts.Token);
+                var frames = await _debugService.GetStackTraceAsync(activeThreadId, cts.Token);
                 if (cts.Token.IsCancellationRequested) return;
 
                 await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
@@ -1230,9 +1247,9 @@ public partial class MainViewModel : INotifyPropertyChanged
         {
             // Expected when a new pause event supersedes this one
         }
-        catch
+        catch (Exception ex)
         {
-            // Best effort UI update
+            Serilog.Log.Warning(ex, "OnDebuggingPaused failed");
         }
     }
 
