@@ -8,8 +8,8 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
-![Version](https://img.shields.io/badge/version-0.3.0-green)
-![Tests](https://img.shields.io/badge/tests-806%20passing-brightgreen)
+![Version](https://img.shields.io/badge/version-0.4.2-green)
+![Tests](https://img.shields.io/badge/tests-856%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -23,6 +23,7 @@ NVS is a code editor / IDE that:
 - **Does not replace Vim.** We cannot stress this enough.
 - Runs on Windows, macOS, and Linux (thanks Avalonia).
 - Has language server support for 12+ languages with auto-completion and signature help.
+- Has Roslyn-powered C# intelligence: completions, hover, go-to-definition, references, diagnostics, signature help, formatting — no external language server needed.
 - Has a built-in PTY terminal that actually works.
 - Has git integration that will absolutely let you force-push to main.
 - Has .NET solution/project loading with full build integration.
@@ -33,7 +34,7 @@ NVS is a code editor / IDE that:
 - Supports multi-project solutions with startup project selection.
 - Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
-- Has 806 tests, which is 806 more than the AI thought were necessary before the human insisted.
+- Has 856 tests, which is 856 more than the AI thought were necessary before the human insisted.
 
 ## Features
 
@@ -45,8 +46,9 @@ NVS is a code editor / IDE that:
 - Dockable panels via Dock.Avalonia — drag, split, and rearrange
 - Compiled bindings for that sweet, sweet performance
 
-### 🧠 Language Server Protocol (LSP)
-- Full JSON-RPC 2.0 transport layer
+### 🧠 Language Server Protocol (LSP) & Roslyn
+- **Roslyn-powered C# language service** — completions (including `.` trigger), hover tooltips, go-to-definition, find references, document symbols, diagnostics, signature help, and document formatting — all via in-process MSBuildWorkspace with no external server
+- Full JSON-RPC 2.0 transport layer for non-C# languages
 - Auto-completion with trigger characters (`.`, `<`, `:`) and debounced identifier completion
 - Signature help / parameter info on `(` and `,`
 - Go to Definition (F12)
@@ -200,7 +202,7 @@ dotnet run --project src/NVS
 # Open a solution directly
 dotnet run --project src/NVS -- path/to/solution.sln
 
-# Run tests (806 of them)
+# Run tests (856 of them)
 dotnet test NVS.slnx
 ```
 
@@ -228,8 +230,8 @@ See [Releases](https://github.com/tkleisas/nvs/releases) for downloads.
 To create a release, tag a commit and push:
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.4.2
+git push origin v0.4.2
 ```
 
 ## Tech Stack
@@ -243,6 +245,7 @@ git push origin v0.3.0
 | MVVM | [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/) 8.4 |
 | Git | [LibGit2Sharp](https://github.com/libgit2/libgit2sharp) 0.31 |
 | Code Metrics | [Microsoft.CodeAnalysis](https://github.com/dotnet/roslyn) (Roslyn) |
+| C# Language Service | [Microsoft.CodeAnalysis](https://github.com/dotnet/roslyn) (Roslyn MSBuildWorkspace) |
 | Debugging | [netcoredbg](https://github.com/Samsung/netcoredbg) (MIT, auto-downloaded) |
 | Logging | [Serilog](https://serilog.net/) 4.2 |
 | Runtime | .NET 10 (preview) |
@@ -251,7 +254,7 @@ git push origin v0.3.0
 
 ## Testing
 
-806 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
+856 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
 
 - **NVS.Core.Tests** — Core model tests
 - **NVS.Plugins.Tests** — Plugin system tests
@@ -271,7 +274,7 @@ public void ParsePatch_MixedChanges_ParsesAllLineTypes()
 ## Versioning
 
 - Version lives in `Directory.Build.props`
-- Informational version appends the short git commit hash (e.g., `0.3.0+a3f72b1`)
+- Informational version appends the short git commit hash (e.g., `0.4.2+a3f72b1`)
 - Patch bumps on each commit, minor bumps on feature completion
 - Viewable in **Help → About**
 
