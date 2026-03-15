@@ -280,6 +280,33 @@ public sealed class DapClientTests : IAsyncDisposable
         result.Variables[0].Value.Should().Be("42");
     }
 
+    // ── Evaluate ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task EvaluateAsync_ShouldReturnResult()
+    {
+        _server.EnqueueResponse("initialize", new DapCapabilities());
+        _server.EnqueueResponse("evaluate", new DapEvaluateResponseBody
+        {
+            Result = "42",
+            Type = "int",
+            VariablesReference = 0,
+        });
+        _server.Start();
+
+        await _client.InitializeAsync();
+        var result = await _client.EvaluateAsync(new DapEvaluateArguments
+        {
+            Expression = "x",
+            FrameId = 1,
+            Context = "hover",
+        });
+
+        result.Result.Should().Be("42");
+        result.Type.Should().Be("int");
+        _server.ReceivedCommands.Should().Contain("evaluate");
+    }
+
     // ── Disconnect ────────────────────────────────────────────────────
 
     [Fact]

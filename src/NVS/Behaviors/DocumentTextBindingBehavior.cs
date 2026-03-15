@@ -27,6 +27,8 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private CompletionWindow? _completionWindow;
     private OverloadInsightWindow? _insightWindow;
     private CancellationTokenSource? _autoCompleteCts;
+    private CancellationTokenSource? _hoverCts;
+    private Avalonia.Controls.Primitives.Popup? _debugHoverPopup;
     private bool _updating;
 
     public static readonly StyledProperty<string> TextProperty =
@@ -79,6 +81,9 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
     public static readonly StyledProperty<IReadOnlyList<MethodMetrics>?> FileMethodMetricsProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, IReadOnlyList<MethodMetrics>?>(nameof(FileMethodMetrics));
+
+    public static readonly StyledProperty<Func<string, CancellationToken, Task<string?>>?> DebugEvaluateFuncProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, Func<string, CancellationToken, Task<string?>>?>(nameof(DebugEvaluateFunc));
 
     public string Text
     {
@@ -176,6 +181,12 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         set => SetValue(FileMethodMetricsProperty, value);
     }
 
+    public Func<string, CancellationToken, Task<string?>>? DebugEvaluateFunc
+    {
+        get => GetValue(DebugEvaluateFuncProperty);
+        set => SetValue(DebugEvaluateFuncProperty, value);
+    }
+
     protected override void OnAttached()
     {
         base.OnAttached();
@@ -185,6 +196,8 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _textEditor.TextChanged += OnEditorTextChanged;
             _textEditor.TextArea.Caret.PositionChanged += OnCaretPositionChanged;
             _textEditor.TextArea.TextEntered += OnTextEntered;
+            _textEditor.TextArea.TextView.PointerHover += OnTextViewPointerHover;
+            _textEditor.TextArea.TextView.PointerHoverStopped += OnTextViewPointerHoverStopped;
             _textEditor.KeyDown += OnKeyDown;
             UpdateCaretPosition();
 
@@ -227,9 +240,14 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _textEditor.TextChanged -= OnEditorTextChanged;
             _textEditor.TextArea.Caret.PositionChanged -= OnCaretPositionChanged;
             _textEditor.TextArea.TextEntered -= OnTextEntered;
+            _textEditor.TextArea.TextView.PointerHover -= OnTextViewPointerHover;
+            _textEditor.TextArea.TextView.PointerHoverStopped -= OnTextViewPointerHoverStopped;
             _textEditor.KeyDown -= OnKeyDown;
             _autoCompleteCts?.Cancel();
             _autoCompleteCts?.Dispose();
+            _hoverCts?.Cancel();
+            _hoverCts?.Dispose();
+            CloseDebugHoverPopup();
 
             if (_diagnosticRenderer != null)
                 _textEditor.TextArea.TextView.BackgroundRenderers.Remove(_diagnosticRenderer);
@@ -491,4 +509,112 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             Column = _textEditor.TextArea.Caret.Column;
         }
     }
+
+    private async void OnTextViewPointerHover(object? sender, PointerEventArgs e)
+    {
+        var evaluateFunc = DebugEvaluateFunc;
+        if (evaluateFunc is null || _textEditor?.Document is null)
+            return;
+
+        var pos = _textEditor.TextArea.TextView.GetPositionFloor(e.GetPosition(_textEditor.TextArea.TextView));
+        if (pos is null)
+            return;
+
+        var offset = _textEditor.Document.GetOffset(pos.Value.Location);
+        var word = GetWordAtOffset(_textEditor.Document, offset);
+        if (string.IsNullOrWhiteSpace(word))
+            return;
+
+        _hoverCts?.Cancel();
+        _hoverCts?.Dispose();
+        var cts = _hoverCts = new CancellationTokenSource();
+
+        try
+        {
+            var result = await evaluateFunc(word, cts.Token);
+            if (cts.Token.IsCancellationRequested || string.IsNullOrEmpty(result))
+                return;
+
+            ShowDebugHoverPopup(word, result, e.GetPosition(_textEditor));
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected
+        }
+        catch
+        {
+            // Best effort
+        }
+    }
+
+    private void OnTextViewPointerHoverStopped(object? sender, PointerEventArgs e)
+    {
+        _hoverCts?.Cancel();
+        CloseDebugHoverPopup();
+    }
+
+    private void ShowDebugHoverPopup(string expression, string value, Avalonia.Point position)
+    {
+        CloseDebugHoverPopup();
+
+        var border = new Avalonia.Controls.Border
+        {
+            Background = Avalonia.Media.Brushes.Black,
+            BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(0x3F, 0x3F, 0x46)),
+            BorderThickness = new Avalonia.Thickness(1),
+            CornerRadius = new Avalonia.CornerRadius(3),
+            Padding = new Avalonia.Thickness(8, 4),
+            Child = new Avalonia.Controls.TextBlock
+            {
+                Text = $"{expression} = {value}",
+                Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(0xDC, 0xDC, 0xDC)),
+                FontFamily = new Avalonia.Media.FontFamily("Cascadia Code, Consolas, Courier New, monospace"),
+                FontSize = 13,
+            },
+        };
+
+        _debugHoverPopup = new Avalonia.Controls.Primitives.Popup
+        {
+            Child = border,
+            PlacementTarget = _textEditor,
+            Placement = Avalonia.Controls.PlacementMode.Pointer,
+            HorizontalOffset = 0,
+            VerticalOffset = 16,
+            IsLightDismissEnabled = true,
+        };
+
+        _debugHoverPopup.Closed += (_, _) => _debugHoverPopup = null;
+        _debugHoverPopup.IsOpen = true;
+    }
+
+    private void CloseDebugHoverPopup()
+    {
+        if (_debugHoverPopup is not null)
+        {
+            _debugHoverPopup.IsOpen = false;
+            _debugHoverPopup = null;
+        }
+    }
+
+    private static string? GetWordAtOffset(AvaloniaEdit.Document.TextDocument document, int offset)
+    {
+        if (offset < 0 || offset >= document.TextLength)
+            return null;
+
+        int start = offset;
+        while (start > 0 && IsIdentifierChar(document.GetCharAt(start - 1)))
+            start--;
+
+        int end = offset;
+        while (end < document.TextLength && IsIdentifierChar(document.GetCharAt(end)))
+            end++;
+
+        if (start == end)
+            return null;
+
+        return document.GetText(start, end - start);
+    }
+
+    private static bool IsIdentifierChar(char c) =>
+        char.IsLetterOrDigit(c) || c == '_';
 }

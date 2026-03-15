@@ -558,6 +558,7 @@ public class DocumentViewModel : INotifyPropertyChanged
     private ICommand? _quickFixCommand;
     private IReadOnlyList<CodeAction>? _lastCodeActions;
     private IReadOnlyList<MethodMetrics>? _fileMethodMetrics;
+    private Func<string, CancellationToken, Task<string?>>? _debugEvaluateFunc;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -794,6 +795,20 @@ public class DocumentViewModel : INotifyPropertyChanged
         set
         {
             _fileMethodMetrics = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Callback for evaluating expressions during debug hover.
+    /// Set by MainViewModel when debugging is paused, cleared when continued/stopped.
+    /// </summary>
+    public Func<string, CancellationToken, Task<string?>>? DebugEvaluateFunc
+    {
+        get => _debugEvaluateFunc;
+        set
+        {
+            _debugEvaluateFunc = value;
             OnPropertyChanged();
         }
     }

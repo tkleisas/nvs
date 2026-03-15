@@ -25,6 +25,7 @@ public interface IDapClient : IAsyncDisposable
     Task<DapStackTraceResponseBody> GetStackTraceAsync(DapStackTraceArguments args, CancellationToken cancellationToken = default);
     Task<DapScopesResponseBody> GetScopesAsync(int frameId, CancellationToken cancellationToken = default);
     Task<DapVariablesResponseBody> GetVariablesAsync(int variablesReference, CancellationToken cancellationToken = default);
+    Task<DapEvaluateResponseBody> EvaluateAsync(DapEvaluateArguments args, CancellationToken cancellationToken = default);
     Task DisconnectAsync(bool terminateDebuggee = true, CancellationToken cancellationToken = default);
 
     event EventHandler<DapStoppedEventBody>? Stopped;

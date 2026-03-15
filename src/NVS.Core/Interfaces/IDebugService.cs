@@ -32,8 +32,10 @@ public interface IDebugService
     Task<IReadOnlyList<ThreadInfo>> GetThreadsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StackFrame>> GetStackTraceAsync(int threadId, CancellationToken cancellationToken = default);
     int ActiveThreadId { get; }
+    int ActiveFrameId { get; }
     Task<IReadOnlyList<Variable>> GetVariablesAsync(int frameId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Variable>> GetChildVariablesAsync(int variablesReference, CancellationToken cancellationToken = default);
+    Task<string?> EvaluateAsync(string expression, int? frameId = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Breakpoint>> SetBreakpointsAsync(string path, IReadOnlyList<int> lines, CancellationToken cancellationToken = default);
     Task ResyncBreakpointsAsync(CancellationToken cancellationToken = default);
     

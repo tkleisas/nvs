@@ -149,6 +149,12 @@ public sealed class DapClient : IDapClient
         return response.Body!.Value.Deserialize<DapVariablesResponseBody>(DapTransport.JsonOptions)!;
     }
 
+    public async Task<DapEvaluateResponseBody> EvaluateAsync(DapEvaluateArguments args, CancellationToken cancellationToken = default)
+    {
+        var response = await SendRequestAsync("evaluate", args, cancellationToken).ConfigureAwait(false);
+        return response.Body!.Value.Deserialize<DapEvaluateResponseBody>(DapTransport.JsonOptions)!;
+    }
+
     public async Task DisconnectAsync(bool terminateDebuggee = true, CancellationToken cancellationToken = default)
     {
         if (!IsConnected) return;

@@ -22,7 +22,9 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
     private Process? _adapterProcess;
     private TcpClient? _tcpClient;
     private int _activeThreadId;
+    private int _activeFrameId;
     public int ActiveThreadId => _activeThreadId;
+    public int ActiveFrameId => _activeFrameId;
 
     public bool IsDebugging { get; private set; }
     public bool IsPaused { get; private set; }
@@ -357,6 +359,30 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         }).ToList();
     }
 
+    public async Task<string?> EvaluateAsync(string expression, int? frameId = null, CancellationToken cancellationToken = default)
+    {
+        if (!IsDebugging || !IsPaused || _client is null)
+            return null;
+
+        try
+        {
+            var result = await _client.EvaluateAsync(new DapEvaluateArguments
+            {
+                Expression = expression,
+                FrameId = frameId,
+                Context = "hover",
+            }, cancellationToken).ConfigureAwait(false);
+
+            return string.IsNullOrEmpty(result.Type)
+                ? result.Result
+                : $"({result.Type}) {result.Result}";
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task<IReadOnlyList<Breakpoint>> SetBreakpointsAsync(string path, IReadOnlyList<int> lines, CancellationToken cancellationToken = default)
     {
         EnsureDebugging();
@@ -533,6 +559,7 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         IsPaused = false;
         CurrentSession = null;
         _activeThreadId = 0;
+        _activeFrameId = 0;
         _hadPriorSession = true;
 
         if (_client is not null)

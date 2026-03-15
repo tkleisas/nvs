@@ -81,6 +81,7 @@
                                 Breakpoints="{Binding Breakpoints}"
                                 ToggleBreakpointCommand="{Binding ToggleBreakpointCommand}"
                                 DebugCurrentLine="{Binding DebugCurrentLine}"
+                                DebugEvaluateFunc="{Binding DebugEvaluateFunc}"
                                 FileMethodMetrics="{Binding FileMethodMetrics}"/>
                         </i:Interaction.Behaviors>
                     </AvaloniaEdit:TextEditor>

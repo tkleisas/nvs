@@ -1173,6 +1173,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             _debugUsesTerminal = false;
             StatusMessage = "Debug session ended";
             ClearDebugCurrentLine();
+            ClearDebugEvaluateOnDocuments();
             DestroyDebugTerminal();
             CleanupDebuggeeProcess();
 
@@ -1225,6 +1226,9 @@ public partial class MainViewModel : INotifyPropertyChanged
                             varsTool.SetDebugService(_debugService);
                             varsTool.UpdateVariables(vars);
                         }
+
+                        // Set up debug hover evaluate callback on all open documents
+                        SetDebugEvaluateOnDocuments(topFrame.Id);
                     });
 
                     // Navigate to the stopped location in the editor
@@ -1260,6 +1264,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             IsDebugPaused = false;
             StatusMessage = "Running...";
             ClearDebugCurrentLine();
+            ClearDebugEvaluateOnDocuments();
         });
     }
 
@@ -1281,6 +1286,27 @@ public partial class MainViewModel : INotifyPropertyChanged
         {
             foreach (var doc in Editor.OpenDocuments)
                 doc.DebugCurrentLine = null;
+        }
+    }
+
+    private void SetDebugEvaluateOnDocuments(int frameId)
+    {
+        if (Editor?.OpenDocuments is null || _debugService is null) return;
+
+        var debugService = _debugService;
+        Func<string, CancellationToken, Task<string?>> evaluateFunc =
+            (expression, ct) => debugService.EvaluateAsync(expression, frameId, ct);
+
+        foreach (var doc in Editor.OpenDocuments)
+            doc.DebugEvaluateFunc = evaluateFunc;
+    }
+
+    private void ClearDebugEvaluateOnDocuments()
+    {
+        if (Editor?.OpenDocuments is not null)
+        {
+            foreach (var doc in Editor.OpenDocuments)
+                doc.DebugEvaluateFunc = null;
         }
     }
 

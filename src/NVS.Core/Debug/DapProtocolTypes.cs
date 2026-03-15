@@ -402,3 +402,32 @@ public sealed record DapBreakpointEventBody
     [JsonPropertyName("breakpoint")]
     public required DapBreakpoint Breakpoint { get; init; }
 }
+
+// ── Evaluate ────────────────────────────────────────────────────────
+
+public sealed record DapEvaluateArguments
+{
+    [JsonPropertyName("expression")]
+    public required string Expression { get; init; }
+
+    [JsonPropertyName("frameId")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? FrameId { get; init; }
+
+    [JsonPropertyName("context")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Context { get; init; }
+}
+
+public sealed record DapEvaluateResponseBody
+{
+    [JsonPropertyName("result")]
+    public required string Result { get; init; }
+
+    [JsonPropertyName("type")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Type { get; init; }
+
+    [JsonPropertyName("variablesReference")]
+    public int VariablesReference { get; init; }
+}
