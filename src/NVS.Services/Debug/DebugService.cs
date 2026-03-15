@@ -15,6 +15,9 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
 {
     private readonly DebugAdapterRegistry _adapterRegistry;
     private readonly IBreakpointStore? _breakpointStore;
+    private readonly SemaphoreSlim _sessionLock = new(1, 1);
+    private Task? _pendingCleanup;
+    private bool _hadPriorSession;
     private DapClient? _client;
     private Process? _adapterProcess;
     private TcpClient? _tcpClient;
@@ -83,119 +86,158 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
 
     public async Task<DebugSession> StartDebuggingAsync(DebugConfiguration configuration, CancellationToken cancellationToken = default)
     {
-        if (IsDebugging)
-            throw new InvalidOperationException("A debug session is already active.");
-
-        var adapterType = configuration.Type;
-        var adapterInfo = _adapterRegistry.GetAdapter(adapterType)
-            ?? throw new InvalidOperationException($"No debug adapter registered for type '{adapterType}'.");
-
-        if (_client is null)
+        // Wait for any in-flight cleanup from a previous session
+        var cleanup = _pendingCleanup;
+        if (cleanup is not null)
         {
-            if (configuration.ServerPort is int port)
-            {
-                // Connect via TCP to an adapter already running in server mode
-                _tcpClient = new TcpClient();
-                await _tcpClient.ConnectAsync("127.0.0.1", port, cancellationToken).ConfigureAwait(false);
-                var stream = _tcpClient.GetStream();
-                var transport = new DapTransport(stream, stream);
-                _client = new DapClient(transport);
-            }
-            else
-            {
-                var adapterPath = await ResolveAdapterPathAsync(adapterType, cancellationToken).ConfigureAwait(false);
-
-                _adapterProcess = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = adapterPath,
-                        Arguments = string.Join(' ', adapterInfo.Arguments),
-                        UseShellExecute = false,
-                        RedirectStandardInput = true,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true,
-                    },
-                };
-
-                _adapterProcess.Start();
-
-                var transport = new DapTransport(
-                    _adapterProcess.StandardOutput.BaseStream,
-                    _adapterProcess.StandardInput.BaseStream);
-
-                _client = new DapClient(transport);
-            }
+            try { await cleanup.ConfigureAwait(false); }
+            catch { /* cleanup errors are non-fatal */ }
+            _pendingCleanup = null;
         }
 
-        SubscribeToClientEvents(_client);
-        WireRunInTerminalHandler(_client);
-
-        // DAP initialization sequence:
-        // 1. initialize → response (capabilities)
-        // 2. launch or attach → response
-        // 3. Wait for "initialized" event from adapter
-        // 4. setBreakpoints (per file)
-        // 5. configurationDone → adapter starts execution
-
-        var initializedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        void OnInitialized(object? s, EventArgs e) => initializedTcs.TrySetResult();
-        _client.Initialized += OnInitialized;
-
+        await _sessionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await _client.InitializeAsync(cancellationToken).ConfigureAwait(false);
+            if (IsDebugging)
+                throw new InvalidOperationException("A debug session is already active.");
 
-            if (configuration.Request == "attach" && configuration.ProcessId is int pid)
+            // Force-clean any stale state left over from a previous session
+            if (_hadPriorSession)
             {
-                await _client.AttachAsync(new DapAttachRequestArguments { ProcessId = pid }, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            else
-            {
-                var launchArgs = new DapLaunchRequestArguments
+                if (_client is not null)
                 {
-                    Program = configuration.Program ?? throw new InvalidOperationException("Program path is required."),
-                    Args = configuration.Args.Count > 0 ? configuration.Args : null,
-                    Cwd = configuration.Cwd,
-                    Console = configuration.Console,
-                };
-
-                await _client.LaunchAsync(launchArgs, cancellationToken).ConfigureAwait(false);
+                    UnsubscribeFromClientEvents(_client);
+                    try { await _client.DisposeAsync().ConfigureAwait(false); } catch { }
+                    _client = null;
+                }
+                if (_adapterProcess is not null)
+                {
+                    try { if (!_adapterProcess.HasExited) _adapterProcess.Kill(entireProcessTree: true); } catch { }
+                    _adapterProcess.Dispose();
+                    _adapterProcess = null;
+                }
+                if (_tcpClient is not null)
+                {
+                    _tcpClient.Dispose();
+                    _tcpClient = null;
+                }
             }
 
-            // Wait for the initialized event (with timeout)
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
-            await using (timeoutCts.Token.Register(() => initializedTcs.TrySetCanceled()))
+            var adapterType = configuration.Type;
+            var adapterInfo = _adapterRegistry.GetAdapter(adapterType)
+                ?? throw new InvalidOperationException($"No debug adapter registered for type '{adapterType}'.");
+
+            if (_client is null)
             {
-                await initializedTcs.Task.ConfigureAwait(false);
+                if (configuration.ServerPort is int port)
+                {
+                    // Connect via TCP to an adapter already running in server mode
+                    _tcpClient = new TcpClient();
+                    await _tcpClient.ConnectAsync("127.0.0.1", port, cancellationToken).ConfigureAwait(false);
+                    var stream = _tcpClient.GetStream();
+                    var transport = new DapTransport(stream, stream);
+                    _client = new DapClient(transport);
+                }
+                else
+                {
+                    var adapterPath = await ResolveAdapterPathAsync(adapterType, cancellationToken).ConfigureAwait(false);
+
+                    _adapterProcess = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = adapterPath,
+                            Arguments = string.Join(' ', adapterInfo.Arguments),
+                            UseShellExecute = false,
+                            RedirectStandardInput = true,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            CreateNoWindow = true,
+                        },
+                    };
+
+                    _adapterProcess.Start();
+
+                    var transport = new DapTransport(
+                        _adapterProcess.StandardOutput.BaseStream,
+                        _adapterProcess.StandardInput.BaseStream);
+
+                    _client = new DapClient(transport);
+                }
             }
 
-            // Send all breakpoints from the store before configurationDone
-            await SyncBreakpointsToAdapterAsync(cancellationToken).ConfigureAwait(false);
+            SubscribeToClientEvents(_client);
+            WireRunInTerminalHandler(_client);
 
-            await _client.ConfigurationDoneAsync(cancellationToken).ConfigureAwait(false);
+            // DAP initialization sequence:
+            // 1. initialize → response (capabilities)
+            // 2. launch or attach → response
+            // 3. Wait for "initialized" event from adapter
+            // 4. setBreakpoints (per file)
+            // 5. configurationDone → adapter starts execution
+
+            var initializedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            void OnInitialized(object? s, EventArgs e) => initializedTcs.TrySetResult();
+            _client.Initialized += OnInitialized;
+
+            try
+            {
+                await _client.InitializeAsync(cancellationToken).ConfigureAwait(false);
+
+                if (configuration.Request == "attach" && configuration.ProcessId is int pid)
+                {
+                    await _client.AttachAsync(new DapAttachRequestArguments { ProcessId = pid }, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                else
+                {
+                    var launchArgs = new DapLaunchRequestArguments
+                    {
+                        Program = configuration.Program ?? throw new InvalidOperationException("Program path is required."),
+                        Args = configuration.Args.Count > 0 ? configuration.Args : null,
+                        Cwd = configuration.Cwd,
+                        Console = configuration.Console,
+                    };
+
+                    await _client.LaunchAsync(launchArgs, cancellationToken).ConfigureAwait(false);
+                }
+
+                // Wait for the initialized event (with timeout)
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
+                await using (timeoutCts.Token.Register(() => initializedTcs.TrySetCanceled()))
+                {
+                    await initializedTcs.Task.ConfigureAwait(false);
+                }
+
+                // Send all breakpoints from the store before configurationDone
+                await SyncBreakpointsToAdapterAsync(cancellationToken).ConfigureAwait(false);
+
+                await _client.ConfigurationDoneAsync(cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                _client.Initialized -= OnInitialized;
+            }
+
+            var session = new DebugSession
+            {
+                Id = Guid.NewGuid(),
+                Name = configuration.Name,
+                Type = configuration.Type,
+            };
+
+            CurrentSession = session;
+            IsDebugging = true;
+            IsPaused = false;
+
+            DebuggingStarted?.Invoke(this, session);
+            return session;
         }
         finally
         {
-            _client.Initialized -= OnInitialized;
+            _sessionLock.Release();
         }
-
-        var session = new DebugSession
-        {
-            Id = Guid.NewGuid(),
-            Name = configuration.Name,
-            Type = configuration.Type,
-        };
-
-        CurrentSession = session;
-        IsDebugging = true;
-        IsPaused = false;
-
-        DebuggingStarted?.Invoke(this, session);
-        return session;
     }
 
     public async Task StopDebuggingAsync(CancellationToken cancellationToken = default)
@@ -392,7 +434,7 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
 
     private void OnClientTerminated(object? sender, DapTerminatedEventBody body)
     {
-        _ = CleanupSessionAsync();
+        _pendingCleanup = CleanupSessionAsync();
     }
 
     private void OnClientOutput(object? sender, DapOutputEventBody body)
@@ -480,6 +522,7 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         IsPaused = false;
         CurrentSession = null;
         _activeThreadId = 0;
+        _hadPriorSession = true;
 
         if (_client is not null)
         {
@@ -520,5 +563,6 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
         }
 
         await CleanupSessionAsync().ConfigureAwait(false);
+        _sessionLock.Dispose();
     }
 }
