@@ -464,62 +464,61 @@ public sealed class RoslynCompletionService : IRoslynCompletionService
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root is null) return null;
 
-        // Walk up from the position to find an invocation expression
-        var node = root.FindToken(position).Parent;
-        InvocationExpressionSyntax? invocation = null;
-        ObjectCreationExpressionSyntax? objectCreation = null;
-
-        while (node is not null)
-        {
-            if (node is InvocationExpressionSyntax inv)
-            {
-                invocation = inv;
-                break;
-            }
-            if (node is ObjectCreationExpressionSyntax oc)
-            {
-                objectCreation = oc;
-                break;
-            }
-            node = node.Parent;
-        }
+        // Try to find invocation at position, then at position-1 (right after '(' or ',')
+        var (invocation, objectCreation) = FindInvocationOrCreation(root, position);
+        if (invocation is null && objectCreation is null && position > 0)
+            (invocation, objectCreation) = FindInvocationOrCreation(root, position - 1);
 
         if (invocation is null && objectCreation is null) return null;
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         if (semanticModel is null) return null;
 
-        // Determine active parameter index from argument list
+        // Determine active parameter from comma count before cursor
         var argList = invocation?.ArgumentList ?? objectCreation?.ArgumentList;
         int activeParam = 0;
         if (argList is not null)
         {
-            foreach (var arg in argList.Arguments)
+            foreach (var separator in argList.Arguments.GetSeparators())
             {
-                if (arg.Span.End <= position)
+                if (separator.Span.End <= position)
                     activeParam++;
             }
         }
 
-        IMethodSymbol[] methods;
+        // Use GetMemberGroup on the expression to get all overloads reliably
+        // (GetSymbolInfo often fails on incomplete invocations)
+        var methods = new List<IMethodSymbol>();
         if (invocation is not null)
         {
-            var symbolInfo = semanticModel.GetSymbolInfo(invocation, cancellationToken);
-            var list = new List<IMethodSymbol>();
-            if (symbolInfo.Symbol is IMethodSymbol m) list.Add(m);
-            list.AddRange(symbolInfo.CandidateSymbols.OfType<IMethodSymbol>());
-            methods = list.ToArray();
+            // GetMemberGroup returns all overloads for the method name
+            var memberGroup = semanticModel.GetMemberGroup(invocation.Expression, cancellationToken);
+            methods.AddRange(memberGroup.OfType<IMethodSymbol>());
+
+            // Fallback to GetSymbolInfo if GetMemberGroup returned nothing
+            if (methods.Count == 0)
+            {
+                var symbolInfo = semanticModel.GetSymbolInfo(invocation, cancellationToken);
+                if (symbolInfo.Symbol is IMethodSymbol m) methods.Add(m);
+                methods.AddRange(symbolInfo.CandidateSymbols.OfType<IMethodSymbol>());
+            }
         }
         else
         {
-            var symbolInfo = semanticModel.GetSymbolInfo(objectCreation!, cancellationToken);
-            var list = new List<IMethodSymbol>();
-            if (symbolInfo.Symbol is IMethodSymbol m) list.Add(m);
-            list.AddRange(symbolInfo.CandidateSymbols.OfType<IMethodSymbol>());
-            methods = list.ToArray();
+            // For new Foo(), get all constructors
+            var typeInfo = semanticModel.GetTypeInfo(objectCreation!, cancellationToken);
+            if (typeInfo.Type is INamedTypeSymbol namedType)
+                methods.AddRange(namedType.Constructors.Where(c => !c.IsImplicitlyDeclared));
+
+            if (methods.Count == 0)
+            {
+                var symbolInfo = semanticModel.GetSymbolInfo(objectCreation!, cancellationToken);
+                if (symbolInfo.Symbol is IMethodSymbol m) methods.Add(m);
+                methods.AddRange(symbolInfo.CandidateSymbols.OfType<IMethodSymbol>());
+            }
         }
 
-        if (methods.Length == 0) return null;
+        if (methods.Count == 0) return null;
 
         var signatures = new List<SignatureInformation>();
         foreach (var method in methods)
@@ -548,6 +547,21 @@ public sealed class RoslynCompletionService : IRoslynCompletionService
             ActiveSignature = 0,
             ActiveParameter = activeParam,
         };
+    }
+
+    private static (InvocationExpressionSyntax?, ObjectCreationExpressionSyntax?) FindInvocationOrCreation(
+        SyntaxNode root, int position)
+    {
+        var node = root.FindToken(position).Parent;
+        while (node is not null)
+        {
+            if (node is InvocationExpressionSyntax inv)
+                return (inv, null);
+            if (node is ObjectCreationExpressionSyntax oc)
+                return (null, oc);
+            node = node.Parent;
+        }
+        return (null, null);
     }
 
     // ─── Formatting ─────────────────────────────────────────────────────────
