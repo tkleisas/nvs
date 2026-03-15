@@ -51,7 +51,12 @@ public sealed class RoslynCompletionService : IRoslynCompletionService
             Logger.Warning("[Roslyn] Workspace diagnostic: {Kind} — {Message}", args.Diagnostic.Kind, args.Diagnostic.Message);
 
         var ext = Path.GetExtension(solutionOrProjectPath);
-        if (ext is ".sln" or ".slnx")
+        if (ext is ".slnx")
+        {
+            // MSBuildWorkspace doesn't support .slnx — parse XML to extract project paths
+            await LoadSlnxAsync(solutionOrProjectPath, cancellationToken).ConfigureAwait(false);
+        }
+        else if (ext is ".sln")
         {
             _solution = await _workspace.OpenSolutionAsync(solutionOrProjectPath, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
@@ -71,9 +76,65 @@ public sealed class RoslynCompletionService : IRoslynCompletionService
         // Build document path → DocumentId index
         RebuildDocumentMap();
 
-        var projectCount = _solution.Projects.Count();
+        var projectCount = _solution?.Projects.Count() ?? 0;
         var docCount = _documentMap.Count;
         Logger.Information("[Roslyn] Workspace loaded: {Projects} project(s), {Documents} document(s)", projectCount, docCount);
+    }
+
+    private async Task LoadSlnxAsync(string slnxPath, CancellationToken cancellationToken)
+    {
+        var solutionDir = Path.GetDirectoryName(slnxPath)!;
+        var projectPaths = ParseSlnxProjectPaths(slnxPath, solutionDir);
+
+        if (projectPaths.Count == 0)
+        {
+            Logger.Warning("[Roslyn] No projects found in .slnx: {Path}", slnxPath);
+            return;
+        }
+
+        Logger.Information("[Roslyn] Parsed .slnx: {Count} project(s)", projectPaths.Count);
+
+        foreach (var projectPath in projectPaths)
+        {
+            try
+            {
+                var project = await _workspace!.OpenProjectAsync(projectPath, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+                _solution = project.Solution;
+                Logger.Debug("[Roslyn] Loaded project: {Path}", projectPath);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "[Roslyn] Failed to load project: {Path}", projectPath);
+            }
+        }
+    }
+
+    private static List<string> ParseSlnxProjectPaths(string slnxPath, string solutionDir)
+    {
+        var paths = new List<string>();
+        try
+        {
+            var doc = System.Xml.Linq.XDocument.Load(slnxPath);
+            var projectElements = doc.Descendants("Project");
+            foreach (var el in projectElements)
+            {
+                var pathAttr = el.Attribute("Path")?.Value;
+                if (pathAttr is not null)
+                {
+                    var fullPath = Path.GetFullPath(Path.Combine(solutionDir, pathAttr));
+                    if (File.Exists(fullPath))
+                        paths.Add(fullPath);
+                    else
+                        Log.Warning("[Roslyn] Project not found: {Path}", fullPath);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "[Roslyn] Failed to parse .slnx: {Path}", slnxPath);
+        }
+        return paths;
     }
 
     public async Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(

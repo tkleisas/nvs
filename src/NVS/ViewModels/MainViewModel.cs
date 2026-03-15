@@ -439,10 +439,13 @@ public partial class MainViewModel : INotifyPropertyChanged
         try
         {
             await _roslynCompletionService.LoadWorkspaceAsync(solutionPath);
+            StatusMessage = _roslynCompletionService.IsWorkspaceLoaded
+                ? "Roslyn workspace ready"
+                : StatusMessage;
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Roslyn workspace load failed: {ex.Message}";
+            Serilog.Log.Warning(ex, "[Roslyn] Workspace load failed for {Path}", solutionPath);
         }
     }
 
@@ -469,6 +472,8 @@ public partial class MainViewModel : INotifyPropertyChanged
                 LoadSolutionTree(solution);
                 RefreshProjectList();
                 StatusMessage = $"Solution loaded: {solution.Name} ({solution.Projects.Count} projects)";
+
+                _ = LoadRoslynWorkspaceAsync(solutionFile);
             }
         }
         catch (Exception ex)
