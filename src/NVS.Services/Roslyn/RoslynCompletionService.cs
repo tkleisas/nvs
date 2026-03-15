@@ -150,7 +150,7 @@ public sealed class RoslynCompletionService : IRoslynCompletionService
     // ─── Completions ────────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(
-        string filePath, int line, int column, CancellationToken cancellationToken = default)
+        string filePath, int line, int column, string? triggerChar = null, CancellationToken cancellationToken = default)
     {
         var document = FindDocument(filePath);
         if (document is null) return [];
@@ -162,8 +162,12 @@ public sealed class RoslynCompletionService : IRoslynCompletionService
         var position = GetOffset(text, line, column);
         if (position < 0 || position > text.Length) return [];
 
+        var trigger = triggerChar is { Length: > 0 }
+            ? CompletionTrigger.CreateInsertionTrigger(triggerChar[0])
+            : CompletionTrigger.Invoke;
+
         var completionList = await completionService.GetCompletionsAsync(
-            document, position, cancellationToken: cancellationToken).ConfigureAwait(false);
+            document, position, trigger, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         if (completionList is null) return [];
 

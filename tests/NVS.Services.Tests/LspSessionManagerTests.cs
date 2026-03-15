@@ -589,8 +589,7 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
         {
             new() { Label = "Console", Kind = CompletionItemKind.Class },
         };
-        roslynService.GetCompletionsAsync(
-            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+        roslynService.GetCompletionsAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(roslynItems);
 
         await using var manager = new LspSessionManager(_factory, roslynService);
@@ -608,8 +607,7 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
     {
         var roslynService = Substitute.For<IRoslynCompletionService>();
         roslynService.IsWorkspaceLoaded.Returns(true);
-        roslynService.GetCompletionsAsync(
-            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+        roslynService.GetCompletionsAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new List<CompletionItem>());
 
         var mockClient = CreateMockClient(Language.CSharp);
@@ -678,8 +676,7 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
         result[0].Label.Should().Be("document");
 
         // Roslyn should NOT have been called
-        await roslynService.DidNotReceive().GetCompletionsAsync(
-            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        await roslynService.DidNotReceive().GetCompletionsAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -724,8 +721,7 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
     {
         var roslynService = Substitute.For<IRoslynCompletionService>();
         roslynService.IsWorkspaceLoaded.Returns(true);
-        roslynService.GetCompletionsAsync(
-            Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+        roslynService.GetCompletionsAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns<IReadOnlyList<CompletionItem>>(_ => throw new InvalidOperationException("Roslyn failure"));
 
         var mockClient = CreateMockClient(Language.CSharp);

@@ -15,7 +15,7 @@ public interface IRoslynCompletionService : IAsyncDisposable
     Task LoadWorkspaceAsync(string solutionOrProjectPath, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<CompletionItem>> GetCompletionsAsync(
-        string filePath, int line, int column, CancellationToken cancellationToken = default);
+        string filePath, int line, int column, string? triggerChar = null, CancellationToken cancellationToken = default);
 
     Task<HoverInfo?> GetHoverAsync(string filePath, int line, int column, CancellationToken cancellationToken = default);
 

@@ -136,7 +136,7 @@ public sealed class LspSessionManager : ILspSessionManager
             try
             {
                 var results = await _roslynCompletionService.GetCompletionsAsync(
-                    document.FilePath, position.Line, position.Column, cancellationToken).ConfigureAwait(false);
+                    document.FilePath, position.Line, position.Column, triggerChar, cancellationToken).ConfigureAwait(false);
                 if (results.Count > 0)
                     return results;
             }
