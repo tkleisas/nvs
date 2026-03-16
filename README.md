@@ -9,7 +9,7 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
 ![Version](https://img.shields.io/badge/version-0.4.4-green)
-![Tests](https://img.shields.io/badge/tests-900%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-904%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -34,7 +34,7 @@ NVS is a code editor / IDE that:
 - Supports multi-project solutions with startup project selection.
 - Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
-- Has 900 tests, which is 900 more than the AI thought were necessary before the human insisted.
+- Has 904 tests, which is 904 more than the AI thought were necessary before the human insisted.
 
 ## Features
 
@@ -206,7 +206,7 @@ dotnet run --project src/NVS
 # Open a solution directly
 dotnet run --project src/NVS -- path/to/solution.sln
 
-# Run tests (900 of them)
+# Run tests (904 of them)
 dotnet test NVS.slnx
 ```
 
@@ -260,7 +260,7 @@ git push origin v0.4.4
 
 ## Testing
 
-900 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
+904 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
 
 - **NVS.Core.Tests** — Core model tests
 - **NVS.Plugins.Tests** — Plugin system tests

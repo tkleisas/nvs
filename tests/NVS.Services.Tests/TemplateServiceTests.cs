@@ -27,7 +27,7 @@ public sealed class TemplateServiceTests : IDisposable
         var templates = _service.GetProjectTemplates();
 
         templates.Should().NotBeEmpty();
-        templates.Should().HaveCountGreaterThanOrEqualTo(11);
+        templates.Should().HaveCountGreaterThanOrEqualTo(13);
     }
 
     [Theory]
@@ -38,8 +38,10 @@ public sealed class TemplateServiceTests : IDisposable
     [InlineData("worker", "Worker Service")]
     [InlineData("java-console", "Java Console App")]
     [InlineData("java-library", "Java Library")]
+    [InlineData("java-webapp", "Java Web App")]
     [InlineData("php-console", "PHP Console App")]
     [InlineData("php-library", "PHP Library")]
+    [InlineData("php-webapp", "PHP Web App")]
     public void GetProjectTemplates_ShouldContainExpectedTemplates(string shortName, string displayName)
     {
         var templates = _service.GetProjectTemplates();
@@ -66,7 +68,7 @@ public sealed class TemplateServiceTests : IDisposable
         var templates = _service.GetProjectTemplates()
             .Where(t => t.DefaultLanguage == "Java");
 
-        templates.Should().HaveCount(2);
+        templates.Should().HaveCount(3);
         foreach (var template in templates)
         {
             template.ProjectSystem.Should().Be(NVS.Core.Enums.ProjectSystem.Maven);
@@ -80,7 +82,7 @@ public sealed class TemplateServiceTests : IDisposable
         var templates = _service.GetProjectTemplates()
             .Where(t => t.DefaultLanguage == "PHP");
 
-        templates.Should().HaveCount(2);
+        templates.Should().HaveCount(3);
         foreach (var template in templates)
         {
             template.ProjectSystem.Should().Be(NVS.Core.Enums.ProjectSystem.Composer);
@@ -567,6 +569,66 @@ public sealed class TemplateServiceTests : IDisposable
 
         // No bin/app.php for library
         File.Exists(Path.Combine(projectDir, "bin", "app.php")).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CreateMavenProjectAsync_WebApp_ShouldCreateHttpServer()
+    {
+        var projectDir = await _service.CreateProjectAsync(
+            "java-webapp", "MyJavaWeb", _tempDir);
+
+        projectDir.Should().EndWith("MyJavaWeb");
+        Directory.Exists(projectDir).Should().BeTrue();
+
+        // Verify pom.xml has mainClass
+        var pomContent = await File.ReadAllTextAsync(Path.Combine(projectDir, "pom.xml"));
+        pomContent.Should().Contain("<exec.mainClass>com.example.App</exec.mainClass>");
+        pomContent.Should().Contain("<maven.compiler.source>21</maven.compiler.source>");
+
+        // Verify App.java with HTTP server
+        var appPath = Path.Combine(projectDir, "src", "main", "java", "com", "example", "App.java");
+        File.Exists(appPath).Should().BeTrue();
+        var appContent = await File.ReadAllTextAsync(appPath);
+        appContent.Should().Contain("import com.sun.net.httpserver.HttpServer");
+        appContent.Should().Contain("HttpServer.create");
+        appContent.Should().Contain("8080");
+        appContent.Should().Contain("Content-Type");
+
+        // Verify test source exists
+        var testPath = Path.Combine(projectDir, "src", "test", "java", "com", "example", "AppTest.java");
+        File.Exists(testPath).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateComposerProjectAsync_WebApp_ShouldCreateRouterStructure()
+    {
+        var projectDir = await _service.CreateProjectAsync(
+            "php-webapp", "MyPhpWeb", _tempDir);
+
+        projectDir.Should().EndWith("MyPhpWeb");
+        Directory.Exists(projectDir).Should().BeTrue();
+
+        // Verify composer.json has serve script
+        var composerContent = await File.ReadAllTextAsync(Path.Combine(projectDir, "composer.json"));
+        composerContent.Should().Contain("\"type\": \"project\"");
+        composerContent.Should().Contain("\"serve\"");
+        composerContent.Should().Contain("php -S localhost:8000 -t public");
+
+        // Verify public/index.php front controller
+        var indexPath = Path.Combine(projectDir, "public", "index.php");
+        File.Exists(indexPath).Should().BeTrue();
+        var indexContent = await File.ReadAllTextAsync(indexPath);
+        indexContent.Should().Contain("use MyPhpWeb\\Router");
+        indexContent.Should().Contain("$router->handle");
+
+        // Verify Router.php
+        var routerPath = Path.Combine(projectDir, "src", "Router.php");
+        File.Exists(routerPath).Should().BeTrue();
+        var routerContent = await File.ReadAllTextAsync(routerPath);
+        routerContent.Should().Contain("namespace MyPhpWeb;");
+        routerContent.Should().Contain("class Router");
+        routerContent.Should().Contain("function handle");
+        routerContent.Should().Contain("404");
     }
 
     #endregion

@@ -99,6 +99,15 @@ public sealed class TemplateService : ITemplateService
         },
         new()
         {
+            ShortName = "java-webapp",
+            DisplayName = "Java Web App",
+            Description = "A Maven project with an embedded HTTP server using com.sun.net.httpserver",
+            DefaultLanguage = "Java",
+            Tags = ["Web", "Maven"],
+            ProjectSystem = ProjectSystem.Maven,
+        },
+        new()
+        {
             ShortName = "php-console",
             DisplayName = "PHP Console App",
             Description = "A Composer project for creating a PHP command-line application",
@@ -113,6 +122,15 @@ public sealed class TemplateService : ITemplateService
             Description = "A Composer project for creating a reusable PHP library",
             DefaultLanguage = "PHP",
             Tags = ["Library", "Composer"],
+            ProjectSystem = ProjectSystem.Composer,
+        },
+        new()
+        {
+            ShortName = "php-webapp",
+            DisplayName = "PHP Web App",
+            Description = "A PHP project with a public directory and built-in dev server support",
+            DefaultLanguage = "PHP",
+            Tags = ["Web", "Composer"],
             ProjectSystem = ProjectSystem.Composer,
         },
     ];
@@ -458,8 +476,8 @@ public sealed class TemplateService : ITemplateService
         Directory.CreateDirectory(testPath);
 
         var isConsole = template.ShortName == "java-console";
-        var packaging = isConsole ? "jar" : "jar";
-        var mainClass = isConsole ? $"\n    <exec.mainClass>{groupId}.App</exec.mainClass>" : "";
+        var isWebApp = template.ShortName == "java-webapp";
+        var mainClass = isConsole || isWebApp ? $"\n    <exec.mainClass>{groupId}.App</exec.mainClass>" : "";
 
         var pomXml = $"""
             <?xml version="1.0" encoding="UTF-8"?>
@@ -471,7 +489,7 @@ public sealed class TemplateService : ITemplateService
                 <groupId>{groupId}</groupId>
                 <artifactId>{artifactId}</artifactId>
                 <version>1.0-SNAPSHOT</version>
-                <packaging>{packaging}</packaging>
+                <packaging>jar</packaging>
 
                 <properties>
                     <maven.compiler.source>21</maven.compiler.source>
@@ -496,8 +514,40 @@ public sealed class TemplateService : ITemplateService
                 """;
             await File.WriteAllTextAsync(Path.Combine(packagePath, "App.java"), appJava, cancellationToken).ConfigureAwait(false);
         }
+        else if (isWebApp)
+        {
+            var appJava = """
+                package com.example;
 
-        var testClassName = isConsole ? "AppTest" : "LibraryTest";
+                import com.sun.net.httpserver.HttpServer;
+                import java.io.IOException;
+                import java.io.OutputStream;
+                import java.net.InetSocketAddress;
+
+                public class App {
+                    public static void main(String[] args) throws IOException {
+                        int port = 8080;
+                        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+
+                        server.createContext("/", exchange -> {
+                            String response = "<!DOCTYPE html><html><body><h1>Hello, World!</h1></body></html>";
+                            exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
+                            exchange.sendResponseHeaders(200, response.getBytes().length);
+                            try (OutputStream os = exchange.getResponseBody()) {
+                                os.write(response.getBytes());
+                            }
+                        });
+
+                        server.setExecutor(null);
+                        server.start();
+                        System.out.println("Server started on http://localhost:" + port);
+                    }
+                }
+                """;
+            await File.WriteAllTextAsync(Path.Combine(packagePath, "App.java"), appJava, cancellationToken).ConfigureAwait(false);
+        }
+
+        var testClassName = isConsole || isWebApp ? "AppTest" : "LibraryTest";
         var testJava = $$"""
             package com.example;
 
@@ -526,13 +576,18 @@ public sealed class TemplateService : ITemplateService
         var vendorName = "myvendor";
         var packageName = projectName.ToLowerInvariant().Replace(' ', '-');
         var isConsole = template.ShortName == "php-console";
+        var isWebApp = template.ShortName == "php-webapp";
         var namespaceName = ToPascalCase(projectName);
 
+        var projectType = isConsole || isWebApp ? "project" : "library";
+        var scriptsSection = isWebApp
+            ? ",\n        \"scripts\": {\n            \"serve\": \"php -S localhost:8000 -t public\"\n        }"
+            : "";
         var composerJson = $$"""
             {
                 "name": "{{vendorName}}/{{packageName}}",
                 "description": "{{template.Description}}",
-                "type": "{{(isConsole ? "project" : "library")}}",
+                "type": "{{projectType}}",
                 "require": {
                     "php": ">=8.2"
                 },
@@ -545,7 +600,7 @@ public sealed class TemplateService : ITemplateService
                     "psr-4": {
                         "{{namespaceName}}\\Tests\\": "tests/"
                     }
-                }
+                }{{scriptsSection}}
             }
             """;
 
@@ -587,6 +642,58 @@ public sealed class TemplateService : ITemplateService
                 }
                 """;
             await File.WriteAllTextAsync(Path.Combine(srcDir, "App.php"), appPhp, cancellationToken).ConfigureAwait(false);
+        }
+        else if (isWebApp)
+        {
+            var publicDir = Path.Combine(projectDir, "public");
+            Directory.CreateDirectory(publicDir);
+
+            var indexPhp = $$"""
+                <?php
+
+                declare(strict_types=1);
+
+                require __DIR__ . '/../vendor/autoload.php';
+
+                use {{namespaceName}}\Router;
+
+                $router = new Router();
+                $router->handle($_SERVER['REQUEST_URI'] ?? '/');
+                """;
+            await File.WriteAllTextAsync(Path.Combine(publicDir, "index.php"), indexPhp, cancellationToken).ConfigureAwait(false);
+
+            var routerPhp = $$"""
+                <?php
+
+                declare(strict_types=1);
+
+                namespace {{namespaceName}};
+
+                class Router
+                {
+                    public function handle(string $uri): void
+                    {
+                        match (rtrim($uri, '/') ?: '/') {
+                            '/' => $this->home(),
+                            default => $this->notFound(),
+                        };
+                    }
+
+                    private function home(): void
+                    {
+                        header('Content-Type: text/html; charset=UTF-8');
+                        echo '<!DOCTYPE html><html><body><h1>Hello, World!</h1></body></html>';
+                    }
+
+                    private function notFound(): void
+                    {
+                        http_response_code(404);
+                        header('Content-Type: text/html; charset=UTF-8');
+                        echo '<!DOCTYPE html><html><body><h1>404 Not Found</h1></body></html>';
+                    }
+                }
+                """;
+            await File.WriteAllTextAsync(Path.Combine(srcDir, "Router.php"), routerPhp, cancellationToken).ConfigureAwait(false);
         }
 
         return projectDir;
