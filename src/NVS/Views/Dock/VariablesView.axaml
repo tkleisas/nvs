@@ -7,16 +7,16 @@
              x:Class="NVS.Views.Dock.VariablesView"
              x:DataType="vm:VariablesToolViewModel">
 
-    <Grid RowDefinitions="Auto,*" Background="#1E1E1E">
+    <Grid RowDefinitions="Auto,*" Background="{DynamicResource ToolPanelBackgroundBrush}">
         <!-- Header -->
-        <Border Grid.Row="0" Background="#252526" Padding="8,4">
-            <TextBlock Text="Variables" FontSize="12" Foreground="#CCCCCC" FontWeight="SemiBold"/>
+        <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}" Padding="8,4">
+            <TextBlock Text="Variables" FontSize="12" Foreground="{DynamicResource TextForegroundBrush}" FontWeight="SemiBold"/>
         </Border>
 
         <!-- Variables Tree -->
         <TreeView Grid.Row="1"
                   ItemsSource="{Binding Variables}"
-                  Background="#1E1E1E"
+                  Background="{DynamicResource ToolPanelBackgroundBrush}"
                   BorderThickness="0">
             <TreeView.Styles>
                 <Style Selector="TreeViewItem" x:DataType="vm:VariableNode">

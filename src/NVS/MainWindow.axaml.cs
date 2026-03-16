@@ -292,7 +292,8 @@ public partial class MainWindow : Window
         // Snapshot current preferred servers before opening settings
         var previousPreferred = new Dictionary<string, string>(settingsService.AppSettings.PreferredLanguageServers);
 
-        var vm = new ViewModels.SettingsViewModel(settingsService, serverManager);
+        var vm = new ViewModels.SettingsViewModel(settingsService, serverManager,
+            app.Services.GetService(typeof(NVS.Core.Interfaces.IThemeService)) as NVS.Core.Interfaces.IThemeService);
         await vm.InitializeAsync();
 
         var window = new SettingsWindow { DataContext = vm };

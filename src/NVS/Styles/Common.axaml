@@ -1,8 +1,28 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Styles.Resources>
+        <!-- Theme colors (updated at runtime by ThemeService) -->
         <SolidColorBrush x:Key="AppBackgroundBrush" Color="#1E1E1E" />
+        <SolidColorBrush x:Key="EditorBackgroundBrush" Color="#1E1E1E" />
+        <SolidColorBrush x:Key="EditorForegroundBrush" Color="#D4D4D4" />
         <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#252526" />
+        <SolidColorBrush x:Key="SidebarForegroundBrush" Color="#CCCCCC" />
         <SolidColorBrush x:Key="StatusBarBackgroundBrush" Color="#007ACC" />
+        <SolidColorBrush x:Key="StatusBarForegroundBrush" Color="White" />
         <SolidColorBrush x:Key="AccentBrush" Color="#007ACC" />
+        <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#2D2D30" />
+        <SolidColorBrush x:Key="MenuForegroundBrush" Color="#CCCCCC" />
+        <SolidColorBrush x:Key="ToolPanelBackgroundBrush" Color="#1E1E1E" />
+        <SolidColorBrush x:Key="ToolPanelForegroundBrush" Color="#CCCCCC" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#3C3C3C" />
+        <SolidColorBrush x:Key="InputBackgroundBrush" Color="#3C3C3C" />
+        <SolidColorBrush x:Key="InputForegroundBrush" Color="#CCCCCC" />
+        <SolidColorBrush x:Key="TextForegroundBrush" Color="#CCCCCC" />
+        <SolidColorBrush x:Key="TextSecondaryForegroundBrush" Color="#969696" />
+        <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#0E639C" />
+        <SolidColorBrush x:Key="ButtonForegroundBrush" Color="White" />
+        <SolidColorBrush x:Key="InfoBarInfoBackgroundBrush" Color="#007ACC" />
+        <SolidColorBrush x:Key="InfoBarWarningBackgroundBrush" Color="#CC6600" />
+        <SolidColorBrush x:Key="InfoBarErrorBackgroundBrush" Color="#CC0000" />
+        <SolidColorBrush x:Key="InfoBarForegroundBrush" Color="White" />
     </Styles.Resources>
 </Styles>

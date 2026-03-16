@@ -249,6 +249,93 @@ public sealed class SettingsViewModelTests
                 s.Terminal.BufferSize == 8000),
             Arg.Any<CancellationToken>());
     }
+
+    private static IThemeService CreateThemeService(string currentTheme = "NVS Dark")
+    {
+        var colors = new ThemeColors
+        {
+            EditorBackground = "#1E1E1E", EditorForeground = "#D4D4D4",
+            EditorLineHighlight = "#2A2D2E", EditorSelectionBackground = "#264F78",
+            SidebarBackground = "#252526", SidebarForeground = "#CCCCCC",
+            StatusBarBackground = "#007ACC", StatusBarForeground = "#FFFFFF",
+            ToolPanelBackground = "#1E1E1E", ToolPanelForeground = "#CCCCCC",
+            AccentColor = "#007ACC", BorderColor = "#3C3C3C",
+            ButtonBackground = "#0E639C", ButtonForeground = "#FFFFFF",
+            InputBackground = "#3C3C3C", InputForeground = "#CCCCCC", InputBorder = "#3C3C3C",
+            TabActiveBackground = "#1E1E1E", TabInactiveBackground = "#2D2D2D",
+            TabActiveForeground = "#FFFFFF", TabInactiveForeground = "#969696",
+            MenuBackground = "#252526", MenuForeground = "#CCCCCC",
+            InfoBarInfoBackground = "#007ACC", InfoBarWarningBackground = "#CC6600",
+            InfoBarErrorBackground = "#CC0000", InfoBarForeground = "#FFFFFF",
+            ScrollBarBackground = "#1E1E1E", ScrollBarThumb = "#424242",
+            LineNumberForeground = "#858585",
+        };
+        var dark = new AppTheme { Name = "NVS Dark", ThemeVariant = "Dark", Colors = colors };
+        var light = new AppTheme { Name = "NVS Light", ThemeVariant = "Light", Colors = colors };
+        var current = currentTheme == "NVS Light" ? light : dark;
+
+        var svc = Substitute.For<IThemeService>();
+        svc.CurrentTheme.Returns(current);
+        svc.AvailableThemes.Returns([dark, light]);
+        return svc;
+    }
+
+    [Fact]
+    public async Task InitializeAsync_ShouldLoadCurrentTheme()
+    {
+        var themeService = CreateThemeService("NVS Light");
+        var vm = new SettingsViewModel(CreateSettingsService(), CreateServerManager(), themeService);
+        await vm.InitializeAsync();
+
+        vm.SelectedTheme.Should().Be("NVS Light");
+    }
+
+    [Fact]
+    public void AvailableThemes_WithThemeService_ShouldReturnThemeNames()
+    {
+        var themeService = CreateThemeService();
+        var vm = new SettingsViewModel(CreateSettingsService(), CreateServerManager(), themeService);
+
+        vm.AvailableThemes.Should().HaveCount(2);
+        vm.AvailableThemes.Should().Contain("NVS Dark");
+        vm.AvailableThemes.Should().Contain("NVS Light");
+    }
+
+    [Fact]
+    public void AvailableThemes_WithoutThemeService_ShouldReturnDefault()
+    {
+        var vm = new SettingsViewModel(CreateSettingsService(), CreateServerManager());
+
+        vm.AvailableThemes.Should().HaveCount(1);
+        vm.AvailableThemes.Should().Contain("NVS Dark");
+    }
+
+    [Fact]
+    public void SelectedTheme_WhenChanged_ShouldApplyThemeLive()
+    {
+        var themeService = CreateThemeService();
+        var vm = new SettingsViewModel(CreateSettingsService(), CreateServerManager(), themeService);
+
+        vm.SelectedTheme = "NVS Light";
+
+        themeService.Received(1).ApplyThemeAsync("NVS Light", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SaveCommand_ShouldPersistSelectedTheme()
+    {
+        var settingsService = CreateSettingsService();
+        var themeService = CreateThemeService();
+        var vm = new SettingsViewModel(settingsService, CreateServerManager(), themeService);
+        await vm.InitializeAsync();
+
+        vm.SelectedTheme = "NVS Light";
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        await settingsService.Received(1).SaveAppSettingsAsync(
+            Arg.Is<AppSettings>(s => s.Theme == "NVS Light"),
+            Arg.Any<CancellationToken>());
+    }
 }
 
 public sealed class LanguageServerItemViewModelTests

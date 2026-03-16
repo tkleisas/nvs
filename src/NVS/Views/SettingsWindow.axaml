@@ -10,14 +10,14 @@
         Width="850" Height="580"
         MinWidth="700" MinHeight="400"
         WindowStartupLocation="CenterOwner"
-        Background="#1E1E1E">
+        Background="{DynamicResource AppBackgroundBrush}">
 
     <Grid RowDefinitions="*,Auto">
         <!-- Main content: sidebar + panels -->
         <Grid Grid.Row="0" ColumnDefinitions="160,*">
 
             <!-- Section sidebar -->
-            <Border Grid.Column="0" Background="#252526" BorderBrush="#3C3C3C" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0" Background="{DynamicResource SidebarBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
                 <ListBox ItemsSource="{Binding Sections}"
                          SelectedIndex="{Binding SelectedSectionIndex}"
                          Background="Transparent"
@@ -25,7 +25,7 @@
                          Margin="0,8">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding}" Padding="16,8" FontSize="13" Foreground="#CCCCCC" />
+                            <TextBlock Text="{Binding}" Padding="16,8" FontSize="13" Foreground="{DynamicResource TextForegroundBrush}" />
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
@@ -39,66 +39,73 @@
 
                     <!-- General Section -->
                     <StackPanel Spacing="16" IsVisible="{Binding IsGeneralVisible}">
-                        <TextBlock Text="General" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                        <TextBlock Text="General" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                         <Separator Background="#3F3F46" />
 
                         <CheckBox IsChecked="{Binding RestorePreviousSession}"
                                   Content="Restore previous session on startup"
-                                  Foreground="#CCCCCC" />
+                                  Foreground="{DynamicResource TextForegroundBrush}" />
                         <CheckBox IsChecked="{Binding CheckUpdatesOnStartup}"
                                   Content="Check for updates on startup"
-                                  Foreground="#CCCCCC" />
+                                  Foreground="{DynamicResource TextForegroundBrush}" />
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Theme" Foreground="{DynamicResource TextForegroundBrush}" />
+                            <ComboBox ItemsSource="{Binding AvailableThemes}"
+                                      SelectedItem="{Binding SelectedTheme}"
+                                      Width="250" HorizontalAlignment="Left" />
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- Editor Section -->
                     <StackPanel Spacing="12" IsVisible="{Binding IsEditorVisible}">
-                        <TextBlock Text="Editor" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                        <TextBlock Text="Editor" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                         <Separator Background="#3F3F46" />
 
                         <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Font Family" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Font Family" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
                             <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding FontFamily}" MaxWidth="200" HorizontalAlignment="Left" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Font Size" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Font Size" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding FontSize}" Minimum="8" Maximum="72" MaxWidth="120" HorizontalAlignment="Left" Margin="0,8,0,0" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Tab Size" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Tab Size" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding TabSize}" Minimum="1" Maximum="16" MaxWidth="120" HorizontalAlignment="Left" Margin="0,8,0,0" />
 
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Auto-Save Delay (ms)" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Auto-Save Delay (ms)" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding AutoSaveDelay}" Minimum="100" Maximum="60000" Increment="100" MaxWidth="120" HorizontalAlignment="Left" Margin="0,8,0,0" />
                         </Grid>
 
-                        <CheckBox IsChecked="{Binding InsertSpaces}" Content="Insert spaces instead of tabs" Foreground="#CCCCCC" />
-                        <CheckBox IsChecked="{Binding WordWrap}" Content="Word wrap" Foreground="#CCCCCC" />
-                        <CheckBox IsChecked="{Binding LineNumbers}" Content="Show line numbers" Foreground="#CCCCCC" />
-                        <CheckBox IsChecked="{Binding HighlightCurrentLine}" Content="Highlight current line" Foreground="#CCCCCC" />
-                        <CheckBox IsChecked="{Binding ShowWhitespace}" Content="Show whitespace" Foreground="#CCCCCC" />
-                        <CheckBox IsChecked="{Binding AutoSave}" Content="Auto-save" Foreground="#CCCCCC" />
+                        <CheckBox IsChecked="{Binding InsertSpaces}" Content="Insert spaces instead of tabs" Foreground="{DynamicResource TextForegroundBrush}" />
+                        <CheckBox IsChecked="{Binding WordWrap}" Content="Word wrap" Foreground="{DynamicResource TextForegroundBrush}" />
+                        <CheckBox IsChecked="{Binding LineNumbers}" Content="Show line numbers" Foreground="{DynamicResource TextForegroundBrush}" />
+                        <CheckBox IsChecked="{Binding HighlightCurrentLine}" Content="Highlight current line" Foreground="{DynamicResource TextForegroundBrush}" />
+                        <CheckBox IsChecked="{Binding ShowWhitespace}" Content="Show whitespace" Foreground="{DynamicResource TextForegroundBrush}" />
+                        <CheckBox IsChecked="{Binding AutoSave}" Content="Auto-save" Foreground="{DynamicResource TextForegroundBrush}" />
                     </StackPanel>
 
                     <!-- Terminal Section -->
                     <StackPanel Spacing="12" IsVisible="{Binding IsTerminalVisible}">
-                        <TextBlock Text="Terminal" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                        <TextBlock Text="Terminal" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                         <TextBlock Text="Configure the integrated terminal appearance."
                                    FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
                         <Separator Background="#3F3F46" />
 
                         <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Font Family" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Font Family" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
                             <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding TerminalFontFamily}" MaxWidth="360" HorizontalAlignment="Left" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Font Size" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Font Size" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding TerminalFontSize}" Minimum="8" Maximum="72" MaxWidth="120" HorizontalAlignment="Left" Margin="0,8,0,0" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Buffer Size (lines)" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Buffer Size (lines)" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding TerminalBufferSize}" Minimum="500" Maximum="50000" Increment="500" MaxWidth="160" HorizontalAlignment="Left" Margin="0,8,0,0" />
                         </Grid>
                     </StackPanel>
 
                     <!-- Language Servers Section -->
                     <StackPanel Spacing="12" IsVisible="{Binding IsLanguageServersVisible}">
-                        <TextBlock Text="Language Servers" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                        <TextBlock Text="Language Servers" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                         <TextBlock Text="Configure open-source language servers for IntelliSense, diagnostics, and code navigation."
                                    FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
                         <Separator Background="#3F3F46" />
@@ -106,14 +113,14 @@
                         <ItemsControl ItemsSource="{Binding LanguageServers}" Margin="0,0,0,32">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="vm:LanguageServerItemViewModel">
-                                    <Border Margin="0,2" Padding="10,8" Background="#2D2D30"
-                                            CornerRadius="4" BorderBrush="#3C3C3C" BorderThickness="1">
+                                    <Border Margin="0,2" Padding="10,8" Background="{DynamicResource MenuBackgroundBrush}"
+                                            CornerRadius="4" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" Margin="0,0,8,0">
                                             <!-- Row 0: Name + status -->
                                             <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="8">
                                                 <CheckBox IsChecked="{Binding IsEnabled}" VerticalAlignment="Center" />
                                                 <TextBlock Text="{Binding Definition.Name}" FontWeight="SemiBold"
-                                                           Foreground="#CCCCCC" VerticalAlignment="Center" />
+                                                           Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
                                                 <TextBlock Text="{Binding StatusIcon}" FontSize="14" VerticalAlignment="Center"
                                                            Foreground="#4EC9B0" />
                                                 <TextBlock Text="{Binding LanguageDisplay}" FontSize="11"
@@ -158,7 +165,7 @@
 
                     <!-- LLM Section -->
                     <StackPanel Spacing="12" IsVisible="{Binding IsLlmVisible}">
-                        <TextBlock Text="LLM / AI Assistance" FontSize="18" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                        <TextBlock Text="LLM / AI Assistance" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                         <TextBlock Text="Configure a local or remote LLM endpoint for code completion and chat. Works with any OpenAI-compatible API (Ollama, LM Studio, OpenRouter, DeepSeek, llama.cpp, etc.)."
                                    FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
                         <Separator Background="#3F3F46" />
@@ -166,19 +173,19 @@
                         <!-- Connection -->
                         <TextBlock Text="Connection" FontSize="14" FontWeight="SemiBold" Foreground="#AAAAAA" Margin="0,4,0,0" />
                         <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Endpoint URL" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Endpoint URL" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
                             <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding LlmEndpoint}"
                                        Watermark="http://127.0.0.1:1234" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="API Key" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="API Key" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <TextBox   Grid.Row="1" Grid.Column="1" Text="{Binding LlmApiKey}"
                                        PasswordChar="●" Watermark="Leave empty for local models" Margin="0,8,0,0" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Auth Scheme" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Auth Scheme" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <TextBox   Grid.Row="2" Grid.Column="1" Text="{Binding LlmAuthScheme}"
                                        Watermark="Bearer" MaxWidth="200" HorizontalAlignment="Left" Margin="0,8,0,0" />
 
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Completions Path" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Completions Path" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <TextBox   Grid.Row="3" Grid.Column="1" Text="{Binding LlmCompletionsPath}"
                                        Watermark="v1/chat/completions" Margin="0,8,0,0" />
                         </Grid>
@@ -188,16 +195,16 @@
                         <!-- Model -->
                         <TextBlock Text="Model" FontSize="14" FontWeight="SemiBold" Foreground="#AAAAAA" Margin="0,4,0,0" />
                         <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Model ID" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Model ID" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
                             <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding LlmModel}"
                                        Watermark="codellama, qwen3-coder, deepseek-chat..." />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Max Tokens" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Max Tokens" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding LlmMaxTokens}"
                                            Minimum="128" Maximum="1048576" Increment="256"
                                            MaxWidth="180" HorizontalAlignment="Left" Margin="0,8,0,0" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Temperature" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Temperature" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding LlmTemperature}"
                                            Minimum="0" Maximum="2" Increment="0.1" FormatString="F1"
                                            MaxWidth="180" HorizontalAlignment="Left" Margin="0,8,0,0" />
@@ -208,12 +215,12 @@
                         <!-- Agent -->
                         <TextBlock Text="Agent" FontSize="14" FontWeight="SemiBold" Foreground="#AAAAAA" Margin="0,4,0,0" />
                         <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto" Margin="0,4">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Max Iterations" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Max Iterations" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
                             <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding LlmMaxIterations}"
                                            Minimum="1" Maximum="100" Increment="1"
                                            MaxWidth="180" HorizontalAlignment="Left" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="HTTP Timeout (s)" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="HTTP Timeout (s)" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding LlmHttpTimeoutSeconds}"
                                            Minimum="10" Maximum="600" Increment="10"
                                            MaxWidth="180" HorizontalAlignment="Left" Margin="0,8,0,0" />
@@ -223,9 +230,9 @@
 
                         <!-- Features -->
                         <TextBlock Text="Features" FontSize="14" FontWeight="SemiBold" Foreground="#AAAAAA" Margin="0,4,0,0" />
-                        <CheckBox IsChecked="{Binding LlmStream}" Content="Enable streaming responses" Foreground="#CCCCCC" />
-                        <CheckBox IsChecked="{Binding LlmEnableChat}" Content="Enable AI chat panel" Foreground="#CCCCCC" />
-                        <CheckBox IsChecked="{Binding LlmEnableAutoComplete}" Content="Enable AI auto-complete (experimental)" Foreground="#CCCCCC" />
+                        <CheckBox IsChecked="{Binding LlmStream}" Content="Enable streaming responses" Foreground="{DynamicResource TextForegroundBrush}" />
+                        <CheckBox IsChecked="{Binding LlmEnableChat}" Content="Enable AI chat panel" Foreground="{DynamicResource TextForegroundBrush}" />
+                        <CheckBox IsChecked="{Binding LlmEnableAutoComplete}" Content="Enable AI auto-complete (experimental)" Foreground="{DynamicResource TextForegroundBrush}" />
                     </StackPanel>
 
                 </Grid>
@@ -233,7 +240,7 @@
         </Grid>
 
         <!-- Bottom buttons -->
-        <Border Grid.Row="1" Background="#2D2D30" Padding="16,8" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0">
+        <Border Grid.Row="1" Background="{DynamicResource MenuBackgroundBrush}" Padding="16,8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                 <Button Content="Save" Command="{Binding SaveCommand}" Width="80" HorizontalContentAlignment="Center"
                         Click="OnSaveClick" />

@@ -49,6 +49,13 @@ public partial class App : Application
 
             var mainWindow = Services?.GetService(typeof(MainWindow)) as MainWindow ?? new MainWindow();
 
+            // Apply theme from settings
+            var themeService = Services?.GetService(typeof(IThemeService)) as IThemeService;
+            if (themeService is not null)
+            {
+                Helpers.ThemeResourceApplier.WireThemeService(themeService);
+            }
+
             // Restore window size/position/state from settings
             var windowSettings = settingsService?.AppSettings.Window ?? new NVS.Core.Models.Settings.WindowSettings();
             mainWindow.ApplyWindowSettings(windowSettings);
@@ -147,6 +154,8 @@ public partial class App : Application
         services.AddSingleton<ILlmService, LlmService>();
         services.AddSingleton<INuGetService, NVS.Services.NuGet.NuGetPackageService>();
         services.AddSingleton<ICodeMetricsService, NVS.Services.Metrics.CodeMetricsService>();
+        services.AddSingleton<IPrerequisiteService, NVS.Services.Prerequisites.PrerequisiteService>();
+        services.AddSingleton<IThemeService, NVS.Services.Themes.ThemeService>();
         
         // ViewModels
         services.AddSingleton<EditorViewModel>();

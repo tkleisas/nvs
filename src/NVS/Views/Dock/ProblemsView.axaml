@@ -39,7 +39,7 @@
                         <TextBlock Grid.Column="0" Text="{ReflectionBinding SeverityIcon}" FontSize="12"
                                    VerticalAlignment="Center" HorizontalAlignment="Center" />
                         <SelectableTextBlock Grid.Column="1" Text="{ReflectionBinding Message}" FontSize="12"
-                                   Foreground="#CCCCCC" VerticalAlignment="Center" Margin="4,0"
+                                   Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="4,0"
                                    TextWrapping="NoWrap" />
                         <SelectableTextBlock Grid.Column="2" Text="{ReflectionBinding Location}" FontSize="12"
                                    Foreground="#808080" VerticalAlignment="Center" />

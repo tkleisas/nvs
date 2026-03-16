@@ -14,17 +14,17 @@
             <Button Content="📊 Analyze Workspace" Padding="8,4"
                     Command="{Binding AnalyzeProjectCommand}"
                     IsEnabled="{Binding !IsAnalyzing}"
-                    Background="#264F78" Foreground="#D4D4D4" FontSize="11" />
+                    Background="#264F78" Foreground="{DynamicResource EditorForegroundBrush}" FontSize="11" />
             <Button Content="📄 Analyze File" Padding="8,4"
                     Command="{Binding AnalyzeCurrentFileCommand}"
                     IsEnabled="{Binding !IsAnalyzing}"
-                    Background="#3C3C3C" Foreground="#D4D4D4" FontSize="11" />
+                    Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource EditorForegroundBrush}" FontSize="11" />
         </StackPanel>
 
         <!-- Metric tree -->
         <TreeView Grid.Row="1"
                   ItemsSource="{Binding MetricTree}"
-                  Background="#1E1E1E" BorderThickness="0"
+                  Background="{DynamicResource ToolPanelBackgroundBrush}" BorderThickness="0"
                   Margin="0,2,0,0">
             <TreeView.Styles>
                 <Style Selector="TreeViewItem">
@@ -37,7 +37,7 @@
                     <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
                             <TextBlock Text="{Binding Icon}" FontSize="12" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#CCCCCC"
+                            <TextBlock Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource TextForegroundBrush}"
                                        VerticalAlignment="Center" />
                         </StackPanel>
                         <TextBlock Grid.Column="1" Text="{Binding Detail}" FontSize="10"
@@ -58,7 +58,7 @@
         </TreeView>
 
         <!-- Status bar -->
-        <Border Grid.Row="2" Background="#252526" BorderBrush="#3C3C3C"
+        <Border Grid.Row="2" Background="{DynamicResource SidebarBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0" Padding="8,3">
             <TextBlock Text="{Binding StatusMessage}" FontSize="11"
                        Foreground="#808080" />

@@ -46,18 +46,18 @@
                       ItemsSource="{Binding TaskModes}"
                       SelectedItem="{Binding SelectedTaskMode}"
                       Background="#2D2D2D"
-                      Foreground="#CCCCCC"
+                      Foreground="{DynamicResource TextForegroundBrush}"
                       FontSize="11"
                       MinWidth="100"
                       Padding="4,2"
                       ToolTip.Tip="System prompt mode" />
             <Button Grid.Column="1" Content="🗑" Padding="4,2" Margin="4,0,0,0"
                     Command="{Binding ClearChatCommand}"
-                    Background="#3C3C3C" Foreground="#CCCCCC" FontSize="11"
+                    Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" FontSize="11"
                     ToolTip.Tip="Clear chat" />
             <Button Grid.Column="2" Content="⏹" Padding="4,2" Margin="4,0,0,0"
                     Command="{Binding StopCommand}"
-                    Background="#3C3C3C" Foreground="#FF6B68" FontSize="11"
+                    Background="{DynamicResource InputBackgroundBrush}" Foreground="#FF6B68" FontSize="11"
                     ToolTip.Tip="Stop generation" />
         </Grid>
 
@@ -81,7 +81,7 @@
                             <Border Classes="assistant-bubble"
                                     IsVisible="{Binding IsAssistant}">
                                 <SelectableTextBlock Text="{Binding Content}"
-                                                     Foreground="#D4D4D4"
+                                                     Foreground="{DynamicResource EditorForegroundBrush}"
                                                      FontSize="12"
                                                      TextWrapping="Wrap" />
                             </Border>
@@ -114,9 +114,9 @@
             <TextBox Grid.Column="0"
                      Text="{Binding UserInput}"
                      Watermark="Ask anything..."
-                     Background="#1E1E1E"
-                     Foreground="#D4D4D4"
-                     BorderBrush="#3C3C3C"
+                     Background="{DynamicResource ToolPanelBackgroundBrush}"
+                     Foreground="{DynamicResource EditorForegroundBrush}"
+                     BorderBrush="{DynamicResource BorderBrush}"
                      FontSize="12"
                      Padding="8,6"
                      AcceptsReturn="True"
@@ -136,7 +136,7 @@
         </Grid>
 
         <!-- Status bar -->
-        <Border Grid.Row="3" Background="#252526" Padding="6,3">
+        <Border Grid.Row="3" Background="{DynamicResource SidebarBackgroundBrush}" Padding="6,3">
             <TextBlock Text="{Binding StatusText}"
                        Foreground="#808080"
                        FontSize="10" />

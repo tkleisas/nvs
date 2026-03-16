@@ -15,7 +15,7 @@
         <!-- Tabs -->
         <TabControl ItemsSource="{Binding Main.Editor.OpenDocuments}"
                     SelectedIndex="{Binding Main.Editor.ActiveTabIndex}"
-                    Background="#1E1E1E"
+                    Background="{DynamicResource ToolPanelBackgroundBrush}"
                     BorderThickness="0">
             <TabControl.ItemTemplate>
                 <DataTemplate DataType="vm:DocumentViewModel">
@@ -41,8 +41,8 @@
                         ShowLineNumbers="True"
                         FontFamily="Consolas,Courier New,monospace"
                         FontSize="14"
-                        Background="#1E1E1E"
-                        Foreground="#D4D4D4"
+                        Background="{DynamicResource ToolPanelBackgroundBrush}"
+                        Foreground="{DynamicResource EditorForegroundBrush}"
                         BorderThickness="0"
                         Padding="8"
                         WordWrap="False">
@@ -90,7 +90,7 @@
         </TabControl>
 
         <!-- Empty State -->
-        <Border Background="#1E1E1E"
+        <Border Background="{DynamicResource ToolPanelBackgroundBrush}"
                 IsVisible="{Binding Main.Editor.HasNoOpenDocuments}">
             <StackPanel HorizontalAlignment="Center"
                        VerticalAlignment="Center"
@@ -98,11 +98,11 @@
                 <TextBlock Text="NVS"
                           FontSize="48"
                           FontWeight="Bold"
-                          Foreground="#007ACC"
+                          Foreground="{DynamicResource AccentBrush}"
                           HorizontalAlignment="Center"/>
                 <TextBlock Text="No Vim Substitute (We're Honest)"
                           FontSize="18"
-                          Foreground="#CCCCCC"
+                          Foreground="{DynamicResource TextForegroundBrush}"
                           HorizontalAlignment="Center"/>
                 <TextBlock Text="Press Ctrl+O to open a file or Ctrl+Shift+O to open a folder"
                           FontSize="14"

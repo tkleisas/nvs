@@ -8,7 +8,7 @@
         Width="450" Height="350"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
-        Background="#1E1E1E"
+        Background="{DynamicResource AppBackgroundBrush}"
         SystemDecorations="BorderOnly">
 
     <Border BorderBrush="#3F3F46" BorderThickness="1" Padding="32">
@@ -16,7 +16,7 @@
             <!-- Title -->
             <TextBlock Text="NVS — No Vim Substitute"
                        FontSize="22" FontWeight="Bold"
-                       Foreground="#CCCCCC"
+                       Foreground="{DynamicResource TextForegroundBrush}"
                        HorizontalAlignment="Center" />
 
             <Separator Background="#3F3F46" Height="1" />
@@ -24,19 +24,19 @@
             <!-- Version info -->
             <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="8,0">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Version:" Foreground="#888888" Margin="0,2" />
-                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="VersionText" Foreground="#CCCCCC" Margin="12,2" />
+                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="VersionText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Commit:" Foreground="#888888" Margin="0,2" />
                 <TextBlock Grid.Row="1" Grid.Column="1" x:Name="CommitText" Foreground="#569CD6" FontFamily="Cascadia Mono,Consolas,Menlo,monospace" Margin="12,2" />
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Runtime:" Foreground="#888888" Margin="0,2" />
-                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="RuntimeText" Foreground="#CCCCCC" Margin="12,2" />
+                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="RuntimeText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" />
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="OS:" Foreground="#888888" Margin="0,2" />
-                <TextBlock Grid.Row="3" Grid.Column="1" x:Name="OsText" Foreground="#CCCCCC" Margin="12,2" TextWrapping="Wrap" />
+                <TextBlock Grid.Row="3" Grid.Column="1" x:Name="OsText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" TextWrapping="Wrap" />
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Architecture:" Foreground="#888888" Margin="0,2" />
-                <TextBlock Grid.Row="4" Grid.Column="1" x:Name="ArchText" Foreground="#CCCCCC" Margin="12,2" />
+                <TextBlock Grid.Row="4" Grid.Column="1" x:Name="ArchText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" />
             </Grid>
 
             <Separator Background="#3F3F46" Height="1" />

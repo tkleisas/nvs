@@ -7,24 +7,24 @@
              x:Class="NVS.Views.Dock.CallStackView"
              x:DataType="vm:CallStackToolViewModel">
 
-    <Grid RowDefinitions="Auto,*" Background="#1E1E1E">
+    <Grid RowDefinitions="Auto,*" Background="{DynamicResource ToolPanelBackgroundBrush}">
         <!-- Header -->
-        <Border Grid.Row="0" Background="#252526" Padding="8,4">
-            <TextBlock Text="Call Stack" FontSize="12" Foreground="#CCCCCC" FontWeight="SemiBold"/>
+        <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}" Padding="8,4">
+            <TextBlock Text="Call Stack" FontSize="12" Foreground="{DynamicResource TextForegroundBrush}" FontWeight="SemiBold"/>
         </Border>
 
         <!-- Frame List -->
         <ListBox Grid.Row="1"
                  ItemsSource="{Binding Frames}"
                  SelectedItem="{Binding SelectedFrame}"
-                 Background="#1E1E1E"
+                 Background="{DynamicResource ToolPanelBackgroundBrush}"
                  BorderThickness="0">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Grid ColumnDefinitions="*,Auto" Margin="4,2">
                         <TextBlock Grid.Column="0"
                                    Text="{Binding Name}"
-                                   Foreground="#D4D4D4"
+                                   Foreground="{DynamicResource EditorForegroundBrush}"
                                    FontFamily="Consolas,Courier New,monospace"
                                    FontSize="12"
                                    TextTrimming="CharacterEllipsis"/>

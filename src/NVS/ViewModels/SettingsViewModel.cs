@@ -12,6 +12,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
 {
     private readonly ISettingsService _settingsService;
     private readonly ILanguageServerManager _serverManager;
+    private readonly IThemeService? _themeService;
     private AppSettings _settings;
 
     private int _selectedSectionIndex;
@@ -19,6 +20,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     // General
     private bool _restorePreviousSession;
     private bool _checkUpdatesOnStartup;
+    private string _selectedTheme = "NVS Dark";
 
     // Editor
     private int _fontSize;
@@ -54,10 +56,11 @@ public partial class SettingsViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public SettingsViewModel(ISettingsService settingsService, ILanguageServerManager serverManager)
+    public SettingsViewModel(ISettingsService settingsService, ILanguageServerManager serverManager, IThemeService? themeService = null)
     {
         _settingsService = settingsService;
         _serverManager = serverManager;
+        _themeService = themeService;
         _settings = settingsService.AppSettings;
 
         Sections =
@@ -108,6 +111,23 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         get => _checkUpdatesOnStartup;
         set => SetProperty(ref _checkUpdatesOnStartup, value);
     }
+
+    public string SelectedTheme
+    {
+        get => _selectedTheme;
+        set
+        {
+            if (SetProperty(ref _selectedTheme, value))
+            {
+                // Live preview: apply theme immediately
+                _ = _themeService?.ApplyThemeAsync(value);
+            }
+        }
+    }
+
+    public IReadOnlyList<string> AvailableThemes =>
+        _themeService?.AvailableThemes.Select(t => t.Name).ToList()
+        ?? ["NVS Dark"];
 
     // Editor properties
     public int FontSize
@@ -279,6 +299,8 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         // General
         RestorePreviousSession = settings.RestorePreviousSession;
         CheckUpdatesOnStartup = settings.CheckUpdatesOnStartup;
+        _selectedTheme = _themeService?.CurrentTheme.Name ?? settings.Theme;
+        OnPropertyChanged(nameof(SelectedTheme));
 
         // Editor
         FontSize = settings.Editor.FontSize;
@@ -372,6 +394,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     {
         var newSettings = _settings with
         {
+            Theme = SelectedTheme,
             RestorePreviousSession = RestorePreviousSession,
             CheckUpdatesOnStartup = CheckUpdatesOnStartup,
             Editor = new EditorSettings

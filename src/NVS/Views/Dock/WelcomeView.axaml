@@ -18,7 +18,7 @@
 
             <!-- Get Started section -->
             <StackPanel Spacing="8">
-                <TextBlock Text="Get Started" FontSize="18" FontWeight="SemiBold" Foreground="#D4D4D4" />
+                <TextBlock Text="Get Started" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource EditorForegroundBrush}" />
                 <StackPanel Spacing="4">
                     <Button Content="📂  Open Folder..."
                             Command="{Binding Main.OpenFolderCommand}"
@@ -45,7 +45,7 @@
 
             <!-- Keyboard Shortcuts Quick Reference -->
             <StackPanel Spacing="8">
-                <TextBlock Text="Essential Shortcuts" FontSize="18" FontWeight="SemiBold" Foreground="#D4D4D4" />
+                <TextBlock Text="Essential Shortcuts" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource EditorForegroundBrush}" />
                 <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
                       Margin="0,4">
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+N" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
@@ -69,7 +69,7 @@
 
             <!-- Features -->
             <StackPanel Spacing="8">
-                <TextBlock Text="Features" FontSize="18" FontWeight="SemiBold" Foreground="#D4D4D4" />
+                <TextBlock Text="Features" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource EditorForegroundBrush}" />
                 <WrapPanel Orientation="Horizontal" Margin="0,4">
                     <WrapPanel.Styles>
                         <Style Selector="Border.feature">
@@ -82,37 +82,37 @@
                     </WrapPanel.Styles>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
-                            <TextBlock Text="📝 Multi-language Editor" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text="📝 Multi-language Editor" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                             <TextBlock Text="Syntax highlighting, LSP, autocomplete" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
-                            <TextBlock Text="🔨 Build &amp; Run" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text="🔨 Build &amp; Run" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                             <TextBlock Text=".NET solutions, MSBuild integration" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
-                            <TextBlock Text="🐛 Debugging" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text="🐛 Debugging" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                             <TextBlock Text="DAP protocol, breakpoints, variables" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
-                            <TextBlock Text="🔀 Git Integration" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text="🔀 Git Integration" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                             <TextBlock Text="Stage, commit, diff, branch tracking" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
-                            <TextBlock Text="💬 AI Assistant" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text="💬 AI Assistant" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                             <TextBlock Text="LLM chat with file tools" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
-                            <TextBlock Text="📦 NuGet Manager" FontSize="12" FontWeight="SemiBold" Foreground="#CCCCCC" />
+                            <TextBlock Text="📦 NuGet Manager" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                             <TextBlock Text="Search, install, update packages" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
@@ -124,7 +124,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="💡 Tip" FontSize="12" FontWeight="SemiBold" Foreground="#569CD6" />
                     <TextBlock Text="Press F1 to open the searchable Help panel with detailed guides for every feature."
-                               FontSize="11" Foreground="#CCCCCC" TextWrapping="Wrap" />
+                               FontSize="11" Foreground="{DynamicResource TextForegroundBrush}" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
 

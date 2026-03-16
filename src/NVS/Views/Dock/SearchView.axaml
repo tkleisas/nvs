@@ -13,8 +13,8 @@
             <TextBox Grid.Column="0"
                      Text="{Binding Main.SearchQuery}"
                      Watermark="Search in files..."
-                     Background="#3C3C3C"
-                     Foreground="#CCCCCC"
+                     Background="{DynamicResource InputBackgroundBrush}"
+                     Foreground="{DynamicResource TextForegroundBrush}"
                      BorderBrush="#555"
                      FontSize="12"
                      Padding="6,4"
@@ -25,7 +25,7 @@
             </TextBox>
             <Button Grid.Column="1" Content="🔍" Padding="6,4" Margin="4,0,0,0"
                     Command="{Binding Main.SearchFilesCommand}"
-                    Background="#3C3C3C" Foreground="#CCCCCC" />
+                    Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
         </Grid>
         <Border Grid.Row="1" IsVisible="{Binding Main.IsSearching}"
                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8">

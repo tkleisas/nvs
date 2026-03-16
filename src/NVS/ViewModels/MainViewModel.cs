@@ -10,6 +10,7 @@ using Dock.Model.Controls;
 using Dock.Model.Core;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
+using NVS.Core.Enums;
 using NVS.ViewModels.Dock;
 
 namespace NVS.ViewModels;
@@ -27,6 +28,8 @@ public partial class MainViewModel : INotifyPropertyChanged
     private readonly IBreakpointStore? _breakpointStore;
     private readonly ICodeMetricsService? _codeMetricsService;
     private readonly IRoslynCompletionService? _roslynCompletionService;
+    private readonly IPrerequisiteService? _prerequisiteService;
+    private readonly ILanguageService? _languageService;
 
     private string _title = "NVS - No Vim Substitute";
     private bool _isWorkspaceOpen;
@@ -87,7 +90,9 @@ public partial class MainViewModel : INotifyPropertyChanged
         IDebugService? debugService = null,
         IBreakpointStore? breakpointStore = null,
         ICodeMetricsService? codeMetricsService = null,
-        IRoslynCompletionService? roslynCompletionService = null)
+        IRoslynCompletionService? roslynCompletionService = null,
+        IPrerequisiteService? prerequisiteService = null,
+        ILanguageService? languageService = null)
     {
         _workspaceService = workspaceService;
         _editorService = editorService;
@@ -100,6 +105,8 @@ public partial class MainViewModel : INotifyPropertyChanged
         _breakpointStore = breakpointStore;
         _codeMetricsService = codeMetricsService;
         _roslynCompletionService = roslynCompletionService;
+        _prerequisiteService = prerequisiteService;
+        _languageService = languageService;
         SettingsService = settingsService;
         Editor = editor;
 
@@ -196,6 +203,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<FileTreeNode> FileTree { get; } = [];
+    public ObservableCollection<InfoBarViewModel> InfoBarItems { get; } = [];
 
     // Sidebar mode: "Explorer", "Git", "Search"
     public string SidebarMode
@@ -459,6 +467,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         await LoadFileTree(folderPath);
         await InitializeGitAsync(folderPath);
         await DetectAndLoadSolutionAsync(folderPath);
+        _ = CheckPrerequisitesAsync(folderPath);
     }
 
     private async Task DetectAndLoadSolutionAsync(string folderPath)
@@ -480,6 +489,70 @@ public partial class MainViewModel : INotifyPropertyChanged
         {
             StatusMessage = $"Failed to load solution: {ex.Message}";
         }
+    }
+
+    internal async Task CheckPrerequisitesAsync(string folderPath)
+    {
+        if (_prerequisiteService is null || _languageService is null)
+            return;
+
+        try
+        {
+            var detectedLanguages = DetectWorkspaceLanguages(folderPath);
+            if (detectedLanguages.Count == 0)
+                return;
+
+            var missing = await _prerequisiteService.CheckPrerequisitesAsync(detectedLanguages);
+
+            foreach (var prereq in missing)
+            {
+                var message = $"{prereq.DisplayName} is not installed. {prereq.InstallHint}";
+                var infoBar = new InfoBarViewModel(message, InfoBarSeverity.Warning);
+                infoBar.Dismissed += (_, _) => InfoBarItems.Remove(infoBar);
+                InfoBarItems.Add(infoBar);
+            }
+        }
+        catch (Exception)
+        {
+            // Don't let prerequisite checking crash the workspace open
+        }
+    }
+
+    internal HashSet<NVS.Core.Enums.Language> DetectWorkspaceLanguages(string folderPath)
+    {
+        var languages = new HashSet<NVS.Core.Enums.Language>();
+        if (_languageService is null)
+            return languages;
+
+        try
+        {
+            var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var file in Directory.EnumerateFiles(folderPath, "*.*", new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = true,
+                MaxRecursionDepth = 4,
+            }))
+            {
+                var ext = Path.GetExtension(file);
+                if (!string.IsNullOrEmpty(ext))
+                    extensions.Add(ext);
+            }
+
+            foreach (var ext in extensions)
+            {
+                var dummyFile = $"file{ext}";
+                var lang = _languageService.DetectLanguage(dummyFile);
+                if (lang != NVS.Core.Enums.Language.Unknown)
+                    languages.Add(lang);
+            }
+        }
+        catch (Exception)
+        {
+            // Silently ignore filesystem errors
+        }
+
+        return languages;
     }
 
     private void LoadSolutionTree(Core.Models.SolutionModel solution)

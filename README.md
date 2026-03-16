@@ -8,8 +8,8 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
-![Version](https://img.shields.io/badge/version-0.4.4-green)
-![Tests](https://img.shields.io/badge/tests-904%20passing-brightgreen)
+![Version](https://img.shields.io/badge/version-0.5.0-green)
+![Tests](https://img.shields.io/badge/tests-971%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -34,7 +34,7 @@ NVS is a code editor / IDE that:
 - Supports multi-project solutions with startup project selection.
 - Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
-- Has 904 tests, which is 904 more than the AI thought were necessary before the human insisted.
+- Has 971 tests, which is 971 more than the AI thought were necessary before the human insisted.
 
 ## Features
 
@@ -153,11 +153,19 @@ NVS is a code editor / IDE that:
 - The help content was written by the AI, so it sounds very confident about features that were definitely not tested on macOS
 
 ### ⚙️ Settings
-- 4-section settings UI (General, Editor, Language Servers, LLM)
+- 5-section settings UI (General, Editor, Terminal, Language Servers, LLM)
+- **4 built-in themes**: NVS Dark (default), NVS Light, Monokai, Solarized Dark
+- Live theme switching with no restart required
 - LLM configuration: endpoint, API key, model, temperature, streaming, prompt templates
 - Language server discovery, status, and one-click install
 - Window state persistence (size, position, maximized)
 - Settings persisted to `%APPDATA%/NVS/settings.json`
+
+### ⚠️ Prerequisite Warnings
+- Automatic detection of missing SDKs/runtimes when opening a workspace
+- Scans workspace files to detect languages in use
+- Checks PATH for required binaries (dotnet, java, node, python, php, go, rustc, gcc)
+- Shows dismissible info bars with install hints
 
 ### 📁 Explorer
 - File tree with type-specific icons (🟢 C# · 🔵 C++ · 🟡 JS · 🔷 TS · 🐍 Python · 🦀 Rust · and more)
@@ -206,7 +214,7 @@ dotnet run --project src/NVS
 # Open a solution directly
 dotnet run --project src/NVS -- path/to/solution.sln
 
-# Run tests (904 of them)
+# Run tests (971 of them)
 dotnet test NVS.slnx
 ```
 
@@ -234,8 +242,8 @@ See [Releases](https://github.com/tkleisas/nvs/releases) for downloads.
 To create a release, tag a commit and push:
 
 ```bash
-git tag v0.4.4
-git push origin v0.4.4
+git tag v0.5.0
+git push origin v0.5.0
 ```
 
 ## Tech Stack
@@ -255,12 +263,12 @@ git push origin v0.4.4
 | PHP Debug | [vscode-php-debug](https://github.com/xdebug/vscode-php-debug) (MIT, Node.js) |
 | Logging | [Serilog](https://serilog.net/) 4.2 |
 | Runtime | .NET 10 (preview) |
-| Theme | Fluent Dark (the only theme, because we have taste) |
+| Theme | Fluent Dark/Light + 4 built-in themes (NVS Dark, NVS Light, Monokai, Solarized Dark) |
 | Testing | xUnit + FluentAssertions + NSubstitute |
 
 ## Testing
 
-904 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
+971 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
 
 - **NVS.Core.Tests** — Core model tests
 - **NVS.Plugins.Tests** — Plugin system tests

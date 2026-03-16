@@ -17,7 +17,7 @@
             <ComboBox Grid.Column="1"
                       ItemsSource="{Binding ProjectPaths}"
                       SelectedItem="{Binding SelectedProjectPath}"
-                      Background="#2D2D2D" Foreground="#CCCCCC"
+                      Background="#2D2D2D" Foreground="{DynamicResource TextForegroundBrush}"
                       FontSize="10" Padding="4,2" />
         </Grid>
 
@@ -42,7 +42,7 @@
                     Content="Updates" Command="{Binding SwitchTabCommand}" CommandParameter="Updates" />
             <Button Content="🔄" Command="{Binding RestoreCommand}"
                     FontSize="11" Padding="6,3" Margin="8,0,0,0"
-                    Background="#3C3C3C" Foreground="#CCCCCC"
+                    Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
                     ToolTip.Tip="Restore packages" />
         </StackPanel>
 
@@ -51,15 +51,15 @@
               IsVisible="{Binding IsBrowseTab}">
             <TextBox Grid.Column="0" Text="{Binding SearchQuery}"
                      Watermark="Search NuGet packages..."
-                     Background="#1E1E1E" Foreground="#D4D4D4"
-                     BorderBrush="#3C3C3C" FontSize="12" Padding="6,4">
+                     Background="{DynamicResource ToolPanelBackgroundBrush}" Foreground="{DynamicResource EditorForegroundBrush}"
+                     BorderBrush="{DynamicResource BorderBrush}" FontSize="12" Padding="6,4">
                 <TextBox.KeyBindings>
                     <KeyBinding Gesture="Enter" Command="{Binding SearchCommand}" />
                 </TextBox.KeyBindings>
             </TextBox>
             <Button Grid.Column="1" Content="🔍" Padding="6,4" Margin="4,0,0,0"
                     Command="{Binding SearchCommand}"
-                    Background="#3C3C3C" Foreground="#CCCCCC" />
+                    Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
             <CheckBox Grid.Column="2" IsChecked="{Binding IncludePrerelease}"
                       Content="Pre" Foreground="#808080" FontSize="10"
                       Margin="6,0,0,0" VerticalAlignment="Center" />
@@ -122,7 +122,7 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="nuget:InstalledPackage">
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" FontSize="12" Foreground="#CCCCCC">
+                                <TextBlock Grid.Column="0" FontSize="12" Foreground="{DynamicResource TextForegroundBrush}">
                                     <Run Text="{Binding Id}" />
                                     <Run Text=" " />
                                     <Run Text="{Binding RequestedVersion}" Foreground="#808080" />
@@ -133,7 +133,7 @@
                 </ListBox>
                 <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="6,4">
                     <Button Content="Refresh" Command="{Binding LoadInstalledCommand}"
-                            FontSize="10" Padding="8,3" Background="#3C3C3C" Foreground="#CCCCCC" />
+                            FontSize="10" Padding="8,3" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                     <Button Content="Uninstall" Command="{Binding UninstallPackageCommand}"
                             FontSize="10" Padding="8,3" Background="#5A1D1D" Foreground="#FF6B68" />
                 </StackPanel>
@@ -153,7 +153,7 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="nuget:InstalledPackage">
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" FontSize="12" Foreground="#CCCCCC">
+                                <TextBlock Grid.Column="0" FontSize="12" Foreground="{DynamicResource TextForegroundBrush}">
                                     <Run Text="{Binding Id}" />
                                     <Run Text=" " />
                                     <Run Text="{Binding ResolvedVersion}" Foreground="#808080" />
@@ -166,15 +166,15 @@
                 </ListBox>
                 <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="6,4">
                     <Button Content="Check Updates" Command="{Binding LoadOutdatedCommand}"
-                            FontSize="10" Padding="8,3" Background="#3C3C3C" Foreground="#CCCCCC" />
+                            FontSize="10" Padding="8,3" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                     <Button Content="Update Selected" Command="{Binding UpdatePackageCommand}"
-                            FontSize="10" Padding="8,3" Background="#264F78" Foreground="#CCCCCC" />
+                            FontSize="10" Padding="8,3" Background="#264F78" Foreground="{DynamicResource TextForegroundBrush}" />
                 </StackPanel>
             </Grid>
         </Panel>
 
         <!-- Status bar + install button -->
-        <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Background="#252526" Margin="0">
+        <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Background="{DynamicResource SidebarBackgroundBrush}" Margin="0">
             <TextBlock Grid.Column="0" Text="{Binding StatusText}"
                        Foreground="#808080" FontSize="10" Padding="6,3" VerticalAlignment="Center" />
             <Button Grid.Column="1" Content="Install" Command="{Binding InstallPackageCommand}"

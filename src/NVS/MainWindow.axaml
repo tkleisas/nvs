@@ -9,7 +9,7 @@
         x:DataType="vm:MainViewModel"
         Title="{Binding Title}"
         MinWidth="800" MinHeight="600"
-        Background="#1E1E1E">
+        Background="{DynamicResource AppBackgroundBrush}">
 
     <Window.KeyBindings>
         <KeyBinding Gesture="Ctrl+N" Command="{Binding NewFileCommand}" />
@@ -32,9 +32,9 @@
         <KeyBinding Gesture="F1" Command="{Binding ShowHelpCommand}" />
     </Window.KeyBindings>
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
         <!-- Menu Bar -->
-        <Menu Grid.Row="0" Background="#2D2D30">
+        <Menu Grid.Row="0" Background="{DynamicResource MenuBackgroundBrush}">
             <MenuItem Header="_File">
                 <MenuItem Header="_New File" InputGesture="Ctrl+N" Command="{Binding NewFileCommand}" />
                 <MenuItem Header="New _Project..." InputGesture="Ctrl+Shift+N" Click="OnNewProjectClick" />
@@ -121,26 +121,26 @@
         </Menu>
 
         <!-- Toolbar -->
-        <Border Grid.Row="1" Background="#2D2D30" Padding="4">
+        <Border Grid.Row="1" Background="{DynamicResource MenuBackgroundBrush}" Padding="4">
             <StackPanel Orientation="Horizontal" Spacing="2">
                 <Button Width="28" Height="28" ToolTip.Tip="New File" Command="{Binding NewFileCommand}">
-                    <PathIcon Width="14" Height="14" Foreground="#CCCCCC"
+                    <PathIcon Width="14" Height="14" Foreground="{DynamicResource TextForegroundBrush}"
                               Data="M 6,1 L 8,1 L 8,6 L 13,6 L 13,8 L 8,8 L 8,13 L 6,13 L 6,8 L 1,8 L 1,6 L 6,6 Z" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Open File" Command="{Binding OpenFileCommand}">
-                    <PathIcon Width="14" Height="14" Foreground="#CCCCCC"
+                    <PathIcon Width="14" Height="14" Foreground="{DynamicResource TextForegroundBrush}"
                               Data="M 1,4 L 5,4 L 6.5,2 L 13,2 L 13,11 L 1,11 Z" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Save" Command="{Binding SaveFileCommand}">
-                    <PathIcon Width="14" Height="14" Foreground="#CCCCCC"
+                    <PathIcon Width="14" Height="14" Foreground="{DynamicResource TextForegroundBrush}"
                               Data="M 1,1 L 10,1 L 13,4 L 13,13 L 1,13 Z M 4,1 L 4,5 L 9,5 L 9,1 M 3,8 L 11,8 L 11,12 L 3,12 Z" />
                 </Button>
                 <Border Width="1" Background="#555" Margin="4,2" />
                 <Button Width="28" Height="28" ToolTip.Tip="Undo" Command="{Binding Editor.UndoCommand}">
-                    <TextBlock Text="&#x21B6;" FontSize="14" Foreground="#CCCCCC" />
+                    <TextBlock Text="&#x21B6;" FontSize="14" Foreground="{DynamicResource TextForegroundBrush}" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Redo" Command="{Binding Editor.RedoCommand}">
-                    <TextBlock Text="&#x21B7;" FontSize="14" Foreground="#CCCCCC" />
+                    <TextBlock Text="&#x21B7;" FontSize="14" Foreground="{DynamicResource TextForegroundBrush}" />
                 </Button>
                 <Border Width="1" Background="#555" Margin="4,2" />
                 <Button Width="28" Height="28" ToolTip.Tip="Build (Ctrl+Shift+B)"
@@ -152,7 +152,7 @@
                           SelectedItem="{Binding SelectedStartupProject}"
                           MinWidth="140" MaxWidth="250" Height="26"
                           VerticalAlignment="Center" Margin="4,0"
-                          FontSize="11" Background="#3C3C3C" Foreground="#CCCCCC"
+                          FontSize="11" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
                           BorderBrush="#555" Padding="6,2"
                           IsVisible="{Binding IsWorkspaceOpen}"
                           ToolTip.Tip="Startup Project" />
@@ -195,11 +195,29 @@
             </StackPanel>
         </Border>
 
+        <!-- Info Bars -->
+        <ItemsControl Grid.Row="2" ItemsSource="{Binding InfoBarItems}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:InfoBarViewModel">
+                    <Border IsVisible="{Binding IsVisible}" Padding="8,6" Margin="0,0,0,1"
+                            Background="{Binding BackgroundColor}">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Grid.Column="0" Text="{Binding IconGlyph}" Foreground="White" Margin="0,0,8,0" FontSize="14" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Message}" Foreground="White" VerticalAlignment="Center" TextWrapping="Wrap" />
+                            <Button Grid.Column="2" Content="✕" Command="{Binding DismissCommand}"
+                                    Background="Transparent" Foreground="White" BorderThickness="0"
+                                    Padding="4,2" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="12" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
         <!-- Dockable Content Area -->
-        <dc:DockControl Grid.Row="2" Layout="{Binding DockLayout}" />
+        <dc:DockControl Grid.Row="3" Layout="{Binding DockLayout}" />
 
         <!-- Status Bar -->
-        <Border Grid.Row="3" Background="#007ACC" Padding="8,4">
+        <Border Grid.Row="4" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
                     <TextBlock Text="{Binding CurrentBranch}" FontWeight="Bold" Foreground="White" />

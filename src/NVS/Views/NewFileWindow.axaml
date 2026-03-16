@@ -13,17 +13,17 @@
         MinWidth="550" MinHeight="500"
         CanResize="True"
         WindowStartupLocation="CenterOwner"
-        Background="#1E1E1E"
+        Background="{DynamicResource AppBackgroundBrush}"
         SystemDecorations="BorderOnly">
 
     <Border BorderBrush="#3F3F46" BorderThickness="1">
         <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
 
             <!-- Header -->
-            <Border Grid.Row="0" Background="#252526" Padding="20,14">
+            <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}" Padding="20,14">
                 <TextBlock Text="Add New File"
                            FontSize="18" FontWeight="SemiBold"
-                           Foreground="#CCCCCC" />
+                           Foreground="{DynamicResource TextForegroundBrush}" />
             </Border>
 
             <!-- Template picker -->
@@ -32,14 +32,14 @@
                 <ListBox Grid.Row="1"
                          ItemsSource="{Binding Templates}"
                          SelectedItem="{Binding SelectedTemplate}"
-                         Background="#2D2D30"
+                         Background="{DynamicResource MenuBackgroundBrush}"
                          BorderBrush="#3F3F46"
                          BorderThickness="1">
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="m:FileTemplate">
                             <StackPanel Orientation="Horizontal" Margin="4,2" Spacing="8">
                                 <TextBlock Text="{Binding Icon}" FontSize="14" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding DisplayName}" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding Extension}" Foreground="#569CD6" FontSize="11" VerticalAlignment="Center" />
                             </StackPanel>
                         </DataTemplate>
@@ -55,7 +55,7 @@
                         <TextBlock Text="{Binding Preview}"
                                    FontFamily="Cascadia Mono,Consolas,Menlo,monospace"
                                    FontSize="12"
-                                   Foreground="#D4D4D4"
+                                   Foreground="{DynamicResource EditorForegroundBrush}"
                                    TextWrapping="NoWrap" />
                     </ScrollViewer>
                 </Border>
@@ -65,18 +65,18 @@
             <Grid Grid.Row="3" Margin="20,12" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="100,*">
                 <!-- File Name -->
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="File name:"
-                           Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,0,0,8" />
+                           Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,0,0,8" />
                 <TextBox Grid.Row="0" Grid.Column="1"
                          Text="{Binding FileName, Mode=TwoWay}"
-                         Background="#3C3C3C" Foreground="#CCCCCC"
+                         Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
                          BorderBrush="#3F3F46" Margin="0,0,0,8" />
 
                 <!-- Namespace -->
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Namespace:"
-                           Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,0,0,8" />
+                           Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,0,0,8" />
                 <TextBox Grid.Row="1" Grid.Column="1"
                          Text="{Binding NamespaceName, Mode=TwoWay}"
-                         Background="#3C3C3C" Foreground="#CCCCCC"
+                         Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
                          BorderBrush="#3F3F46" Margin="0,0,0,8" />
 
                 <!-- Error Message -->
@@ -88,7 +88,7 @@
             </Grid>
 
             <!-- Buttons -->
-            <Border Grid.Row="4" Background="#252526" Padding="20,10"
+            <Border Grid.Row="4" Background="{DynamicResource SidebarBackgroundBrush}" Padding="20,10"
                     BorderBrush="#3F3F46" BorderThickness="0,1,0,0">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                     <Button Content="Create" Command="{Binding CreateFileCommand}"

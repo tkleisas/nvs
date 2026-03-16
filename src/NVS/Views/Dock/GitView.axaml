@@ -18,7 +18,7 @@
                 <Button Content="Initialize Repository"
                         Command="{Binding Main.GitInitRepositoryCommand}"
                         HorizontalAlignment="Center"
-                        Background="#007ACC" Foreground="White" Padding="12,6" />
+                        Background="{DynamicResource AccentBrush}" Foreground="White" Padding="12,6" />
             </StackPanel>
 
             <!-- Repository Content -->
@@ -26,12 +26,12 @@
 
                 <!-- Branch Picker -->
                 <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="0,2">
-                    <TextBlock Grid.Column="0" Text="⎇" FontSize="14" Foreground="#CCCCCC"
+                    <TextBlock Grid.Column="0" Text="⎇" FontSize="14" Foreground="{DynamicResource TextForegroundBrush}"
                                VerticalAlignment="Center" Margin="0,0,6,0" />
                     <ComboBox Grid.Column="1"
                               ItemsSource="{Binding Main.GitBranches}"
                               SelectedItem="{Binding Main.SelectedGitBranch}"
-                              FontSize="12" Background="#3C3C3C" Foreground="#CCCCCC"
+                              FontSize="12" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
                               HorizontalAlignment="Stretch">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="core:Branch">
@@ -41,20 +41,20 @@
                     </ComboBox>
                     <Button Grid.Column="2" Content="+" FontSize="12" Padding="6,3" Margin="2,0,0,0"
                             Click="OnCreateBranchClick"
-                            ToolTip.Tip="Create new branch" Background="#3C3C3C" Foreground="#4EC9B0" FontWeight="Bold" />
+                            ToolTip.Tip="Create new branch" Background="{DynamicResource InputBackgroundBrush}" Foreground="#4EC9B0" FontWeight="Bold" />
                     <Button Grid.Column="3" Content="🗑" FontSize="11" Padding="6,3" Margin="2,0,0,0"
                             Click="OnDeleteBranchClick"
-                            ToolTip.Tip="Delete selected branch" Background="#3C3C3C" Foreground="#CCCCCC" />
+                            ToolTip.Tip="Delete selected branch" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                     <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="2" Margin="4,0,0,0">
                         <Button Content="↓" FontSize="11" Padding="6,3"
                                 Command="{Binding Main.GitPullCommand}"
-                                ToolTip.Tip="Pull" Background="#3C3C3C" Foreground="#CCCCCC" />
+                                ToolTip.Tip="Pull" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                         <Button Content="↑" FontSize="11" Padding="6,3"
                                 Command="{Binding Main.GitPushCommand}"
-                                ToolTip.Tip="Push" Background="#3C3C3C" Foreground="#CCCCCC" />
+                                ToolTip.Tip="Push" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                         <Button Content="⟳" FontSize="11" Padding="6,3"
                                 Command="{Binding Main.GitRefreshCommand}"
-                                ToolTip.Tip="Refresh" Background="#3C3C3C" Foreground="#CCCCCC" />
+                                ToolTip.Tip="Refresh" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                     </StackPanel>
                 </Grid>
 
@@ -65,28 +65,28 @@
                          Height="60"
                          TextWrapping="Wrap"
                          FontSize="12"
-                         Background="#3C3C3C"
-                         Foreground="#CCCCCC"
+                         Background="{DynamicResource InputBackgroundBrush}"
+                         Foreground="{DynamicResource TextForegroundBrush}"
                          BorderBrush="#555" />
                 <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,2">
                     <Button Grid.Column="0" Content="✓ Commit"
                             Command="{Binding Main.GitCommitCommand}"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Center"
-                            Background="#007ACC" Foreground="White" Padding="8,4" />
+                            Background="{DynamicResource AccentBrush}" Foreground="White" Padding="8,4" />
                     <Button Grid.Column="1" Content="📦" Margin="4,0,0,0"
                             Command="{Binding Main.GitStashSaveCommand}"
                             ToolTip.Tip="Stash Changes"
-                            Background="#3C3C3C" Foreground="#CCCCCC" Padding="8,4" />
+                            Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" Padding="8,4" />
                     <Button Grid.Column="2" Content="📦↩" Margin="4,0,0,0"
                             Command="{Binding Main.GitStashPopCommand}"
                             ToolTip.Tip="Pop Stash"
-                            Background="#3C3C3C" Foreground="#CCCCCC" Padding="8,4" />
+                            Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" Padding="8,4" />
                 </Grid>
 
                 <!-- Staged Changes -->
                 <TextBlock Text="STAGED CHANGES"
-                           FontWeight="Bold" FontSize="11" Foreground="#CCCCCC"
+                           FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextForegroundBrush}"
                            Margin="0,8,0,2" />
                 <ItemsControl ItemsSource="{Binding Main.GitStagedFiles}">
                     <ItemsControl.ItemTemplate>
@@ -110,11 +110,11 @@
                 <!-- Changes -->
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,2" Spacing="4">
                     <TextBlock Text="CHANGES"
-                               FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
+                               FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextForegroundBrush}" />
                     <Button Content="+" FontSize="10" Padding="4,0"
                             Command="{Binding Main.GitStageAllCommand}"
                             ToolTip.Tip="Stage All"
-                            Background="Transparent" Foreground="#CCCCCC" />
+                            Background="Transparent" Foreground="{DynamicResource TextForegroundBrush}" />
                 </StackPanel>
                 <ItemsControl ItemsSource="{Binding Main.GitChangedFiles}">
                     <ItemsControl.ItemTemplate>
@@ -137,7 +137,7 @@
 
                 <!-- Stashes -->
                 <StackPanel IsVisible="{Binding Main.HasGitStashes}" Spacing="2" Margin="0,8,0,0">
-                    <TextBlock Text="STASHES" FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
+                    <TextBlock Text="STASHES" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextForegroundBrush}" />
                     <ItemsControl ItemsSource="{Binding Main.GitStashes}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="core:StashEntry">
@@ -163,7 +163,7 @@
 
                 <!-- Tags -->
                 <StackPanel IsVisible="{Binding Main.HasGitTags}" Spacing="2" Margin="0,8,0,0">
-                    <TextBlock Text="TAGS" FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
+                    <TextBlock Text="TAGS" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextForegroundBrush}" />
                     <ItemsControl ItemsSource="{Binding Main.GitTags}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="core:Tag">
@@ -185,7 +185,7 @@
 
                 <!-- Recent Commits -->
                 <StackPanel Spacing="2" Margin="0,8,0,0">
-                    <TextBlock Text="COMMIT LOG" FontWeight="Bold" FontSize="11" Foreground="#CCCCCC" />
+                    <TextBlock Text="COMMIT LOG" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextForegroundBrush}" />
                     <ItemsControl ItemsSource="{Binding Main.GitCommitLog}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="core:Commit">
@@ -195,7 +195,7 @@
                                                    FontSize="10" Foreground="#569CD6" FontFamily="Consolas,monospace"
                                                    Margin="0,0,6,0" />
                                         <TextBlock Grid.Column="1" Text="{Binding Message}"
-                                                   FontSize="11" Foreground="#CCCCCC"
+                                                   FontSize="11" Foreground="{DynamicResource TextForegroundBrush}"
                                                    TextTrimming="CharacterEllipsis" />
                                     </Grid>
                                     <TextBlock FontSize="9" Foreground="#666">

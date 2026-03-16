@@ -1,14 +1,14 @@
+using NVS.Core.Models.Settings;
+
 namespace NVS.Core.Interfaces;
 
 public interface IThemeService
 {
-    string CurrentTheme { get; }
-    IReadOnlyList<string> AvailableThemes { get; }
-    
-    Task LoadThemesAsync(string themesDirectory, CancellationToken cancellationToken = default);
-    Task SetThemeAsync(string themeName, CancellationToken cancellationToken = default);
-    Task ImportThemeAsync(string themePath, CancellationToken cancellationToken = default);
-    
+    AppTheme CurrentTheme { get; }
+    IReadOnlyList<AppTheme> AvailableThemes { get; }
+
+    Task ApplyThemeAsync(string themeName, CancellationToken cancellationToken = default);
+
     event EventHandler<ThemeChangedEventArgs>? ThemeChanged;
 }
 

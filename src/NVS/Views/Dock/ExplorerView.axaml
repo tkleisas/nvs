@@ -40,7 +40,7 @@
             <TreeDataTemplate DataType="vm:FileTreeNode" ItemsSource="{Binding Children}">
                 <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,1">
                     <TextBlock Text="{Binding Icon}" FontSize="12" Foreground="{Binding IconColor}" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#CCCCCC" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
                 </StackPanel>
             </TreeDataTemplate>
         </TreeView.ItemTemplate>

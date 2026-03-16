@@ -13,11 +13,11 @@
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="6,4">
             <TextBox Grid.Column="0" Text="{Binding SearchQuery}"
                      Watermark="Search help topics..."
-                     Background="#1E1E1E" Foreground="#D4D4D4"
-                     BorderBrush="#3C3C3C" FontSize="12" Padding="6,4" />
+                     Background="{DynamicResource ToolPanelBackgroundBrush}" Foreground="{DynamicResource EditorForegroundBrush}"
+                     BorderBrush="{DynamicResource BorderBrush}" FontSize="12" Padding="6,4" />
             <Button Grid.Column="1" Content="✕" Padding="6,4" Margin="4,0,0,0"
                     Command="{Binding ClearSearchCommand}"
-                    Background="#3C3C3C" Foreground="#808080" FontSize="11" />
+                    Background="{DynamicResource InputBackgroundBrush}" Foreground="#808080" FontSize="11" />
         </Grid>
 
         <!-- Content: topic list + detail -->
@@ -27,7 +27,7 @@
             <ListBox Grid.Column="0"
                      ItemsSource="{Binding FilteredTopics}"
                      SelectedItem="{Binding SelectedTopic}"
-                     Background="#1E1E1E" BorderThickness="0,0,1,0" BorderBrush="#3C3C3C">
+                     Background="{DynamicResource ToolPanelBackgroundBrush}" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource BorderBrush}">
                 <ListBox.Styles>
                     <Style Selector="ListBoxItem">
                         <Setter Property="Padding" Value="8,4"/>
@@ -40,7 +40,7 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="dock:HelpTopic">
                         <StackPanel Spacing="1">
-                            <TextBlock Text="{Binding Title}" FontSize="12" Foreground="#CCCCCC" />
+                            <TextBlock Text="{Binding Title}" FontSize="12" Foreground="{DynamicResource TextForegroundBrush}" />
                             <TextBlock Text="{Binding Category}" FontSize="9" Foreground="#808080" />
                         </StackPanel>
                     </DataTemplate>
@@ -52,7 +52,7 @@
                           VerticalScrollBarVisibility="Auto">
                 <TextBlock Text="{Binding SelectedTopic.Content}"
                            FontFamily="Consolas" FontSize="12"
-                           Foreground="#D4D4D4" Margin="16,8"
+                           Foreground="{DynamicResource EditorForegroundBrush}" Margin="16,8"
                            TextWrapping="Wrap" />
             </ScrollViewer>
 
