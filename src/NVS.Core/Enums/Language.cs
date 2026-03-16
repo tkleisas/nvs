@@ -18,5 +18,7 @@ public enum Language
     Markdown,
     Yaml,
     Toml,
-    Sql
+    Sql,
+    Java,
+    Php
 }

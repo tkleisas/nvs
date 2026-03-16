@@ -9,4 +9,5 @@ public enum InstallMethod
     GoInstall,
     BinaryDownload,
     GitHubRelease,
+    Composer,
 }

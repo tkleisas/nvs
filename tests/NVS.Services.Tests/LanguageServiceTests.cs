@@ -25,6 +25,9 @@ public class LanguageServiceTests
     [InlineData("file.html", Language.Html)]
     [InlineData("file.css", Language.Css)]
     [InlineData("file.sql", Language.Sql)]
+    [InlineData("file.java", Language.Java)]
+    [InlineData("file.php", Language.Php)]
+    [InlineData("file.phtml", Language.Php)]
     [InlineData("file.unknown", Language.Unknown)]
     public void DetectLanguage_ShouldReturnCorrectLanguage(string filePath, Language expected)
     {
@@ -39,6 +42,8 @@ public class LanguageServiceTests
         _service.GetLanguageId(Language.CSharp).Should().Be("csharp");
         _service.GetLanguageId(Language.TypeScript).Should().Be("typescript");
         _service.GetLanguageId(Language.Sql).Should().Be("sql");
+        _service.GetLanguageId(Language.Java).Should().Be("java");
+        _service.GetLanguageId(Language.Php).Should().Be("php");
         _service.GetLanguageId(Language.Unknown).Should().Be("plaintext");
     }
 
@@ -91,5 +96,33 @@ public class LanguageServiceTests
         _service.GetLanguageServer(Language.Yaml).Should().Be("yaml-language-server");
         _service.GetLanguageServer(Language.Markdown).Should().Be("marksman");
         _service.GetLanguageServer(Language.Toml).Should().Be("taplo");
+        _service.GetLanguageServer(Language.Java).Should().Be("jdtls");
+        _service.GetLanguageServer(Language.Php).Should().Be("phpactor");
+    }
+
+    [Fact]
+    public void GetLanguageFromId_Java_ShouldRoundTrip()
+    {
+        _service.GetLanguageFromId("java").Should().Be(Language.Java);
+    }
+
+    [Fact]
+    public void GetLanguageFromId_Php_ShouldRoundTrip()
+    {
+        _service.GetLanguageFromId("php").Should().Be(Language.Php);
+    }
+
+    [Fact]
+    public void GetFileExtensions_Java_ShouldReturnJavaExtension()
+    {
+        _service.GetFileExtensions(Language.Java).Should().Contain(".java");
+    }
+
+    [Fact]
+    public void GetFileExtensions_Php_ShouldReturnPhpExtensions()
+    {
+        var extensions = _service.GetFileExtensions(Language.Php);
+        extensions.Should().Contain(".php");
+        extensions.Should().Contain(".phtml");
     }
 }

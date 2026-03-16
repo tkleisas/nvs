@@ -178,6 +178,32 @@ public static class LanguageServerRegistry
                 InstallPackage = "taplo-cli --features lsp",
                 HomepageUrl = "https://taplo.tamasfe.dev",
             },
+            new()
+            {
+                Id = "jdtls",
+                Name = "Eclipse JDT Language Server",
+                Description = "Java language server based on Eclipse JDT",
+                License = "EPL-2.0",
+                Languages = [Language.Java],
+                BinaryName = "jdtls",
+                DefaultArgs = [],
+                InstallMethod = InstallMethod.BinaryDownload,
+                HomepageUrl = "https://github.com/eclipse-jdtls/eclipse.jdt.ls",
+            },
+            new()
+            {
+                Id = "phpactor",
+                Name = "Phpactor",
+                Description = "PHP language server with refactoring and completion",
+                License = "MIT",
+                Languages = [Language.Php],
+                BinaryName = "phpactor",
+                DefaultArgs = ["language-server"],
+                InstallMethod = InstallMethod.Composer,
+                InstallCommand = "composer",
+                InstallPackage = "phpactor/phpactor",
+                HomepageUrl = "https://phpactor.readthedocs.io",
+            },
         };
 
         Servers = definitions.ToDictionary(d => d.Id);

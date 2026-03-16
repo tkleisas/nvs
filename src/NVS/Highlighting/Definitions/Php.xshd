@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="Php" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
+  <Color name="Type" foreground="#4EC9B0" />
+  <Color name="Variable" foreground="#9CDCFE" />
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Comment" foreground="#6A9955" />
+  <Color name="Number" foreground="#B5CEA8" />
+  <Color name="PhpTag" foreground="#808080" />
+
+  <RuleSet>
+    <Span color="Comment" begin="//" />
+    <Span color="Comment" begin="#" />
+    <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
+    <Span color="String" begin="&quot;" end="&quot;" escape="\\" />
+    <Span color="String" begin="'" end="'" escape="\\" />
+
+    <Keywords color="Keyword">
+      <Word>abstract</Word><Word>and</Word><Word>as</Word><Word>break</Word>
+      <Word>callable</Word><Word>case</Word><Word>catch</Word><Word>class</Word>
+      <Word>clone</Word><Word>const</Word><Word>continue</Word><Word>declare</Word>
+      <Word>default</Word><Word>do</Word><Word>echo</Word><Word>else</Word>
+      <Word>elseif</Word><Word>enum</Word><Word>extends</Word><Word>final</Word>
+      <Word>finally</Word><Word>fn</Word><Word>for</Word><Word>foreach</Word>
+      <Word>function</Word><Word>global</Word><Word>goto</Word><Word>if</Word>
+      <Word>implements</Word><Word>include</Word><Word>include_once</Word>
+      <Word>instanceof</Word><Word>insteadof</Word><Word>interface</Word>
+      <Word>match</Word><Word>namespace</Word><Word>new</Word><Word>or</Word>
+      <Word>print</Word><Word>private</Word><Word>protected</Word><Word>public</Word>
+      <Word>readonly</Word><Word>require</Word><Word>require_once</Word>
+      <Word>return</Word><Word>static</Word><Word>switch</Word><Word>throw</Word>
+      <Word>trait</Word><Word>try</Word><Word>use</Word><Word>var</Word>
+      <Word>while</Word><Word>xor</Word><Word>yield</Word>
+      <Word>true</Word><Word>false</Word><Word>null</Word><Word>void</Word>
+    </Keywords>
+
+    <Keywords color="Type">
+      <Word>array</Word><Word>bool</Word><Word>float</Word><Word>int</Word>
+      <Word>iterable</Word><Word>mixed</Word><Word>never</Word><Word>object</Word>
+      <Word>string</Word><Word>self</Word><Word>parent</Word><Word>unset</Word>
+    </Keywords>
+
+    <Keywords color="PhpTag">
+      <Word>__halt_compiler</Word><Word>__CLASS__</Word><Word>__DIR__</Word>
+      <Word>__FILE__</Word><Word>__FUNCTION__</Word><Word>__LINE__</Word>
+      <Word>__METHOD__</Word><Word>__NAMESPACE__</Word><Word>__TRAIT__</Word>
+    </Keywords>
+
+    <Rule color="Variable">\$[a-zA-Z_]\w*</Rule>
+    <Rule color="Number">\b0[xX][0-9a-fA-F_]+\b</Rule>
+    <Rule color="Number">\b0[bB][01_]+\b</Rule>
+    <Rule color="Number">\b0[oO][0-7_]+\b</Rule>
+    <Rule color="Number">\b\d[\d_]*\.?\d*([eE][+-]?\d+)?\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>

@@ -1,7 +1,9 @@
+using NVS.Core.Enums;
+
 namespace NVS.Core.Models;
 
 /// <summary>
-/// A project template backed by dotnet new (e.g. console, classlib, webapi).
+/// A project template backed by dotnet new, Maven, Composer, or direct file scaffolding.
 /// </summary>
 public sealed record ProjectTemplate
 {
@@ -11,6 +13,7 @@ public sealed record ProjectTemplate
     public string? DefaultLanguage { get; init; }
     public IReadOnlyList<string> Tags { get; init; } = [];
     public IReadOnlyList<string> Frameworks { get; init; } = [];
+    public ProjectSystem ProjectSystem { get; init; } = ProjectSystem.DotNet;
 }
 
 /// <summary>

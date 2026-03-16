@@ -27,7 +27,7 @@ public sealed class TemplateServiceTests : IDisposable
         var templates = _service.GetProjectTemplates();
 
         templates.Should().NotBeEmpty();
-        templates.Should().HaveCountGreaterThanOrEqualTo(7);
+        templates.Should().HaveCountGreaterThanOrEqualTo(11);
     }
 
     [Theory]
@@ -36,6 +36,10 @@ public sealed class TemplateServiceTests : IDisposable
     [InlineData("webapi", "ASP.NET Core Web API")]
     [InlineData("xunit", "xUnit Test Project")]
     [InlineData("worker", "Worker Service")]
+    [InlineData("java-console", "Java Console App")]
+    [InlineData("java-library", "Java Library")]
+    [InlineData("php-console", "PHP Console App")]
+    [InlineData("php-library", "PHP Library")]
     public void GetProjectTemplates_ShouldContainExpectedTemplates(string shortName, string displayName)
     {
         var templates = _service.GetProjectTemplates();
@@ -44,14 +48,43 @@ public sealed class TemplateServiceTests : IDisposable
     }
 
     [Fact]
-    public void GetProjectTemplates_AllShouldHaveFrameworks()
+    public void GetProjectTemplates_DotNetTemplates_ShouldHaveFrameworks()
     {
-        var templates = _service.GetProjectTemplates();
+        var templates = _service.GetProjectTemplates()
+            .Where(t => t.ProjectSystem == NVS.Core.Enums.ProjectSystem.DotNet);
 
         foreach (var template in templates)
         {
             template.Frameworks.Should().NotBeEmpty($"template '{template.ShortName}' should have frameworks");
             template.Frameworks.Should().Contain("net10.0");
+        }
+    }
+
+    [Fact]
+    public void GetProjectTemplates_JavaTemplates_ShouldBeMaven()
+    {
+        var templates = _service.GetProjectTemplates()
+            .Where(t => t.DefaultLanguage == "Java");
+
+        templates.Should().HaveCount(2);
+        foreach (var template in templates)
+        {
+            template.ProjectSystem.Should().Be(NVS.Core.Enums.ProjectSystem.Maven);
+            template.Frameworks.Should().BeEmpty();
+        }
+    }
+
+    [Fact]
+    public void GetProjectTemplates_PhpTemplates_ShouldBeComposer()
+    {
+        var templates = _service.GetProjectTemplates()
+            .Where(t => t.DefaultLanguage == "PHP");
+
+        templates.Should().HaveCount(2);
+        foreach (var template in templates)
+        {
+            template.ProjectSystem.Should().Be(NVS.Core.Enums.ProjectSystem.Composer);
+            template.Frameworks.Should().BeEmpty();
         }
     }
 
@@ -65,7 +98,7 @@ public sealed class TemplateServiceTests : IDisposable
         var templates = _service.GetFileTemplates();
 
         templates.Should().NotBeEmpty();
-        templates.Should().HaveCountGreaterThanOrEqualTo(8);
+        templates.Should().HaveCountGreaterThanOrEqualTo(16);
     }
 
     [Theory]
@@ -77,6 +110,14 @@ public sealed class TemplateServiceTests : IDisposable
     [InlineData("exception", "Exception", ".cs")]
     [InlineData("static-class", "Static Class", ".cs")]
     [InlineData("abstract-class", "Abstract Class", ".cs")]
+    [InlineData("java-class", "Java Class", ".java")]
+    [InlineData("java-interface", "Java Interface", ".java")]
+    [InlineData("java-enum", "Java Enum", ".java")]
+    [InlineData("java-record", "Java Record", ".java")]
+    [InlineData("php-class", "PHP Class", ".php")]
+    [InlineData("php-interface", "PHP Interface", ".php")]
+    [InlineData("php-enum", "PHP Enum", ".php")]
+    [InlineData("php-trait", "PHP Trait", ".php")]
     public void GetFileTemplates_ShouldContainExpectedTemplates(string id, string displayName, string extension)
     {
         var templates = _service.GetFileTemplates();
@@ -238,6 +279,94 @@ public sealed class TemplateServiceTests : IDisposable
         content.Should().Contain("public readonly struct Point");
     }
 
+    [Fact]
+    public async Task CreateFileFromTemplate_JavaClass_ShouldCreateCorrectFile()
+    {
+        var filePath = await _service.CreateFileFromTemplateAsync(
+            "java-class", "MyService", _tempDir, "com.example");
+
+        File.Exists(filePath).Should().BeTrue();
+        filePath.Should().EndWith(".java");
+        var content = await File.ReadAllTextAsync(filePath);
+        content.Should().Contain("package com.example;");
+        content.Should().Contain("public class MyService");
+    }
+
+    [Fact]
+    public async Task CreateFileFromTemplate_JavaInterface_ShouldCreateCorrectFile()
+    {
+        var filePath = await _service.CreateFileFromTemplateAsync(
+            "java-interface", "Drawable", _tempDir, "com.example");
+
+        var content = await File.ReadAllTextAsync(filePath);
+        content.Should().Contain("package com.example;");
+        content.Should().Contain("public interface Drawable");
+    }
+
+    [Fact]
+    public async Task CreateFileFromTemplate_JavaEnum_ShouldCreateCorrectFile()
+    {
+        var filePath = await _service.CreateFileFromTemplateAsync(
+            "java-enum", "Color", _tempDir, "com.example");
+
+        var content = await File.ReadAllTextAsync(filePath);
+        content.Should().Contain("public enum Color");
+    }
+
+    [Fact]
+    public async Task CreateFileFromTemplate_JavaRecord_ShouldCreateCorrectFile()
+    {
+        var filePath = await _service.CreateFileFromTemplateAsync(
+            "java-record", "Point", _tempDir, "com.example");
+
+        var content = await File.ReadAllTextAsync(filePath);
+        content.Should().Contain("public record Point()");
+    }
+
+    [Fact]
+    public async Task CreateFileFromTemplate_PhpClass_ShouldCreateCorrectFile()
+    {
+        var filePath = await _service.CreateFileFromTemplateAsync(
+            "php-class", "UserService", _tempDir, "App\\Services");
+
+        File.Exists(filePath).Should().BeTrue();
+        filePath.Should().EndWith(".php");
+        var content = await File.ReadAllTextAsync(filePath);
+        content.Should().Contain("<?php");
+        content.Should().Contain("namespace App\\Services;");
+        content.Should().Contain("class UserService");
+    }
+
+    [Fact]
+    public async Task CreateFileFromTemplate_PhpInterface_ShouldCreateCorrectFile()
+    {
+        var filePath = await _service.CreateFileFromTemplateAsync(
+            "php-interface", "Loggable", _tempDir, "App\\Contracts");
+
+        var content = await File.ReadAllTextAsync(filePath);
+        content.Should().Contain("interface Loggable");
+    }
+
+    [Fact]
+    public async Task CreateFileFromTemplate_PhpEnum_ShouldCreateCorrectFile()
+    {
+        var filePath = await _service.CreateFileFromTemplateAsync(
+            "php-enum", "Status", _tempDir, "App\\Enums");
+
+        var content = await File.ReadAllTextAsync(filePath);
+        content.Should().Contain("enum Status");
+    }
+
+    [Fact]
+    public async Task CreateFileFromTemplate_PhpTrait_ShouldCreateCorrectFile()
+    {
+        var filePath = await _service.CreateFileFromTemplateAsync(
+            "php-trait", "HasTimestamps", _tempDir, "App\\Traits");
+
+        var content = await File.ReadAllTextAsync(filePath);
+        content.Should().Contain("trait HasTimestamps");
+    }
+
     #endregion
 
     #region InferNamespace
@@ -327,6 +456,117 @@ public sealed class TemplateServiceTests : IDisposable
         var act = () => _service.CreateProjectAsync("console", "MyApp", outputDir);
 
         await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task CreateProjectAsync_WithUnknownTemplate_ShouldThrow()
+    {
+        var act = () => _service.CreateProjectAsync("nonexistent", "MyApp", _tempDir);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*nonexistent*");
+    }
+
+    [Fact]
+    public async Task CreateMavenProjectAsync_Console_ShouldCreateProjectStructure()
+    {
+        var projectDir = await _service.CreateProjectAsync(
+            "java-console", "MyJavaApp", _tempDir);
+
+        projectDir.Should().EndWith("MyJavaApp");
+        Directory.Exists(projectDir).Should().BeTrue();
+
+        // Verify pom.xml
+        var pomPath = Path.Combine(projectDir, "pom.xml");
+        File.Exists(pomPath).Should().BeTrue();
+        var pomContent = await File.ReadAllTextAsync(pomPath);
+        pomContent.Should().Contain("<artifactId>myjavaapp</artifactId>");
+        pomContent.Should().Contain("<maven.compiler.source>21</maven.compiler.source>");
+        pomContent.Should().Contain("<exec.mainClass>com.example.App</exec.mainClass>");
+
+        // Verify main source
+        var appPath = Path.Combine(projectDir, "src", "main", "java", "com", "example", "App.java");
+        File.Exists(appPath).Should().BeTrue();
+        var appContent = await File.ReadAllTextAsync(appPath);
+        appContent.Should().Contain("public class App");
+        appContent.Should().Contain("public static void main");
+
+        // Verify test source
+        var testPath = Path.Combine(projectDir, "src", "test", "java", "com", "example", "AppTest.java");
+        File.Exists(testPath).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateMavenProjectAsync_Library_ShouldCreateProjectStructure()
+    {
+        var projectDir = await _service.CreateProjectAsync(
+            "java-library", "MyJavaLib", _tempDir);
+
+        Directory.Exists(projectDir).Should().BeTrue();
+
+        // Verify pom.xml has no mainClass
+        var pomContent = await File.ReadAllTextAsync(Path.Combine(projectDir, "pom.xml"));
+        pomContent.Should().NotContain("exec.mainClass");
+
+        // Verify no App.java for library
+        var appPath = Path.Combine(projectDir, "src", "main", "java", "com", "example", "App.java");
+        File.Exists(appPath).Should().BeFalse();
+
+        // Verify test source
+        var testPath = Path.Combine(projectDir, "src", "test", "java", "com", "example", "LibraryTest.java");
+        File.Exists(testPath).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateComposerProjectAsync_Console_ShouldCreateProjectStructure()
+    {
+        var projectDir = await _service.CreateProjectAsync(
+            "php-console", "MyPhpApp", _tempDir);
+
+        projectDir.Should().EndWith("MyPhpApp");
+        Directory.Exists(projectDir).Should().BeTrue();
+
+        // Verify composer.json
+        var composerPath = Path.Combine(projectDir, "composer.json");
+        File.Exists(composerPath).Should().BeTrue();
+        var composerContent = await File.ReadAllTextAsync(composerPath);
+        composerContent.Should().Contain("\"myvendor/myphpapp\"");
+        composerContent.Should().Contain("\"type\": \"project\"");
+        composerContent.Should().Contain("\"php\": \">=8.2\"");
+        composerContent.Should().Contain("\"MyPhpApp\\\\\"");
+
+        // Verify entry point
+        var binPath = Path.Combine(projectDir, "bin", "app.php");
+        File.Exists(binPath).Should().BeTrue();
+        var binContent = await File.ReadAllTextAsync(binPath);
+        binContent.Should().Contain("use MyPhpApp\\App;");
+
+        // Verify App.php
+        var appPath = Path.Combine(projectDir, "src", "App.php");
+        File.Exists(appPath).Should().BeTrue();
+        var appContent = await File.ReadAllTextAsync(appPath);
+        appContent.Should().Contain("namespace MyPhpApp;");
+        appContent.Should().Contain("class App");
+    }
+
+    [Fact]
+    public async Task CreateComposerProjectAsync_Library_ShouldCreateProjectStructure()
+    {
+        var projectDir = await _service.CreateProjectAsync(
+            "php-library", "MyPhpLib", _tempDir);
+
+        Directory.Exists(projectDir).Should().BeTrue();
+
+        // Verify composer.json
+        var composerContent = await File.ReadAllTextAsync(Path.Combine(projectDir, "composer.json"));
+        composerContent.Should().Contain("\"type\": \"library\"");
+
+        // Verify directories exist
+        Directory.Exists(Path.Combine(projectDir, "src")).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectDir, "tests")).Should().BeTrue();
+
+        // No bin/app.php for library
+        File.Exists(Path.Combine(projectDir, "bin", "app.php")).Should().BeFalse();
     }
 
     #endregion

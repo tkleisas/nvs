@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="Java" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
+  <Color name="Type" foreground="#4EC9B0" />
+  <Color name="Annotation" foreground="#DCDCAA" />
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Comment" foreground="#6A9955" />
+  <Color name="Number" foreground="#B5CEA8" />
+
+  <RuleSet>
+    <Span color="Comment" begin="//" />
+    <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
+    <Span color="String" begin="&quot;" end="&quot;" escape="\\" />
+    <Span color="String" begin="'" end="'" escape="\\" />
+
+    <Keywords color="Keyword">
+      <Word>abstract</Word><Word>assert</Word><Word>break</Word><Word>case</Word>
+      <Word>catch</Word><Word>class</Word><Word>const</Word><Word>continue</Word>
+      <Word>default</Word><Word>do</Word><Word>else</Word><Word>enum</Word>
+      <Word>extends</Word><Word>final</Word><Word>finally</Word><Word>for</Word>
+      <Word>goto</Word><Word>if</Word><Word>implements</Word><Word>import</Word>
+      <Word>instanceof</Word><Word>interface</Word><Word>native</Word><Word>new</Word>
+      <Word>package</Word><Word>private</Word><Word>protected</Word><Word>public</Word>
+      <Word>record</Word><Word>return</Word><Word>sealed</Word><Word>static</Word>
+      <Word>strictfp</Word><Word>super</Word><Word>switch</Word><Word>synchronized</Word>
+      <Word>this</Word><Word>throw</Word><Word>throws</Word><Word>transient</Word>
+      <Word>try</Word><Word>var</Word><Word>volatile</Word><Word>while</Word>
+      <Word>yield</Word><Word>permits</Word><Word>non-sealed</Word>
+      <Word>true</Word><Word>false</Word><Word>null</Word><Word>void</Word>
+    </Keywords>
+
+    <Keywords color="Type">
+      <Word>boolean</Word><Word>byte</Word><Word>char</Word><Word>double</Word>
+      <Word>float</Word><Word>int</Word><Word>long</Word><Word>short</Word>
+      <Word>String</Word><Word>Integer</Word><Word>Long</Word><Word>Double</Word>
+      <Word>Float</Word><Word>Boolean</Word><Word>Character</Word><Word>Byte</Word>
+      <Word>Short</Word><Word>Object</Word><Word>Void</Word><Word>Number</Word>
+      <Word>List</Word><Word>Map</Word><Word>Set</Word><Word>Collection</Word>
+      <Word>ArrayList</Word><Word>HashMap</Word><Word>HashSet</Word>
+      <Word>Optional</Word><Word>Stream</Word><Word>Iterable</Word>
+      <Word>Comparable</Word><Word>Runnable</Word><Word>Callable</Word>
+      <Word>Exception</Word><Word>RuntimeException</Word><Word>Throwable</Word>
+    </Keywords>
+
+    <Rule color="Annotation">@[\w.]+</Rule>
+    <Rule color="Number">\b0[xX][0-9a-fA-F_]+[lL]?\b</Rule>
+    <Rule color="Number">\b0[bB][01_]+[lL]?\b</Rule>
+    <Rule color="Number">\b\d[\d_]*\.?\d*([eE][+-]?\d+)?[fFdDlL]?\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>

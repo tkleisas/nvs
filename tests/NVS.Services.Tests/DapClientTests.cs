@@ -762,6 +762,37 @@ public sealed class DebugAdapterRegistryTests
 
         adapters.Should().NotBeEmpty();
         adapters.Should().Contain(a => a.Type == "coreclr");
+        adapters.Should().Contain(a => a.Type == "java");
+        adapters.Should().Contain(a => a.Type == "php");
+    }
+
+    [Fact]
+    public void GetAdapter_ForJava_ShouldReturnBuiltInAdapter()
+    {
+        var registry = new DebugAdapterRegistry();
+
+        var adapter = registry.GetAdapter("java");
+
+        adapter.Should().NotBeNull();
+        adapter!.Type.Should().Be("java");
+        adapter.DisplayName.Should().Contain("Java");
+        adapter.ExecutableName.Should().Be("java");
+        adapter.SupportedRuntimes.Should().Contain("java");
+    }
+
+    [Fact]
+    public void GetAdapter_ForPhp_ShouldReturnBuiltInAdapter()
+    {
+        var registry = new DebugAdapterRegistry();
+
+        var adapter = registry.GetAdapter("php");
+
+        adapter.Should().NotBeNull();
+        adapter!.Type.Should().Be("php");
+        adapter.DisplayName.Should().Contain("PHP");
+        adapter.ExecutableName.Should().Be("node");
+        adapter.Arguments.Should().Contain("phpDebug.js");
+        adapter.SupportedRuntimes.Should().Contain("php");
     }
 
     [Fact]

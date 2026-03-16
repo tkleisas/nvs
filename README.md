@@ -8,8 +8,8 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
-![Version](https://img.shields.io/badge/version-0.4.2-green)
-![Tests](https://img.shields.io/badge/tests-856%20passing-brightgreen)
+![Version](https://img.shields.io/badge/version-0.4.4-green)
+![Tests](https://img.shields.io/badge/tests-900%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -22,7 +22,7 @@ NVS is a code editor / IDE that:
 
 - **Does not replace Vim.** We cannot stress this enough.
 - Runs on Windows, macOS, and Linux (thanks Avalonia).
-- Has language server support for 12+ languages with auto-completion and signature help.
+- Has language server support for 14+ languages with auto-completion and signature help.
 - Has Roslyn-powered C# intelligence: completions, hover, go-to-definition, references, diagnostics, signature help, formatting — no external language server needed.
 - Has a built-in PTY terminal that actually works.
 - Has git integration that will absolutely let you force-push to main.
@@ -34,12 +34,12 @@ NVS is a code editor / IDE that:
 - Supports multi-project solutions with startup project selection.
 - Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
-- Has 856 tests, which is 856 more than the AI thought were necessary before the human insisted.
+- Has 900 tests, which is 900 more than the AI thought were necessary before the human insisted.
 
 ## Features
 
 ### 🖊️ Editor
-- Syntax highlighting for 14 languages (C#, C/C++, TypeScript, JavaScript, Python, Rust, Go, JSON, HTML, CSS, YAML, Markdown, TOML, XML)
+- Syntax highlighting for 16 languages (C#, C/C++, TypeScript, JavaScript, Python, Rust, Go, Java, PHP, JSON, HTML, CSS, YAML, Markdown, TOML, XML)
 - Undo/Redo, Find & Replace (Ctrl+Z, Ctrl+Y, Ctrl+F)
 - Multi-tab editing with dirty indicators, line/column tracking
 - Right-click context menu (Cut, Copy, Paste, Select All, Go to Definition)
@@ -55,7 +55,7 @@ NVS is a code editor / IDE that:
 - Code Actions / Quick Fixes (Ctrl+.)
 - Inline diagnostics with squiggly underlines
 - Incremental document sync (`textDocument/didChange`)
-- 12 open-source language servers, installable from Settings:
+- 14 open-source language servers, installable from Settings:
 
 | Server | Languages | Install |
 |--------|-----------|---------|
@@ -65,6 +65,8 @@ NVS is a code editor / IDE that:
 | pylsp | Python | `pip` |
 | rust-analyzer | Rust | Manual download |
 | gopls | Go | `go install` |
+| jdtls (Eclipse JDT.LS) | Java | Manual download |
+| phpactor | PHP | `composer` |
 | vscode-json-language-server | JSON | `npm` |
 | vscode-html-language-server | HTML | `npm` |
 | vscode-css-language-server | CSS/SCSS/LESS | `npm` |
@@ -104,12 +106,14 @@ NVS is a code editor / IDE that:
 - Run without debugging (Ctrl+F5) — GUI apps launch as detached windows, console apps run in terminal
 - Build Output panel with auto-scroll and MSBuild error parsing
 - Problems panel with click-to-navigate diagnostics
-- New project / file-from-template scaffolding via `dotnet new`
+- New project / file-from-template scaffolding via `dotnet new`, Maven, and Composer
 - Add existing project to solution
 
 ### 🐛 Debugging (DAP)
 - Debug Adapter Protocol client with Content-Length framed transport
 - **netcoredbg** auto-downloaded on first use (~3 MB) — no manual install needed. The AI tried to implement a debugger from scratch before the human said "just use netcoredbg"
+- **Java** debugging via java-debug (JDT.LS plugin, EPL-1.0)
+- **PHP** debugging via vscode-php-debug (Node.js DAP↔Xdebug bridge, MIT)
 - Start Debugging (F5), Stop (Shift+F5)
 - Step Over (F10), Step Into (F11), Step Out (Shift+F11)
 - Toggle Breakpoint (F9) with red gutter markers
@@ -202,7 +206,7 @@ dotnet run --project src/NVS
 # Open a solution directly
 dotnet run --project src/NVS -- path/to/solution.sln
 
-# Run tests (856 of them)
+# Run tests (900 of them)
 dotnet test NVS.slnx
 ```
 
@@ -230,8 +234,8 @@ See [Releases](https://github.com/tkleisas/nvs/releases) for downloads.
 To create a release, tag a commit and push:
 
 ```bash
-git tag v0.4.2
-git push origin v0.4.2
+git tag v0.4.4
+git push origin v0.4.4
 ```
 
 ## Tech Stack
@@ -247,6 +251,8 @@ git push origin v0.4.2
 | Code Metrics | [Microsoft.CodeAnalysis](https://github.com/dotnet/roslyn) (Roslyn) |
 | C# Language Service | [Microsoft.CodeAnalysis](https://github.com/dotnet/roslyn) (Roslyn MSBuildWorkspace) |
 | Debugging | [netcoredbg](https://github.com/Samsung/netcoredbg) (MIT, auto-downloaded) |
+| Java Debug | [java-debug](https://github.com/microsoft/java-debug) (EPL-1.0, JDT.LS plugin) |
+| PHP Debug | [vscode-php-debug](https://github.com/xdebug/vscode-php-debug) (MIT, Node.js) |
 | Logging | [Serilog](https://serilog.net/) 4.2 |
 | Runtime | .NET 10 (preview) |
 | Theme | Fluent Dark (the only theme, because we have taste) |
@@ -254,7 +260,7 @@ git push origin v0.4.2
 
 ## Testing
 
-856 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
+900 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
 
 - **NVS.Core.Tests** — Core model tests
 - **NVS.Plugins.Tests** — Plugin system tests
@@ -274,7 +280,7 @@ public void ParsePatch_MixedChanges_ParsesAllLineTypes()
 ## Versioning
 
 - Version lives in `Directory.Build.props`
-- Informational version appends the short git commit hash (e.g., `0.4.2+a3f72b1`)
+- Informational version appends the short git commit hash (e.g., `0.4.4+a3f72b1`)
 - Patch bumps on each commit, minor bumps on feature completion
 - Viewable in **Help → About**
 

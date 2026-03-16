@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NVS.Core.Enums;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
 
@@ -16,6 +17,7 @@ public sealed partial class NewProjectViewModel : ObservableObject
     private string _selectedFramework = "net10.0";
     private string? _errorMessage;
     private bool _isCreating;
+    private bool _showFrameworkSelector = true;
 
     /// <summary>
     /// Whether to also create a solution file when creating the project. Default true.
@@ -85,6 +87,12 @@ public sealed partial class NewProjectViewModel : ObservableObject
     }
 
     public ObservableCollection<string> AvailableFrameworks { get; } = new() { "net10.0", "net9.0", "net8.0" };
+
+    public bool ShowFrameworkSelector
+    {
+        get => _showFrameworkSelector;
+        set => SetProperty(ref _showFrameworkSelector, value);
+    }
 
     public string? ErrorMessage
     {
@@ -175,11 +183,18 @@ public sealed partial class NewProjectViewModel : ObservableObject
         AvailableFrameworks.Clear();
         if (SelectedTemplate is not null)
         {
+            ShowFrameworkSelector = SelectedTemplate.ProjectSystem == ProjectSystem.DotNet
+                && SelectedTemplate.Frameworks.Count > 0;
+
             foreach (var fw in SelectedTemplate.Frameworks)
                 AvailableFrameworks.Add(fw);
 
             if (AvailableFrameworks.Count > 0 && !AvailableFrameworks.Contains(SelectedFramework))
                 SelectedFramework = AvailableFrameworks[0];
+        }
+        else
+        {
+            ShowFrameworkSelector = false;
         }
     }
 }

@@ -12,7 +12,7 @@ public sealed class LanguageServerRegistryTests
         var servers = LanguageServerRegistry.GetAll();
 
         servers.Should().NotBeEmpty();
-        servers.Count.Should().BeGreaterOrEqualTo(12);
+        servers.Count.Should().BeGreaterOrEqualTo(14);
     }
 
     [Fact]
@@ -37,6 +37,8 @@ public sealed class LanguageServerRegistryTests
     [InlineData("yaml-language-server")]
     [InlineData("marksman")]
     [InlineData("taplo")]
+    [InlineData("jdtls")]
+    [InlineData("phpactor")]
     public void GetById_WithValidId_ShouldReturnDefinition(string serverId)
     {
         var def = LanguageServerRegistry.GetById(serverId);
@@ -72,6 +74,8 @@ public sealed class LanguageServerRegistryTests
     [InlineData(Language.Yaml, "yaml-language-server")]
     [InlineData(Language.Markdown, "marksman")]
     [InlineData(Language.Toml, "taplo")]
+    [InlineData(Language.Java, "jdtls")]
+    [InlineData(Language.Php, "phpactor")]
     public void GetForLanguage_WithSupportedLanguage_ShouldReturnCorrectServer(
         Language language, string expectedServerId)
     {
@@ -97,6 +101,8 @@ public sealed class LanguageServerRegistryTests
     [InlineData("rust-analyzer", InstallMethod.BinaryDownload)]
     [InlineData("gopls", InstallMethod.GoInstall)]
     [InlineData("taplo", InstallMethod.Cargo)]
+    [InlineData("jdtls", InstallMethod.BinaryDownload)]
+    [InlineData("phpactor", InstallMethod.Composer)]
     public void GetById_ShouldHaveCorrectInstallMethod(string serverId, InstallMethod expected)
     {
         var def = LanguageServerRegistry.GetById(serverId);
@@ -188,6 +194,68 @@ public sealed class LanguageServerRegistryTests
 
         def.Should().NotBeNull();
         def!.Id.Should().Be("csharp-ls");
+    }
+
+    [Fact]
+    public void GetAllForLanguage_Java_ShouldReturnJdtls()
+    {
+        var servers = LanguageServerRegistry.GetAllForLanguage(Language.Java);
+
+        servers.Should().HaveCount(1);
+        servers[0].Id.Should().Be("jdtls");
+        servers[0].License.Should().Be("EPL-2.0");
+    }
+
+    [Fact]
+    public void GetAllForLanguage_Php_ShouldReturnPhpactor()
+    {
+        var servers = LanguageServerRegistry.GetAllForLanguage(Language.Php);
+
+        servers.Should().HaveCount(1);
+        servers[0].Id.Should().Be("phpactor");
+        servers[0].License.Should().Be("MIT");
+    }
+
+    [Fact]
+    public void EndToEnd_JavaFile_ShouldResolveToLspAndDebugAdapter()
+    {
+        var languageService = new NVS.Services.Languages.LanguageService();
+
+        var language = languageService.DetectLanguage("Main.java");
+        language.Should().Be(Language.Java);
+
+        var serverId = languageService.GetLanguageServer(language);
+        serverId.Should().Be("jdtls");
+
+        var serverDef = LanguageServerRegistry.GetById(serverId!);
+        serverDef.Should().NotBeNull();
+        serverDef!.Languages.Should().Contain(Language.Java);
+
+        var registry = new NVS.Services.Debug.DebugAdapterRegistry();
+        var adapter = registry.GetAdapter("java");
+        adapter.Should().NotBeNull();
+        adapter!.SupportedRuntimes.Should().Contain("java");
+    }
+
+    [Fact]
+    public void EndToEnd_PhpFile_ShouldResolveToLspAndDebugAdapter()
+    {
+        var languageService = new NVS.Services.Languages.LanguageService();
+
+        var language = languageService.DetectLanguage("index.php");
+        language.Should().Be(Language.Php);
+
+        var serverId = languageService.GetLanguageServer(language);
+        serverId.Should().Be("phpactor");
+
+        var serverDef = LanguageServerRegistry.GetById(serverId!);
+        serverDef.Should().NotBeNull();
+        serverDef!.Languages.Should().Contain(Language.Php);
+
+        var registry = new NVS.Services.Debug.DebugAdapterRegistry();
+        var adapter = registry.GetAdapter("php");
+        adapter.Should().NotBeNull();
+        adapter!.SupportedRuntimes.Should().Contain("php");
     }
 
     [Fact]

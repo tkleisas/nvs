@@ -27,6 +27,8 @@ public static class SyntaxHighlightingLoader
         [Language.Yaml] = "Yaml",
         [Language.Toml] = "Toml",
         [Language.Sql] = "Sql",
+        [Language.Java] = "Java",
+        [Language.Php] = "Php",
     };
 
     public static IHighlightingDefinition? GetHighlighting(Language language)

@@ -23,6 +23,24 @@ public sealed class DebugAdapterRegistry
             Arguments = ["--interpreter=vscode"],
             SupportedRuntimes = ["dotnet"],
         });
+
+        Register(new DebugAdapterInfo
+        {
+            Type = "java",
+            DisplayName = "Java (java-debug)",
+            ExecutableName = "java",
+            Arguments = [],
+            SupportedRuntimes = ["java"],
+        });
+
+        Register(new DebugAdapterInfo
+        {
+            Type = "php",
+            DisplayName = "PHP (vscode-php-debug)",
+            ExecutableName = "node",
+            Arguments = ["phpDebug.js"],
+            SupportedRuntimes = ["php"],
+        });
     }
 
     public DebugAdapterDownloader Downloader => _downloader;

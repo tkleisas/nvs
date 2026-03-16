@@ -23,6 +23,8 @@ public sealed class LanguageService : ILanguageService
         [Language.Css] = [".css", ".scss", ".sass", ".less"],
         [Language.Toml] = [".toml"],
         [Language.Sql] = [".sql"],
+        [Language.Java] = [".java"],
+        [Language.Php] = [".php", ".phtml", ".php3", ".php4", ".php5"],
     };
 
     private static readonly Dictionary<Language, string> LanguageIds = new()
@@ -43,6 +45,8 @@ public sealed class LanguageService : ILanguageService
         [Language.Css] = "css",
         [Language.Toml] = "toml",
         [Language.Sql] = "sql",
+        [Language.Java] = "java",
+        [Language.Php] = "php",
         [Language.Unknown] = "plaintext",
     };
 
@@ -62,6 +66,8 @@ public sealed class LanguageService : ILanguageService
         [Language.Yaml] = "yaml-language-server",
         [Language.Markdown] = "marksman",
         [Language.Toml] = "taplo",
+        [Language.Java] = "jdtls",
+        [Language.Php] = "phpactor",
     };
 
     public Language DetectLanguage(string filePath)
