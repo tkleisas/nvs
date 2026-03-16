@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using NVS.Core.Interfaces;
 using NVS.Core.Models.Settings;
 
@@ -13,6 +14,13 @@ internal static class ThemeResourceApplier
         var app = Application.Current;
         if (app is null)
             return;
+
+        // Must run on UI thread to update Avalonia resources
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => Apply(theme));
+            return;
+        }
 
         var variant = theme.ThemeVariant == "Light" ? ThemeVariant.Light : ThemeVariant.Dark;
         app.RequestedThemeVariant = variant;
