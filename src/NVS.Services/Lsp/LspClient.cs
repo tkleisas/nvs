@@ -162,8 +162,11 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
 
             if (_listenerTask is not null)
             {
-                try { await _listenerTask.ConfigureAwait(false); }
-                catch (OperationCanceledException) { }
+                // Use a timeout — the listener may be blocked in a sync read
+                // that doesn't respect the cancellation token (e.g. pipe read).
+                // DisposeAsync will clean up if this times out.
+                try { await _listenerTask.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false); }
+                catch { /* timeout or cancellation — OK */ }
             }
 
             await _serverProcess.StopAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -668,19 +671,23 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        // Cancel the listener first so pending requests are failed.
+        _listenerCts?.Cancel();
+
         if (IsConnected)
         {
-            // ShutdownAsync will fail fast if the listener already exited
-            try { await ShutdownAsync().ConfigureAwait(false); }
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                await ShutdownAsync(cts.Token).ConfigureAwait(false);
+            }
             catch { /* best effort */ }
         }
 
-        _listenerCts?.Cancel();
-
         if (_listenerTask is not null)
         {
-            try { await _listenerTask.ConfigureAwait(false); }
-            catch { /* listener may throw on cancellation */ }
+            try { await _listenerTask.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false); }
+            catch { /* listener may throw on cancellation or timeout */ }
         }
 
         _listenerCts?.Dispose();

@@ -676,6 +676,13 @@ internal sealed class MockLspServer : IDisposable
                         break;
                     case JsonRpcNotification notification:
                         _receivedNotifications.Add(notification);
+                        // Simulate server exit on "exit" notification (like real LSP servers)
+                        if (notification.Method == "exit")
+                        {
+                            _clientToServer.Complete();
+                            _serverToClient.Complete();
+                            return;
+                        }
                         break;
                 }
             }
@@ -724,6 +731,9 @@ internal sealed class MockLspServer : IDisposable
         _cts?.Cancel();
         _clientToServer.Complete();
         _serverToClient.Complete();
+        // Wait for listener to exit so it doesn't outlive the test
+        try { _listenTask?.Wait(TimeSpan.FromSeconds(5)); }
+        catch { /* cancellation or timeout — OK */ }
         _cts?.Dispose();
     }
 }
@@ -749,7 +759,11 @@ internal sealed class DuplexStream
     public Stream GetReadStream() => _readStream;
     public Stream GetWriteStream() => _writeStream;
 
-    public void Complete() => _channel.Writer.TryComplete();
+    public void Complete()
+    {
+        _readStream.SignalComplete();
+        _channel.Writer.TryComplete();
+    }
 
     private sealed class DuplexWriteStream : Stream
     {
@@ -779,10 +793,17 @@ internal sealed class DuplexStream
     private sealed class DuplexReadStream : Stream
     {
         private readonly System.Threading.Channels.ChannelReader<byte[]> _reader;
+        private readonly CancellationTokenSource _cts = new();
         private byte[] _currentBuffer = [];
         private int _currentOffset;
 
         public DuplexReadStream(System.Threading.Channels.ChannelReader<byte[]> reader) => _reader = reader;
+
+        /// <summary>Signal EOF so any blocked synchronous Read() returns 0 immediately.</summary>
+        public void SignalComplete()
+        {
+            try { _cts.Cancel(); } catch (ObjectDisposedException) { }
+        }
 
         public override bool CanRead => true;
         public override bool CanWrite => false;
@@ -792,8 +813,14 @@ internal sealed class DuplexStream
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            // Synchronous fallback — use ReadAsync when possible
-            return ReadAsync(buffer, offset, count, CancellationToken.None).GetAwaiter().GetResult();
+            try
+            {
+                return ReadAsync(buffer, offset, count, _cts.Token).GetAwaiter().GetResult();
+            }
+            catch (OperationCanceledException)
+            {
+                return 0;
+            }
         }
 
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)

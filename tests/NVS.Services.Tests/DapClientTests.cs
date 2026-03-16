@@ -1013,7 +1013,13 @@ internal sealed class BlockingMemoryStream : Stream
         }
     }
 
-    public void Complete() => _completed = true;
+    public void Complete()
+    {
+        _completed = true;
+        // Release semaphore to wake any blocked ReadAsync callers
+        // so they see _completed = true and return 0
+        try { _dataAvailable.Release(); } catch (SemaphoreFullException) { }
+    }
 
     public override void Flush() { }
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();

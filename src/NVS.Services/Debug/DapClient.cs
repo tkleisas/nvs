@@ -340,13 +340,18 @@ public sealed class DapClient : IDapClient
 
     public async ValueTask DisposeAsync()
     {
+        // Cancel the listener first so pending requests are failed.
+        _listenerCts?.Cancel();
+
         if (IsConnected)
         {
-            try { await DisconnectAsync().ConfigureAwait(false); }
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                await DisconnectAsync(cancellationToken: cts.Token).ConfigureAwait(false);
+            }
             catch { /* best effort */ }
         }
-
-        _listenerCts?.Cancel();
 
         if (_listenerTask is not null)
         {

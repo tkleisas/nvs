@@ -37,7 +37,7 @@ jobs:
       run: dotnet build NVS.slnx -c Release --no-restore
 
     - name: Test
-      run: dotnet test NVS.slnx -c Release --no-build --verbosity normal
+      run: dotnet test NVS.slnx -c Release --no-build --verbosity normal --blame-hang-timeout 60s
 
   publish:
     needs: build
