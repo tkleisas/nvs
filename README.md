@@ -9,7 +9,7 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
 ![Version](https://img.shields.io/badge/version-0.7.0-green)
-![Tests](https://img.shields.io/badge/tests-1065%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1068%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -34,7 +34,7 @@ NVS is a code editor / IDE that:
 - Supports multi-project solutions with startup project selection.
 - Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
-- Has 1065 tests, which is 1065 more than the AI thought were necessary before the human insisted.
+- Has 1068 tests, which is 1068 more than the AI thought were necessary before the human insisted.
 
 ## Features
 
