@@ -96,7 +96,8 @@
                                 ToggleBreakpointCommand="{Binding ToggleBreakpointCommand}"
                                 DebugCurrentLine="{Binding DebugCurrentLine}"
                                 DebugEvaluateFunc="{Binding DebugEvaluateFunc}"
-                                FileMethodMetrics="{Binding FileMethodMetrics}"/>
+                                FileMethodMetrics="{Binding FileMethodMetrics}"
+                                InlineCompletionFunc="{Binding InlineCompletionFunc}"/>
                         </i:Interaction.Behaviors>
                     </AvaloniaEdit:TextEditor>
                     <controls:MinimapControl Grid.Column="1" Width="80" Name="Minimap"/>

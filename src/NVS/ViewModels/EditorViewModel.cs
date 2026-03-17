@@ -879,6 +879,23 @@ public class DocumentViewModel : INotifyPropertyChanged
         }
     }
 
+    private Func<int, int, string, string, CancellationToken, Task<string?>>? _inlineCompletionFunc;
+
+    /// <summary>
+    /// Function for inline ghost-text completions.
+    /// Parameters: line, column, prefix, suffix, cancellationToken → completion text.
+    /// Set by MainViewModel when inline completions are enabled.
+    /// </summary>
+    public Func<int, int, string, string, CancellationToken, Task<string?>>? InlineCompletionFunc
+    {
+        get => _inlineCompletionFunc;
+        set
+        {
+            _inlineCompletionFunc = value;
+            OnPropertyChanged();
+        }
+    }
+
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

@@ -41,6 +41,8 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private MultiCursorRenderer? _multiCursorRenderer;
     private bool _applyingMultiCursorEdits;
     private IDisposable? _languagePropertySubscription;
+    private GhostTextRenderer? _ghostTextRenderer;
+    private CancellationTokenSource? _ghostTextCts;
 
     public static readonly StyledProperty<string> TextProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, string>(
@@ -95,6 +97,9 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
     public static readonly StyledProperty<Func<string, CancellationToken, Task<string?>>?> DebugEvaluateFuncProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, Func<string, CancellationToken, Task<string?>>?>(nameof(DebugEvaluateFunc));
+
+    public static readonly StyledProperty<Func<int, int, string, string, CancellationToken, Task<string?>>?> InlineCompletionFuncProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, Func<int, int, string, string, CancellationToken, Task<string?>>?>(nameof(InlineCompletionFunc));
 
     public string Text
     {
@@ -198,6 +203,16 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         set => SetValue(DebugEvaluateFuncProperty, value);
     }
 
+    /// <summary>
+    /// Function for inline ghost-text completions.
+    /// Parameters: line, column, prefix, suffix, cancellationToken → completion text.
+    /// </summary>
+    public Func<int, int, string, string, CancellationToken, Task<string?>>? InlineCompletionFunc
+    {
+        get => GetValue(InlineCompletionFuncProperty);
+        set => SetValue(InlineCompletionFuncProperty, value);
+    }
+
     protected override void OnAttached()
     {
         base.OnAttached();
@@ -234,6 +249,14 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _multiCursorRenderer.SetDocument(_textEditor.Document);
             _multiCursorRenderer.SetState(_multiCursorState);
             _textEditor.TextArea.TextView.BackgroundRenderers.Add(_multiCursorRenderer);
+
+            // Install ghost text renderer for inline completions
+            _ghostTextRenderer = new GhostTextRenderer(_textEditor.TextArea.TextView)
+            {
+                FontFamily = _textEditor.FontFamily,
+                FontSize = _textEditor.FontSize
+            };
+            _textEditor.TextArea.TextView.BackgroundRenderers.Add(_ghostTextRenderer);
 
             // Install code folding (language may not be bound yet, will update on change)
             var language = TextEditorSyntaxHighlighting.GetLanguage(_textEditor);
@@ -460,12 +483,28 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             e.Handled = true;
             HandleAddCursorVertical(1);
         }
-        // Escape → clear multi-cursors
-        else if (e.Key == Key.Escape && _multiCursorState is { IsActive: true })
+        // Escape → clear multi-cursors or ghost text
+        else if (e.Key == Key.Escape)
+        {
+            if (_ghostTextRenderer?.HasGhostText == true)
+            {
+                e.Handled = true;
+                _ghostTextRenderer.Clear();
+                _ghostTextCts?.Cancel();
+            }
+            else if (_multiCursorState is { IsActive: true })
+            {
+                e.Handled = true;
+                _multiCursorState.Clear();
+                _textEditor?.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+            }
+        }
+        // Tab → accept ghost text completion
+        else if (e.Key == Key.Tab && e.KeyModifiers == KeyModifiers.None
+                 && _ghostTextRenderer?.HasGhostText == true)
         {
             e.Handled = true;
-            _multiCursorState.Clear();
-            _textEditor?.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+            AcceptGhostText();
         }
     }
 
@@ -595,6 +634,10 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         if (string.IsNullOrEmpty(text))
             return;
 
+        // Clear ghost text when user types
+        _ghostTextRenderer?.Clear();
+        _ghostTextCts?.Cancel();
+
         // Apply multi-cursor inserts for the typed text
         if (!_applyingMultiCursorEdits && _multiCursorState is { IsActive: true } && _textEditor is not null)
         {
@@ -647,6 +690,27 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
                 }
             }, TaskScheduler.Default);
         }
+
+        // Debounced ghost text trigger (500ms after typing, if no completion window)
+        if (InlineCompletionFunc is not null && (char.IsLetterOrDigit(ch) || ch is '_' or '.' or ' '))
+        {
+            _ghostTextCts?.Cancel();
+            _ghostTextCts?.Dispose();
+            _ghostTextCts = new CancellationTokenSource();
+            var ghostToken = _ghostTextCts.Token;
+
+            _ = Task.Delay(500, ghostToken).ContinueWith(t =>
+            {
+                if (!t.IsCanceled)
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        if (_completionWindow is null)
+                            _ = RequestGhostTextAsync(ghostToken);
+                    });
+                }
+            }, TaskScheduler.Default);
+        }
     }
 
     /// <summary>
@@ -691,6 +755,56 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         _insightWindow.Provider = new SignatureOverloadProvider(sigHelp);
         _insightWindow.Show();
         _insightWindow.Closed += (_, _) => _insightWindow = null;
+    }
+
+    private async Task RequestGhostTextAsync(CancellationToken ct)
+    {
+        if (_textEditor?.Document is null || InlineCompletionFunc is null)
+            return;
+
+        try
+        {
+            var offset = _textEditor.CaretOffset;
+            var doc = _textEditor.Document;
+            var line = doc.GetLineByOffset(offset);
+            var lineNumber = line.LineNumber;
+            var column = offset - line.Offset + 1;
+
+            var prefix = doc.GetText(0, offset);
+            var suffix = doc.GetText(offset, doc.TextLength - offset);
+
+            var completion = await InlineCompletionFunc(lineNumber, column, prefix, suffix, ct);
+
+            if (ct.IsCancellationRequested || string.IsNullOrEmpty(completion))
+                return;
+
+            // Verify cursor hasn't moved
+            if (_textEditor.CaretOffset == offset)
+            {
+                _ghostTextRenderer?.SetGhostText(completion, offset);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Serilog.Log.Debug(ex, "Ghost text request failed");
+        }
+    }
+
+    private void AcceptGhostText()
+    {
+        if (_textEditor?.Document is null || _ghostTextRenderer is null)
+            return;
+
+        var ghostText = _ghostTextRenderer.CurrentGhostText;
+        if (string.IsNullOrEmpty(ghostText))
+            return;
+
+        var offset = _textEditor.CaretOffset;
+        _ghostTextRenderer.Clear();
+
+        _textEditor.Document.Insert(offset, ghostText);
+        _textEditor.CaretOffset = offset + ghostText.Length;
     }
 
     private void OnBreakpointToggled(object? sender, int line)

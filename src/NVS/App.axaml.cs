@@ -154,6 +154,10 @@ public partial class App : Application
         services.AddSingleton<ITemplateService, TemplateService>();
         services.AddSingleton<ILlmService, LlmService>();
         services.AddSingleton<IChatSessionService, ChatSessionService>();
+        services.AddSingleton<IInlineCompletionService, InlineCompletionService>(sp =>
+            new InlineCompletionService(
+                sp.GetRequiredService<ILlmService>(),
+                () => sp.GetRequiredService<ISettingsService>().AppSettings.Llm));
         services.AddSingleton<INuGetService, NVS.Services.NuGet.NuGetPackageService>();
         services.AddSingleton<ICodeMetricsService, NVS.Services.Metrics.CodeMetricsService>();
         services.AddSingleton<IPrerequisiteService, NVS.Services.Prerequisites.PrerequisiteService>();

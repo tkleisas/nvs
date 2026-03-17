@@ -31,6 +31,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     private readonly IPrerequisiteService? _prerequisiteService;
     private readonly ILanguageService? _languageService;
     private readonly IChatSessionService? _chatSessionService;
+    private readonly IInlineCompletionService? _inlineCompletionService;
 
     private string _title = "NVS - No Vim Substitute";
     private bool _isWorkspaceOpen;
@@ -96,7 +97,8 @@ public partial class MainViewModel : INotifyPropertyChanged
         IRoslynCompletionService? roslynCompletionService = null,
         IPrerequisiteService? prerequisiteService = null,
         ILanguageService? languageService = null,
-        IChatSessionService? chatSessionService = null)
+        IChatSessionService? chatSessionService = null,
+        IInlineCompletionService? inlineCompletionService = null)
     {
         _workspaceService = workspaceService;
         _editorService = editorService;
@@ -112,6 +114,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         _prerequisiteService = prerequisiteService;
         _languageService = languageService;
         _chatSessionService = chatSessionService;
+        _inlineCompletionService = inlineCompletionService;
         SettingsService = settingsService;
         Editor = editor;
 
@@ -1421,6 +1424,18 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private void WireInlineCompletion(DocumentViewModel docVm)
+    {
+        if (_inlineCompletionService is null) return;
+
+        var service = _inlineCompletionService;
+        var filePath = docVm.Document.FilePath ?? docVm.Document.Path ?? "";
+        var language = docVm.Language.ToString();
+
+        docVm.InlineCompletionFunc = (line, col, prefix, suffix, ct) =>
+            service.GetInlineCompletionAsync(filePath, line, col, prefix, suffix, language, ct);
+    }
+
     private BuildOutputToolViewModel? FindBuildOutputTool()
     {
         return FindToolInDock<BuildOutputToolViewModel>();
@@ -2550,6 +2565,11 @@ public partial class MainViewModel : INotifyPropertyChanged
         var editorDoc = FindToolInDock<EditorDocumentViewModel>();
         if (editorDoc is not null)
             ActivateToolInDock(editorDoc);
+
+        // Wire inline completion on the newly opened document
+        var docVm = Editor?.OpenDocuments.LastOrDefault();
+        if (docVm is not null)
+            WireInlineCompletion(docVm);
     }
 
     private void RefreshGitFiles()
