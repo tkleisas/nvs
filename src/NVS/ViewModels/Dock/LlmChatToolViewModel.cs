@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.Input;
 using Dock.Model.Mvvm.Controls;
 using NVS.Core.Interfaces;
@@ -20,6 +21,9 @@ public sealed partial class LlmChatToolViewModel : Tool
     private ChatSession? _currentSession;
 
     public MainViewModel Main { get; }
+
+    /// <summary>Files attached to the next message for context.</summary>
+    public ObservableCollection<string> AttachedFiles { get; } = [];
 
     public ObservableCollection<ChatBubble> Messages { get; } = [];
     public ObservableCollection<ChatSession> Sessions { get; } = [];
@@ -285,6 +289,7 @@ public sealed partial class LlmChatToolViewModel : Tool
         {
             IsSending = false;
             IsStreaming = false;
+            AttachedFiles.Clear();
             _streamCts?.Dispose();
             _streamCts = null;
         }
@@ -305,7 +310,43 @@ public sealed partial class LlmChatToolViewModel : Tool
     {
         Messages.Clear();
         _conversationHistory.Clear();
+        AttachedFiles.Clear();
         StatusText = "Ready";
+    }
+
+    [RelayCommand]
+    private async Task AttachFile()
+    {
+        try
+        {
+            var topLevel = Avalonia.Application.Current?.ApplicationLifetime is
+                Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                    ? desktop.MainWindow : null;
+
+            if (topLevel is null) return;
+
+            var storage = topLevel.StorageProvider;
+            var files = await storage.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+            {
+                Title = "Attach File to Chat",
+                AllowMultiple = true
+            });
+
+            foreach (var file in files)
+            {
+                var path = file.TryGetLocalPath();
+                if (path is not null && !AttachedFiles.Contains(path))
+                    AttachedFiles.Add(path);
+            }
+        }
+        catch { /* file picker cancelled or error */ }
+    }
+
+    [RelayCommand]
+    private void RemoveAttachedFile(string? filePath)
+    {
+        if (filePath is not null)
+            AttachedFiles.Remove(filePath);
     }
 
     private async Task PersistMessageAsync(string role, string content)
@@ -374,12 +415,66 @@ public sealed partial class LlmChatToolViewModel : Tool
     private PromptContext BuildPromptContext()
     {
         var activeDoc = Main.Editor?.ActiveDocument;
+
+        // Collect open file paths
+        var openFiles = Main.Editor?.OpenDocuments
+            .Select(d => d.Document.FilePath ?? d.Title)
+            .ToList();
+
+        // Collect diagnostics from all open documents (errors + warnings, max 20)
+        var diagnostics = Main.Editor?.OpenDocuments
+            .SelectMany(d => d.Diagnostics ?? [])
+            .Select(d => $"[{d.Severity}] {d.Source}: {d.Message} ({d.Range.Start.Line}:{d.Range.Start.Column})")
+            .Take(20)
+            .ToList();
+
+        // Git context
+        string? gitBranch = Main.CurrentBranch is { Length: > 0 } b ? b : null;
+        string? gitStatusSummary = null;
+        if (Main.GitChangedFiles.Count > 0 || Main.GitStagedFiles.Count > 0)
+        {
+            gitStatusSummary = $"{Main.GitChangedFiles.Count} changed, {Main.GitStagedFiles.Count} staged";
+        }
+
+        // Attached files: read contents
+        List<string>? attachedContents = null;
+        if (AttachedFiles.Count > 0)
+        {
+            attachedContents = [];
+            foreach (var filePath in AttachedFiles)
+            {
+                try
+                {
+                    if (File.Exists(filePath))
+                    {
+                        var content = File.ReadAllText(filePath);
+                        // Cap at 10KB per file
+                        if (content.Length > 10240)
+                            content = content[..10240] + "\n... (truncated)";
+                        attachedContents.Add($"### {Path.GetFileName(filePath)}\n```\n{content}\n```");
+                    }
+                }
+                catch { /* skip unreadable files */ }
+            }
+        }
+
+        // Solution name from workspace path
+        var solutionName = Main.ProjectNames.Count > 0
+            ? string.Join(", ", Main.ProjectNames.Take(3))
+            : (Main.WorkspacePath is not null ? Path.GetFileName(Main.WorkspacePath) : null);
+
         return new PromptContext
         {
             WorkspacePath = Main.WorkspacePath,
             ActiveFilePath = activeDoc?.Document.FilePath,
             ActiveFileLanguage = activeDoc?.Language.ToString(),
-            SelectedText = null
+            SolutionName = solutionName,
+            SelectedText = null,
+            OpenFiles = openFiles,
+            Diagnostics = diagnostics is { Count: > 0 } ? diagnostics : null,
+            GitBranch = gitBranch,
+            GitStatusSummary = gitStatusSummary,
+            AttachedFiles = attachedContents
         };
     }
 

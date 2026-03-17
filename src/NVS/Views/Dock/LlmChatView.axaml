@@ -40,7 +40,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto">
 
         <!-- Session bar: dropdown + new/delete -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="6,4,6,0">
@@ -135,9 +135,36 @@
             </ItemsControl>
         </ScrollViewer>
 
+        <!-- Attached files indicator -->
+        <ItemsControl Grid.Row="3" ItemsSource="{Binding AttachedFiles}"
+                      Margin="6,2,6,0"
+                      IsVisible="{Binding AttachedFiles.Count}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                    <Border Background="#2D3748" CornerRadius="4" Padding="4,2" Margin="0,1">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="{Binding}"
+                                       Foreground="#90CAF9" FontSize="10"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Content="✕" Padding="2,0"
+                                    Background="Transparent" Foreground="#808080" FontSize="9"
+                                    Command="{Binding $parent[UserControl].((dock:LlmChatToolViewModel)DataContext).RemoveAttachedFileCommand}"
+                                    CommandParameter="{Binding}" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
         <!-- Input area -->
-        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="6,2,6,2">
-            <TextBox Grid.Column="0"
+        <Grid Grid.Row="4" ColumnDefinitions="Auto,*,Auto" Margin="6,2,6,2">
+            <Button Grid.Column="0"
+                    Content="📎" Padding="6,6"
+                    Background="Transparent" Foreground="#AAAAAA" FontSize="14"
+                    Command="{Binding AttachFileCommand}"
+                    VerticalAlignment="Bottom"
+                    ToolTip.Tip="Attach file for context" />
+            <TextBox Grid.Column="1"
                      Text="{Binding UserInput}"
                      Watermark="Ask anything..."
                      Background="{DynamicResource ToolPanelBackgroundBrush}"
@@ -149,7 +176,7 @@
                      TextWrapping="Wrap"
                      MaxHeight="120"
                      KeyDown="OnInputKeyDown" />
-            <Button Grid.Column="1"
+            <Button Grid.Column="2"
                     Content="➤"
                     Command="{Binding SendMessageCommand}"
                     Background="#264F78"
@@ -162,7 +189,7 @@
         </Grid>
 
         <!-- Status bar -->
-        <Border Grid.Row="4" Background="{DynamicResource SidebarBackgroundBrush}" Padding="6,3">
+        <Border Grid.Row="5" Background="{DynamicResource SidebarBackgroundBrush}" Padding="6,3">
             <TextBlock Text="{Binding StatusText}"
                        Foreground="#808080"
                        FontSize="10" />

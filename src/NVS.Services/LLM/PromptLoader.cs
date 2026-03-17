@@ -58,6 +58,12 @@ public sealed class PromptLoader
         if (!string.IsNullOrEmpty(context.SolutionName))
             parts.Add($"- Solution: {context.SolutionName}");
 
+        if (!string.IsNullOrEmpty(context.GitBranch))
+            parts.Add($"- Git branch: {context.GitBranch}");
+
+        if (!string.IsNullOrEmpty(context.GitStatusSummary))
+            parts.Add($"- Git status: {context.GitStatusSummary}");
+
         if (context.OpenFiles is { Count: > 0 })
             parts.Add($"- Open files: {string.Join(", ", context.OpenFiles)}");
 
@@ -69,6 +75,13 @@ public sealed class PromptLoader
             parts.Add("- Current diagnostics:");
             foreach (var diag in context.Diagnostics.Take(10))
                 parts.Add($"  - {diag}");
+        }
+
+        if (context.AttachedFiles is { Count: > 0 })
+        {
+            parts.Add("- Attached file contents:");
+            foreach (var file in context.AttachedFiles)
+                parts.Add(file);
         }
 
         return string.Join('\n', parts);
@@ -101,4 +114,7 @@ public sealed record PromptContext
     public string? SelectedText { get; init; }
     public IReadOnlyList<string>? OpenFiles { get; init; }
     public IReadOnlyList<string>? Diagnostics { get; init; }
+    public string? GitBranch { get; init; }
+    public string? GitStatusSummary { get; init; }
+    public IReadOnlyList<string>? AttachedFiles { get; init; }
 }
