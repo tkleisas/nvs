@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Dock.Model.Mvvm.Controls;
 using NVS.Core.Interfaces;
 using NVS.Core.LLM;
+using NVS.Core.Models;
 using NVS.Services.LLM;
 
 namespace NVS.ViewModels.Dock;
@@ -16,10 +17,26 @@ public sealed partial class LlmChatToolViewModel : Tool
     private bool _isSending;
     private bool _isStreaming;
     private string _statusText = "Ready";
+    private ChatSession? _currentSession;
 
     public MainViewModel Main { get; }
 
     public ObservableCollection<ChatBubble> Messages { get; } = [];
+    public ObservableCollection<ChatSession> Sessions { get; } = [];
+
+    public ChatSession? CurrentSession
+    {
+        get => _currentSession;
+        set
+        {
+            if (_currentSession != value)
+            {
+                _currentSession = value;
+                OnPropertyChanged();
+                _ = LoadCurrentSessionMessagesAsync();
+            }
+        }
+    }
 
     public string UserInput
     {
@@ -72,6 +89,116 @@ public sealed partial class LlmChatToolViewModel : Tool
         CanPin = true;
     }
 
+    /// <summary>Load sessions from the workspace database. Called when workspace opens.</summary>
+    public async Task LoadSessionsAsync()
+    {
+        var sessionService = Main.ChatSessionService;
+        if (sessionService is null || !sessionService.IsOpen) return;
+
+        try
+        {
+            var sessions = await sessionService.GetSessionsAsync();
+            Sessions.Clear();
+            foreach (var s in sessions)
+                Sessions.Add(s);
+
+            // Select the most recent session, or create one if none exist
+            if (Sessions.Count > 0)
+            {
+                CurrentSession = Sessions[0];
+            }
+            else
+            {
+                await CreateNewSessionAsync("New Chat");
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Failed to load chat sessions");
+        }
+    }
+
+    [RelayCommand]
+    private async Task NewSession()
+    {
+        await CreateNewSessionAsync("New Chat");
+    }
+
+    [RelayCommand]
+    private async Task DeleteSession()
+    {
+        var sessionService = Main.ChatSessionService;
+        if (sessionService is null || !sessionService.IsOpen || _currentSession is null) return;
+
+        try
+        {
+            var idToDelete = _currentSession.Id;
+            await sessionService.DeleteSessionAsync(idToDelete);
+
+            var toRemove = Sessions.FirstOrDefault(s => s.Id == idToDelete);
+            if (toRemove is not null)
+                Sessions.Remove(toRemove);
+
+            if (Sessions.Count > 0)
+            {
+                CurrentSession = Sessions[0];
+            }
+            else
+            {
+                await CreateNewSessionAsync("New Chat");
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Failed to delete chat session");
+        }
+    }
+
+    private async Task CreateNewSessionAsync(string title)
+    {
+        var sessionService = Main.ChatSessionService;
+        if (sessionService is null || !sessionService.IsOpen) return;
+
+        var session = await sessionService.CreateSessionAsync(title, SelectedTaskMode);
+        Sessions.Insert(0, session);
+        CurrentSession = session;
+    }
+
+    private async Task LoadCurrentSessionMessagesAsync()
+    {
+        Messages.Clear();
+        _conversationHistory.Clear();
+
+        var sessionService = Main.ChatSessionService;
+        if (sessionService is null || !sessionService.IsOpen || _currentSession is null) return;
+
+        try
+        {
+            var records = await sessionService.GetMessagesAsync(_currentSession.Id);
+            foreach (var record in records)
+            {
+                Messages.Add(new ChatBubble(record.Role, record.Content));
+
+                if (record.Role is "user" or "assistant" or "system")
+                {
+                    _conversationHistory.Add(record.Role switch
+                    {
+                        "user" => ChatCompletionMessage.User(record.Content),
+                        "assistant" => ChatCompletionMessage.Assistant(record.Content),
+                        _ => ChatCompletionMessage.System(record.Content)
+                    });
+                }
+            }
+
+            SelectedTaskMode = _currentSession.TaskMode;
+            StatusText = $"Session loaded · {records.Count} messages";
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Failed to load messages for session {Id}", _currentSession.Id);
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanSend))]
     private async Task SendMessage()
     {
@@ -85,10 +212,20 @@ public sealed partial class LlmChatToolViewModel : Tool
             return;
         }
 
+        // Ensure we have a session
+        if (_currentSession is null)
+        {
+            await CreateNewSessionAsync(GenerateTitle(input));
+        }
+
         Messages.Add(new ChatBubble("user", input));
         UserInput = string.Empty;
 
         _conversationHistory.Add(ChatCompletionMessage.User(input));
+
+        // Persist user message and auto-title
+        await PersistMessageAsync("user", input);
+        await AutoTitleSessionAsync(input);
 
         var assistantBubble = new ChatBubble("assistant", string.Empty);
         Messages.Add(assistantBubble);
@@ -128,6 +265,9 @@ public sealed partial class LlmChatToolViewModel : Tool
 
             _conversationHistory.Add(ChatCompletionMessage.Assistant(result.Content));
 
+            // Persist assistant response
+            await PersistMessageAsync("assistant", result.Content);
+
             StatusText = $"Done · {result.TotalInputTokens + result.TotalOutputTokens} tokens · {result.Iterations} iteration(s)";
         }
         catch (OperationCanceledException)
@@ -166,6 +306,56 @@ public sealed partial class LlmChatToolViewModel : Tool
         Messages.Clear();
         _conversationHistory.Clear();
         StatusText = "Ready";
+    }
+
+    private async Task PersistMessageAsync(string role, string content)
+    {
+        var sessionService = Main.ChatSessionService;
+        if (sessionService is null || !sessionService.IsOpen || _currentSession is null) return;
+
+        try
+        {
+            await sessionService.SaveMessageAsync(_currentSession.Id, role, content);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Failed to persist {Role} message", role);
+        }
+    }
+
+    private async Task AutoTitleSessionAsync(string firstInput)
+    {
+        var sessionService = Main.ChatSessionService;
+        if (sessionService is null || !sessionService.IsOpen || _currentSession is null) return;
+
+        // Only auto-title if the session is still "New Chat"
+        if (_currentSession.Title != "New Chat") return;
+
+        var title = GenerateTitle(firstInput);
+
+        try
+        {
+            await sessionService.UpdateSessionTitleAsync(_currentSession.Id, title);
+
+            // Update local session reference
+            var idx = Sessions.IndexOf(_currentSession);
+            var updated = _currentSession with { Title = title };
+            _currentSession = updated;
+            if (idx >= 0)
+                Sessions[idx] = updated;
+
+            OnPropertyChanged(nameof(CurrentSession));
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Failed to auto-title session");
+        }
+    }
+
+    private static string GenerateTitle(string input)
+    {
+        var title = input.ReplaceLineEndings(" ").Trim();
+        return title.Length > 60 ? string.Concat(title.AsSpan(0, 57), "...") : title;
     }
 
     private ILlmService? GetLlmService()

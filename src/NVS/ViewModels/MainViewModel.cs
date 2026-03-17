@@ -30,6 +30,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     private readonly IRoslynCompletionService? _roslynCompletionService;
     private readonly IPrerequisiteService? _prerequisiteService;
     private readonly ILanguageService? _languageService;
+    private readonly IChatSessionService? _chatSessionService;
 
     private string _title = "NVS - No Vim Substitute";
     private bool _isWorkspaceOpen;
@@ -94,7 +95,8 @@ public partial class MainViewModel : INotifyPropertyChanged
         ICodeMetricsService? codeMetricsService = null,
         IRoslynCompletionService? roslynCompletionService = null,
         IPrerequisiteService? prerequisiteService = null,
-        ILanguageService? languageService = null)
+        ILanguageService? languageService = null,
+        IChatSessionService? chatSessionService = null)
     {
         _workspaceService = workspaceService;
         _editorService = editorService;
@@ -109,6 +111,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         _roslynCompletionService = roslynCompletionService;
         _prerequisiteService = prerequisiteService;
         _languageService = languageService;
+        _chatSessionService = chatSessionService;
         SettingsService = settingsService;
         Editor = editor;
 
@@ -132,6 +135,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     public IDebugService? DebugService => _debugService;
     public IBreakpointStore? BreakpointStore => _breakpointStore;
     public ICodeMetricsService? CodeMetricsService => _codeMetricsService;
+    public IChatSessionService? ChatSessionService => _chatSessionService;
     public IGitService GitServiceAccessor => _gitService;
 
     public bool IsDebugging
@@ -474,6 +478,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         await InitializeGitAsync(folderPath);
         await DetectAndLoadSolutionAsync(folderPath);
         _ = CheckPrerequisitesAsync(folderPath);
+        await InitializeChatSessionsAsync(folderPath);
     }
 
     private async Task DetectAndLoadSolutionAsync(string folderPath)
@@ -1546,6 +1551,26 @@ public partial class MainViewModel : INotifyPropertyChanged
         {
             await RefreshGitBranches();
             await RefreshGitExtras();
+        }
+    }
+
+    private async Task InitializeChatSessionsAsync(string folderPath)
+    {
+        if (_chatSessionService is null) return;
+
+        try
+        {
+            await _chatSessionService.OpenWorkspaceAsync(folderPath);
+
+            // Notify the chat panel to load sessions
+            if (_dockFactory?.LlmChat is LlmChatToolViewModel chatVm)
+            {
+                await chatVm.LoadSessionsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Failed to initialize chat sessions for {Path}", folderPath);
         }
     }
 

@@ -17,6 +17,7 @@ using NVS.Services.Solution;
 using NVS.Services.Template;
 using NVS.Services.Terminal;
 using NVS.Services.Workspaces;
+using NVS.Services.Chat;
 using NVS.Services.LLM;
 using NVS.Services.LLM.Tools;
 using NVS.ViewModels;
@@ -152,6 +153,7 @@ public partial class App : Application
         services.AddSingleton<DebugAdapterRegistry>();
         services.AddSingleton<ITemplateService, TemplateService>();
         services.AddSingleton<ILlmService, LlmService>();
+        services.AddSingleton<IChatSessionService, ChatSessionService>();
         services.AddSingleton<INuGetService, NVS.Services.NuGet.NuGetPackageService>();
         services.AddSingleton<ICodeMetricsService, NVS.Services.Metrics.CodeMetricsService>();
         services.AddSingleton<IPrerequisiteService, NVS.Services.Prerequisites.PrerequisiteService>();

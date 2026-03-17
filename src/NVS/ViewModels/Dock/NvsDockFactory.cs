@@ -18,6 +18,7 @@ public sealed class NvsDockFactory : Factory
 
     public DiffViewerToolViewModel? DiffViewer { get; private set; }
     public ConflictResolverToolViewModel? ConflictResolver { get; private set; }
+    public LlmChatToolViewModel? LlmChat { get; private set; }
     public NvsDockFactory(MainViewModel main, NVS.Core.Models.Settings.DockLayoutSettings? dockSettings = null)
     {
         _main = main;
@@ -145,6 +146,7 @@ public sealed class NvsDockFactory : Factory
         _documentDock = documentDock;
         _rootDock = rootDock;
         ConflictResolver = conflictResolver;
+        LlmChat = llmChat;
 
         return rootDock;
     }
