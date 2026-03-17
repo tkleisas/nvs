@@ -40,6 +40,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private MultiCursorState? _multiCursorState;
     private MultiCursorRenderer? _multiCursorRenderer;
     private bool _applyingMultiCursorEdits;
+    private IDisposable? _languagePropertySubscription;
 
     public static readonly StyledProperty<string> TextProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, string>(
@@ -234,23 +235,21 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _multiCursorRenderer.SetState(_multiCursorState);
             _textEditor.TextArea.TextView.BackgroundRenderers.Add(_multiCursorRenderer);
 
-            // Install code folding
+            // Install code folding (language may not be bound yet, will update on change)
             var language = TextEditorSyntaxHighlighting.GetLanguage(_textEditor);
             _foldingHelper = new FoldingHelper(_textEditor, language);
 
-            // Wire minimap if present as sibling in parent Grid
-            if (_textEditor.Parent is Grid grid)
+            // Listen for Language attached property changes so folding updates when binding applies
+            _languagePropertySubscription = TextEditorSyntaxHighlighting.LanguageProperty.Changed.Subscribe(args =>
             {
-                foreach (var child in grid.Children)
+                if (args.Sender == _textEditor && _foldingHelper is not null)
                 {
-                    if (child is MinimapControl minimap)
-                    {
-                        _minimapControl = minimap;
-                        minimap.AttachEditor(_textEditor);
-                        break;
-                    }
+                    _foldingHelper.SetLanguage(args.NewValue.GetValueOrDefault());
                 }
-            }
+            });
+
+            // Defer minimap wiring to AttachedToVisualTree so sibling controls exist
+            _textEditor.AttachedToVisualTree += OnEditorAttachedToVisualTree;
 
             // Install breakpoint margin (left gutter)
             _breakpointMargin = new BreakpointMargin();
@@ -283,6 +282,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _textEditor.TextArea.TextView.PointerHover -= OnTextViewPointerHover;
             _textEditor.TextArea.TextView.PointerHoverStopped -= OnTextViewPointerHoverStopped;
             _textEditor.KeyDown -= OnKeyDown;
+            _textEditor.AttachedToVisualTree -= OnEditorAttachedToVisualTree;
             _autoCompleteCts?.Cancel();
             _autoCompleteCts?.Dispose();
             _hoverCts?.Cancel();
@@ -300,6 +300,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
                 _textEditor.TextArea.TextView.BackgroundRenderers.Remove(_bracketRenderer);
 
             _foldingHelper?.Dispose();
+            _languagePropertySubscription?.Dispose();
 
             _minimapControl?.DetachEditor();
 
@@ -312,6 +313,22 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             if (_metricsMargin != null)
             {
                 _textEditor.TextArea.LeftMargins.Remove(_metricsMargin);
+            }
+        }
+    }
+
+    private void OnEditorAttachedToVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        if (_textEditor?.Parent is Grid grid && _minimapControl is null)
+        {
+            foreach (var child in grid.Children)
+            {
+                if (child is MinimapControl minimap)
+                {
+                    _minimapControl = minimap;
+                    minimap.AttachEditor(_textEditor);
+                    break;
+                }
             }
         }
     }
