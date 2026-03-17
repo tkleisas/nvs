@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
              xmlns:models="clr-namespace:NVS.Core.Models;assembly=NVS.Core"
+             xmlns:controls="clr-namespace:NVS.Views.Controls"
              mc:Ignorable="d"
              x:Class="NVS.Views.Dock.LlmChatView"
              x:DataType="dock:LlmChatToolViewModel">
@@ -108,10 +109,7 @@
                             <!-- Assistant bubble -->
                             <Border Classes="assistant-bubble"
                                     IsVisible="{Binding IsAssistant}">
-                                <SelectableTextBlock Text="{Binding Content}"
-                                                     Foreground="{DynamicResource EditorForegroundBrush}"
-                                                     FontSize="12"
-                                                     TextWrapping="Wrap" />
+                                <controls:ChatContentPresenter ContentText="{Binding Content}" />
                             </Border>
                             <!-- System bubble -->
                             <Border Classes="system-bubble"
