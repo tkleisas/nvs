@@ -228,4 +228,74 @@ public sealed class DiffAlignerTests
         result[1].Right.Type.Should().Be(DiffSideLineType.Added);
         result[1].Right.Content.Should().Be("inserted");
     }
+
+    [Fact]
+    public void AlignFullFile_NoHunks_ShowsAllLinesAsContext()
+    {
+        var oldContent = "line1\nline2\nline3";
+        var newContent = "line1\nline2\nline3";
+
+        var result = DiffAligner.AlignFullFile(oldContent, newContent, []);
+
+        result.Should().HaveCount(3);
+        result.Should().AllSatisfy(p =>
+        {
+            p.Left.Type.Should().Be(DiffSideLineType.Context);
+            p.Right.Type.Should().Be(DiffSideLineType.Context);
+        });
+    }
+
+    [Fact]
+    public void AlignFullFile_WithHunk_ShowsUnchangedLinesBetweenChanges()
+    {
+        var oldContent = "line1\nline2\nold3\nline4\nline5";
+        var newContent = "line1\nline2\nnew3\nline4\nline5";
+
+        var hunk = new DiffHunk
+        {
+            OldStart = 3, OldCount = 1, NewStart = 3, NewCount = 1,
+            Lines =
+            [
+                new DiffLine { Type = DiffLineType.Deletion, Content = "old3", OldLineNumber = 3, NewLineNumber = -1 },
+                new DiffLine { Type = DiffLineType.Addition, Content = "new3", OldLineNumber = -1, NewLineNumber = 3 },
+            ],
+        };
+
+        var result = DiffAligner.AlignFullFile(oldContent, newContent, [hunk]);
+
+        // 5 lines total: 2 context + 1 change pair + 2 context
+        result.Should().HaveCount(5);
+        result[0].Left.Content.Should().Be("line1");
+        result[0].Left.Type.Should().Be(DiffSideLineType.Context);
+        result[1].Left.Content.Should().Be("line2");
+        result[2].Left.Type.Should().Be(DiffSideLineType.Deleted);
+        result[2].Left.Content.Should().Be("old3");
+        result[2].Right.Type.Should().Be(DiffSideLineType.Added);
+        result[2].Right.Content.Should().Be("new3");
+        result[3].Left.Content.Should().Be("line4");
+        result[3].Left.Type.Should().Be(DiffSideLineType.Context);
+        result[4].Left.Content.Should().Be("line5");
+    }
+
+    [Fact]
+    public void AlignFullFile_NullOldContent_TreatsAsNewFile()
+    {
+        var newContent = "line1\nline2";
+
+        var hunk = new DiffHunk
+        {
+            OldStart = 0, OldCount = 0, NewStart = 1, NewCount = 2,
+            Lines =
+            [
+                new DiffLine { Type = DiffLineType.Addition, Content = "line1", OldLineNumber = -1, NewLineNumber = 1 },
+                new DiffLine { Type = DiffLineType.Addition, Content = "line2", OldLineNumber = -1, NewLineNumber = 2 },
+            ],
+        };
+
+        var result = DiffAligner.AlignFullFile(null, newContent, [hunk]);
+
+        result.Should().HaveCount(2);
+        result[0].Right.Type.Should().Be(DiffSideLineType.Added);
+        result[0].Left.Type.Should().Be(DiffSideLineType.Empty);
+    }
 }

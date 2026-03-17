@@ -631,6 +631,38 @@ public sealed class GitService : IGitService, IDisposable
         return Task.FromResult<IReadOnlyList<DiffHunk>>(hunks);
     }
 
+    public Task<string?> GetFileContentFromHeadAsync(string path, CancellationToken cancellationToken = default)
+    {
+        if (_repo is null)
+            return Task.FromResult<string?>(null);
+
+        var headTree = _repo.Head?.Tip?.Tree;
+        if (headTree is null)
+            return Task.FromResult<string?>(null);
+
+        var entry = headTree[path];
+        if (entry?.Target is not LibGit2Sharp.Blob blob)
+            return Task.FromResult<string?>(null);
+
+        return Task.FromResult<string?>(blob.GetContentText());
+    }
+
+    public Task<string?> GetFileContentFromIndexAsync(string path, CancellationToken cancellationToken = default)
+    {
+        if (_repo is null)
+            return Task.FromResult<string?>(null);
+
+        var indexEntry = _repo.Index[path];
+        if (indexEntry is null)
+            return Task.FromResult<string?>(null);
+
+        var blob = _repo.Lookup<LibGit2Sharp.Blob>(indexEntry.Id);
+        if (blob is null)
+            return Task.FromResult<string?>(null);
+
+        return Task.FromResult<string?>(blob.GetContentText());
+    }
+
     public Task<GitOperationResult> CherryPickAsync(string commitSha, CancellationToken cancellationToken = default)
     {
         if (_repo is null)

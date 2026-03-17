@@ -43,6 +43,8 @@ public interface IGitService
     Task<IReadOnlyList<Commit>> GetLogAsync(int limit = 100, int skip = 0, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DiffHunk>> GetDiffAsync(string? path = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DiffHunk>> GetStagedDiffAsync(string? path = null, CancellationToken cancellationToken = default);
+    Task<string?> GetFileContentFromHeadAsync(string path, CancellationToken cancellationToken = default);
+    Task<string?> GetFileContentFromIndexAsync(string path, CancellationToken cancellationToken = default);
     Task<GitOperationResult> CherryPickAsync(string commitSha, CancellationToken cancellationToken = default);
 
     // Reset, amend, rebase

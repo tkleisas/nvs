@@ -79,7 +79,7 @@ public sealed partial class DiffViewerToolViewModel : Document
         CanPin = true;
     }
 
-    public void LoadDiff(string filePath, IReadOnlyList<DiffHunk> hunks, bool isStaged)
+    public void LoadDiff(string filePath, IReadOnlyList<DiffHunk> hunks, bool isStaged, string? oldContent = null, string? newContent = null)
     {
         FilePath = filePath;
         IsStaged = isStaged;
@@ -91,7 +91,10 @@ public sealed partial class DiffViewerToolViewModel : Document
         foreach (var h in hunks)
             Hunks.Add(h);
 
-        var aligned = DiffAligner.AlignHunks(hunks);
+        var aligned = (oldContent is not null || newContent is not null)
+            ? DiffAligner.AlignFullFile(oldContent, newContent, hunks)
+            : DiffAligner.AlignHunks(hunks);
+
         foreach (var pair in aligned)
             DiffLines.Add(pair);
 

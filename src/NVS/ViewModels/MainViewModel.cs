@@ -2274,8 +2274,30 @@ public partial class MainViewModel : INotifyPropertyChanged
             ? await _gitService.GetStagedDiffAsync(file.Path)
             : await _gitService.GetDiffAsync(file.Path);
 
+        // Get old/new file content for full-file diff view
+        string? oldContent;
+        string? newContent;
+
+        if (file.IsStaged)
+        {
+            // Staged: old = HEAD, new = index
+            oldContent = await _gitService.GetFileContentFromHeadAsync(file.Path);
+            newContent = await _gitService.GetFileContentFromIndexAsync(file.Path);
+        }
+        else
+        {
+            // Unstaged: old = index (or HEAD if not staged), new = working tree
+            newContent = null;
+            oldContent = await _gitService.GetFileContentFromIndexAsync(file.Path)
+                         ?? await _gitService.GetFileContentFromHeadAsync(file.Path);
+
+            var fullPath = System.IO.Path.Combine(_workspacePath ?? "", file.Path);
+            if (System.IO.File.Exists(fullPath))
+                newContent = await System.IO.File.ReadAllTextAsync(fullPath);
+        }
+
         var diffViewer = _dockFactory.OpenDiffDocument();
-        diffViewer.LoadDiff(file.Path, hunks, file.IsStaged);
+        diffViewer.LoadDiff(file.Path, hunks, file.IsStaged, oldContent, newContent);
         DiffViewer = diffViewer;
         StatusMessage = $"Diff: {file.Path} ({hunks.Count} hunks)";
     }
