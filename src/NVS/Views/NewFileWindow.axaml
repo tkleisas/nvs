@@ -8,6 +8,7 @@
         x:Class="NVS.Views.NewFileWindow"
         x:DataType="vm:NewFileViewModel"
         x:CompileBindings="True"
+        Icon="avares://NVS/Assets/nvs-icon.png"
         Title="New File from Template"
         Width="650" Height="600"
         MinWidth="550" MinHeight="500"

@@ -7,6 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="NVS.MainWindow"
         x:DataType="vm:MainViewModel"
+        Icon="avares://NVS/Assets/nvs-icon.png"
         Title="{Binding Title}"
         MinWidth="800" MinHeight="600"
         Background="{DynamicResource AppBackgroundBrush}">

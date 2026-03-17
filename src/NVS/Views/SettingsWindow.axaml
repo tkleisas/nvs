@@ -6,6 +6,7 @@
         mc:Ignorable="d" d:DesignWidth="850" d:DesignHeight="750"
         x:Class="NVS.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
+        Icon="avares://NVS/Assets/nvs-icon.png"
         Title="Settings"
         Width="850" Height="580"
         MinWidth="700" MinHeight="400"

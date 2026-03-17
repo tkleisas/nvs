@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="350"
         x:Class="NVS.Views.AboutWindow"
+        Icon="avares://NVS/Assets/nvs-icon.png"
         Title="About NVS"
         Width="450" Height="350"
         CanResize="False"

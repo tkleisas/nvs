@@ -53,6 +53,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AvaloniaResource Include="Assets\nvs-icon.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="NVS.Tests" />
   </ItemGroup>
 </Project>

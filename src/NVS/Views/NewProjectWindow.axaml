@@ -8,6 +8,7 @@
         x:Class="NVS.Views.NewProjectWindow"
         x:DataType="vm:NewProjectViewModel"
         x:CompileBindings="True"
+        Icon="avares://NVS/Assets/nvs-icon.png"
         Title="New Project"
         Width="700" Height="550"
         MinWidth="600" MinHeight="450"
