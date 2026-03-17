@@ -30,6 +30,7 @@
         <KeyBinding Gesture="Shift+F11" Command="{Binding DebugStepOutCommand}" />
         <KeyBinding Gesture="F9" Command="{Binding ToggleBreakpointCommand}" />
         <KeyBinding Gesture="F1" Command="{Binding ShowHelpCommand}" />
+        <KeyBinding Gesture="Ctrl+OemPipe" Command="{Binding SplitEditorRightCommand}" />
     </Window.KeyBindings>
 
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
@@ -74,6 +75,10 @@
                 <MenuItem Header="_Code Metrics" Command="{Binding ShowCodeMetricsCommand}" />
                 <Separator />
                 <MenuItem Header="_Terminal" Command="{Binding ToggleTerminalCommand}" InputGesture="Ctrl+OemTilde" />
+                <Separator />
+                <MenuItem Header="Split Editor _Right" InputGesture="Ctrl+OemPipe" Command="{Binding SplitEditorRightCommand}" />
+                <MenuItem Header="Split Editor _Down" Command="{Binding SplitEditorDownCommand}" />
+                <MenuItem Header="Close _Split" Command="{Binding CloseEditorSplitCommand}" />
             </MenuItem>
             <MenuItem Header="_Build">
                 <MenuItem Header="_Build Solution" InputGesture="Ctrl+Shift+B" Command="{Binding BuildSolutionCommand}" />

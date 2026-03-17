@@ -7,13 +7,21 @@
              xmlns:AvaloniaEdit="using:AvaloniaEdit"
              xmlns:i="using:Avalonia.Xaml.Interactivity"
              xmlns:behaviors="using:NVS.Behaviors"
+             xmlns:controls="using:NVS.Controls"
              mc:Ignorable="d"
              x:Class="NVS.Views.Dock.EditorView"
              x:DataType="dock:EditorDocumentViewModel">
 
     <Grid>
-        <!-- Tabs -->
-        <TabControl ItemsSource="{Binding Main.Editor.OpenDocuments}"
+        <!-- Primary Editor Pane -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <TabControl Grid.Column="0"
+                    ItemsSource="{Binding Main.Editor.OpenDocuments}"
                     SelectedIndex="{Binding Main.Editor.ActiveTabIndex}"
                     Background="{DynamicResource ToolPanelBackgroundBrush}"
                     BorderThickness="0">
@@ -36,7 +44,9 @@
             </TabControl.ItemTemplate>
             <TabControl.ContentTemplate>
                 <DataTemplate DataType="vm:DocumentViewModel">
+                    <Grid ColumnDefinitions="*,Auto">
                     <AvaloniaEdit:TextEditor
+                        Grid.Column="0"
                         behaviors:TextEditorSyntaxHighlighting.Language="{Binding Language}"
                         ShowLineNumbers="True"
                         FontFamily="Consolas,Courier New,monospace"
@@ -62,6 +72,10 @@
                                 <MenuItem Header="Quick Fix..." InputGesture="Ctrl+OemPeriod" Tag="QuickFix" Click="OnQuickFixClick"/>
                                 <Separator Tag="SqlSeparator" IsVisible="False"/>
                                 <MenuItem Tag="ExecuteSql" Header="Execute SQL in Database Explorer" Click="OnExecuteInDatabaseExplorerClick" IsVisible="False"/>
+                                <Separator/>
+                                <MenuItem Header="Split Right" Click="OnSplitRightClick"/>
+                                <MenuItem Header="Split Down" Click="OnSplitDownClick"/>
+                                <MenuItem Header="Close Split" Click="OnCloseSplitClick" Tag="CloseSplit" IsVisible="False"/>
                             </ContextMenu>
                         </AvaloniaEdit:TextEditor.ContextMenu>
                         <i:Interaction.Behaviors>
@@ -85,12 +99,64 @@
                                 FileMethodMetrics="{Binding FileMethodMetrics}"/>
                         </i:Interaction.Behaviors>
                     </AvaloniaEdit:TextEditor>
+                    <controls:MinimapControl Grid.Column="1" Width="80" Name="Minimap"/>
+                    </Grid>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
+
+        <!-- Split Splitter -->
+        <GridSplitter Grid.Column="1" Width="4"
+                      Background="{DynamicResource BorderBrush}"
+                      IsVisible="{Binding Main.Editor.IsSplitActive}"/>
+
+        <!-- Split Editor Pane -->
+        <TabControl Grid.Column="2"
+                    ItemsSource="{Binding Main.Editor.OpenDocuments}"
+                    SelectedIndex="{Binding Main.Editor.SplitTabIndex}"
+                    Background="{DynamicResource ToolPanelBackgroundBrush}"
+                    BorderThickness="0"
+                    IsVisible="{Binding Main.Editor.IsSplitActive}">
+            <TabControl.ItemTemplate>
+                <DataTemplate DataType="vm:DocumentViewModel">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{Binding Title}" FontSize="12" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate DataType="vm:DocumentViewModel">
+                    <Grid ColumnDefinitions="*,Auto">
+                    <AvaloniaEdit:TextEditor
+                        Grid.Column="0"
+                        behaviors:TextEditorSyntaxHighlighting.Language="{Binding Language}"
+                        ShowLineNumbers="True"
+                        FontFamily="Consolas,Courier New,monospace"
+                        FontSize="14"
+                        Background="{DynamicResource ToolPanelBackgroundBrush}"
+                        Foreground="{DynamicResource EditorForegroundBrush}"
+                        BorderThickness="0"
+                        Padding="8"
+                        WordWrap="False"
+                        IsReadOnly="True">
+                        <i:Interaction.Behaviors>
+                            <behaviors:DocumentTextBindingBehavior
+                                Text="{Binding Text, Mode=OneWay}"
+                                Line="{Binding CursorLine, Mode=OneWay}"
+                                Column="{Binding CursorColumn, Mode=OneWay}"
+                                Diagnostics="{Binding Diagnostics}"
+                                Breakpoints="{Binding Breakpoints}"
+                                DebugCurrentLine="{Binding DebugCurrentLine}"/>
+                        </i:Interaction.Behaviors>
+                    </AvaloniaEdit:TextEditor>
+                    <controls:MinimapControl Grid.Column="1" Width="80"/>
+                    </Grid>
                 </DataTemplate>
             </TabControl.ContentTemplate>
         </TabControl>
 
         <!-- Empty State -->
-        <Border Background="{DynamicResource ToolPanelBackgroundBrush}"
+        <Border Grid.ColumnSpan="3" Background="{DynamicResource ToolPanelBackgroundBrush}"
                 IsVisible="{Binding Main.Editor.HasNoOpenDocuments}">
             <StackPanel HorizontalAlignment="Center"
                        VerticalAlignment="Center"

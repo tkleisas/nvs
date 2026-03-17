@@ -9,7 +9,7 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
 ![Version](https://img.shields.io/badge/version-0.5.0-green)
-![Tests](https://img.shields.io/badge/tests-971%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1033%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -34,7 +34,7 @@ NVS is a code editor / IDE that:
 - Supports multi-project solutions with startup project selection.
 - Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
-- Has 971 tests, which is 971 more than the AI thought were necessary before the human insisted.
+- Has 1033 tests, which is 1033 more than the AI thought were necessary before the human insisted.
 
 ## Features
 
@@ -44,6 +44,11 @@ NVS is a code editor / IDE that:
 - Multi-tab editing with dirty indicators, line/column tracking
 - Right-click context menu (Cut, Copy, Paste, Select All, Go to Definition)
 - Dockable panels via Dock.Avalonia — drag, split, and rearrange
+- **Bracket matching** — highlights matching `()` `{}` `[]` at caret position
+- **Code folding** — brace-based folding for C-style languages, indentation-based for Python/YAML
+- **Minimap** — scaled document overview with viewport indicator, click-to-scroll
+- **Split editor** — vertical/horizontal split (Ctrl+\\, context menu, View menu)
+- **Multiple cursors** — Ctrl+D for next occurrence, Ctrl+Alt+Up/Down to add cursor above/below, Escape to clear
 - Compiled bindings for that sweet, sweet performance
 
 ### 🧠 Language Server Protocol (LSP) & Roslyn
@@ -214,7 +219,7 @@ dotnet run --project src/NVS
 # Open a solution directly
 dotnet run --project src/NVS -- path/to/solution.sln
 
-# Run tests (971 of them)
+# Run tests (1033 of them)
 dotnet test NVS.slnx
 ```
 
@@ -268,7 +273,7 @@ git push origin v0.5.0
 
 ## Testing
 
-971 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
+1033 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
 
 - **NVS.Core.Tests** — Core model tests
 - **NVS.Plugins.Tests** — Plugin system tests

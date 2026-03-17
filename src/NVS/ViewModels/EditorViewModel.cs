@@ -72,6 +72,72 @@ public partial class EditorViewModel : INotifyPropertyChanged
 
     public bool HasNoOpenDocuments => OpenDocuments.Count == 0;
 
+    // Split editor state
+    private bool _isSplitActive;
+    private int _splitTabIndex = -1;
+    private bool _isSplitVertical = true;
+
+    public bool IsSplitActive
+    {
+        get => _isSplitActive;
+        set
+        {
+            if (_isSplitActive != value)
+            {
+                _isSplitActive = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public int SplitTabIndex
+    {
+        get => _splitTabIndex;
+        set
+        {
+            _splitTabIndex = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsSplitVertical
+    {
+        get => _isSplitVertical;
+        set
+        {
+            if (_isSplitVertical != value)
+            {
+                _isSplitVertical = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void SplitRight()
+    {
+        if (OpenDocuments.Count < 1) return;
+        IsSplitVertical = true;
+        IsSplitActive = true;
+        SplitTabIndex = ActiveTabIndex;
+    }
+
+    [RelayCommand]
+    private void SplitDown()
+    {
+        if (OpenDocuments.Count < 1) return;
+        IsSplitVertical = false;
+        IsSplitActive = true;
+        SplitTabIndex = ActiveTabIndex;
+    }
+
+    [RelayCommand]
+    private void CloseSplit()
+    {
+        IsSplitActive = false;
+        SplitTabIndex = -1;
+    }
+
     public ObservableCollection<DocumentViewModel> OpenDocuments { get; } = [];
 
     public EditorViewModel(IEditorService editorService, IFileSystemService fileSystemService, ILspSessionManager? lspSessionManager = null, IBreakpointStore? breakpointStore = null, ICodeMetricsService? codeMetricsService = null)

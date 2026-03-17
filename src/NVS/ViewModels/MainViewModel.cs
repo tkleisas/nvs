@@ -1777,6 +1777,15 @@ public partial class MainViewModel : INotifyPropertyChanged
             ActivateToolInDock(metrics);
     }
 
+    [RelayCommand]
+    private void SplitEditorRight() => Editor?.SplitRightCommand.Execute(null);
+
+    [RelayCommand]
+    private void SplitEditorDown() => Editor?.SplitDownCommand.Execute(null);
+
+    [RelayCommand]
+    private void CloseEditorSplit() => Editor?.CloseSplitCommand.Execute(null);
+
     /// <summary>
     /// Opens a database file in the Database Explorer panel.
     /// </summary>

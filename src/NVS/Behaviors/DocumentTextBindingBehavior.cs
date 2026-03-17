@@ -4,12 +4,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Xaml.Interactivity;
 using AvaloniaEdit;
 using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit.Rendering;
 using AvaloniaEdit.Search;
 using CommunityToolkit.Mvvm.Input;
+using NVS.Controls;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
 using NVS.ViewModels;
@@ -22,6 +25,9 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private SearchPanel? _searchPanel;
     private DiagnosticBackgroundRenderer? _diagnosticRenderer;
     private CurrentLineHighlightRenderer? _currentLineRenderer;
+    private BracketHighlightRenderer? _bracketRenderer;
+    private FoldingHelper? _foldingHelper;
+    private MinimapControl? _minimapControl;
     private BreakpointMargin? _breakpointMargin;
     private MetricsGutterMargin? _metricsMargin;
     private CompletionWindow? _completionWindow;
@@ -31,6 +37,9 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private bool _debugHoverShowing;
     private string? _lastHoverWord;
     private bool _updating;
+    private MultiCursorState? _multiCursorState;
+    private MultiCursorRenderer? _multiCursorRenderer;
+    private bool _applyingMultiCursorEdits;
 
     public static readonly StyledProperty<string> TextProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, string>(
@@ -213,6 +222,36 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _currentLineRenderer = new CurrentLineHighlightRenderer(_textEditor.Document);
             _textEditor.TextArea.TextView.BackgroundRenderers.Add(_currentLineRenderer);
 
+            // Install bracket highlight renderer
+            _bracketRenderer = new BracketHighlightRenderer();
+            _bracketRenderer.SetDocument(_textEditor.Document);
+            _textEditor.TextArea.TextView.BackgroundRenderers.Add(_bracketRenderer);
+
+            // Install multi-cursor renderer
+            _multiCursorState = new MultiCursorState();
+            _multiCursorRenderer = new MultiCursorRenderer();
+            _multiCursorRenderer.SetDocument(_textEditor.Document);
+            _multiCursorRenderer.SetState(_multiCursorState);
+            _textEditor.TextArea.TextView.BackgroundRenderers.Add(_multiCursorRenderer);
+
+            // Install code folding
+            var language = TextEditorSyntaxHighlighting.GetLanguage(_textEditor);
+            _foldingHelper = new FoldingHelper(_textEditor, language);
+
+            // Wire minimap if present as sibling in parent Grid
+            if (_textEditor.Parent is Grid grid)
+            {
+                foreach (var child in grid.Children)
+                {
+                    if (child is MinimapControl minimap)
+                    {
+                        _minimapControl = minimap;
+                        minimap.AttachEditor(_textEditor);
+                        break;
+                    }
+                }
+            }
+
             // Install breakpoint margin (left gutter)
             _breakpointMargin = new BreakpointMargin();
             _breakpointMargin.BreakpointToggled += OnBreakpointToggled;
@@ -256,6 +295,13 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
             if (_currentLineRenderer != null)
                 _textEditor.TextArea.TextView.BackgroundRenderers.Remove(_currentLineRenderer);
+
+            if (_bracketRenderer != null)
+                _textEditor.TextArea.TextView.BackgroundRenderers.Remove(_bracketRenderer);
+
+            _foldingHelper?.Dispose();
+
+            _minimapControl?.DetachEditor();
 
             if (_breakpointMargin != null)
             {
@@ -352,6 +398,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private void OnCaretPositionChanged(object? sender, EventArgs e)
     {
         UpdateCaretPosition();
+        UpdateBracketHighlight();
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
@@ -378,6 +425,31 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
                 ToggleBreakpointCommand?.Execute(line);
             }
         }
+        // Ctrl+D → add next occurrence of selection to multi-cursor
+        else if (e.Key == Key.D && e.KeyModifiers == KeyModifiers.Control)
+        {
+            e.Handled = true;
+            HandleCtrlD();
+        }
+        // Ctrl+Alt+Up → add cursor above
+        else if (e.Key == Key.Up && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Alt))
+        {
+            e.Handled = true;
+            HandleAddCursorVertical(-1);
+        }
+        // Ctrl+Alt+Down → add cursor below
+        else if (e.Key == Key.Down && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Alt))
+        {
+            e.Handled = true;
+            HandleAddCursorVertical(1);
+        }
+        // Escape → clear multi-cursors
+        else if (e.Key == Key.Escape && _multiCursorState is { IsActive: true })
+        {
+            e.Handled = true;
+            _multiCursorState.Clear();
+            _textEditor?.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+        }
     }
 
     /// <summary>
@@ -395,6 +467,106 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             triggerCharacter);
     }
 
+    // --- Multi-cursor helpers ---
+
+    private void HandleCtrlD()
+    {
+        if (_textEditor is null || _multiCursorState is null) return;
+
+        var selection = _textEditor.SelectedText;
+        if (string.IsNullOrEmpty(selection))
+        {
+            // Select the word at caret
+            var offset = _textEditor.CaretOffset;
+            var doc = _textEditor.Document;
+            var text = doc.Text;
+
+            var start = offset;
+            while (start > 0 && IsWordChar(text[start - 1])) start--;
+            var end = offset;
+            while (end < text.Length && IsWordChar(text[end])) end++;
+
+            if (start < end)
+            {
+                _textEditor.Select(start, end - start);
+            }
+            return;
+        }
+
+        // Find next occurrence and add cursor there
+        var afterOffset = _textEditor.SelectionStart + _textEditor.SelectionLength;
+        var nextOffset = MultiCursorState.FindNextOccurrence(
+            _textEditor.Document.Text, selection, afterOffset);
+
+        if (nextOffset >= 0 && nextOffset != _textEditor.SelectionStart)
+        {
+            _multiCursorState.AddCursor(nextOffset);
+            _textEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+        }
+    }
+
+    private void HandleAddCursorVertical(int direction)
+    {
+        if (_textEditor is null || _multiCursorState is null) return;
+
+        var caret = _textEditor.TextArea.Caret;
+        var doc = _textEditor.Document;
+        var targetLineNum = caret.Line + direction;
+
+        if (targetLineNum < 1 || targetLineNum > doc.LineCount)
+            return;
+
+        var targetLine = doc.GetLineByNumber(targetLineNum);
+        var columnInLine = caret.Column - 1; // 0-based within line
+        var newOffset = _multiCursorState.AddCursorFromLine(
+            _textEditor.CaretOffset,
+            targetLine.Offset,
+            targetLine.Length,
+            columnInLine);
+
+        if (newOffset.HasValue)
+            _textEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+    }
+
+    private void ApplyMultiCursorInsert(string insertedText)
+    {
+        if (_textEditor is null || _multiCursorState is null) return;
+
+        _applyingMultiCursorEdits = true;
+        try
+        {
+            // The primary cursor already inserted the text.
+            // We need to know where it was BEFORE the insert to adjust secondary cursors.
+            var primaryOldOffset = _textEditor.CaretOffset - insertedText.Length;
+            var edits = _multiCursorState.GetInsertEdits(primaryOldOffset, insertedText);
+
+            var doc = _textEditor.Document;
+            doc.BeginUpdate();
+            try
+            {
+                // Apply in reverse order (high-to-low offset) to preserve positions
+                foreach (var (offset, text) in edits)
+                {
+                    if (offset >= 0 && offset <= doc.TextLength)
+                        doc.Insert(offset, text);
+                }
+            }
+            finally
+            {
+                doc.EndUpdate();
+            }
+
+            _multiCursorState.AdjustAfterSecondaryInserts(insertedText);
+            _textEditor.TextArea.TextView.InvalidateLayer(KnownLayer.Caret);
+        }
+        finally
+        {
+            _applyingMultiCursorEdits = false;
+        }
+    }
+
+    private static bool IsWordChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
     /// <summary>
     /// Auto-triggers completion after typing trigger characters (., &lt;)
     /// or signature help after ( and ,
@@ -405,6 +577,12 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         var text = e.Text;
         if (string.IsNullOrEmpty(text))
             return;
+
+        // Apply multi-cursor inserts for the typed text
+        if (!_applyingMultiCursorEdits && _multiCursorState is { IsActive: true } && _textEditor is not null)
+        {
+            ApplyMultiCursorInsert(text);
+        }
 
         var ch = text[0];
 
@@ -510,6 +688,19 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             Line = _textEditor.TextArea.Caret.Line;
             Column = _textEditor.TextArea.Caret.Column;
         }
+    }
+
+    private void UpdateBracketHighlight()
+    {
+        if (_bracketRenderer is null || _textEditor?.Document is null)
+            return;
+
+        var offset = _textEditor.TextArea.Caret.Offset;
+        var text = _textEditor.Document.Text;
+        var pair = BracketMatcher.FindMatchingBracket(text, offset);
+
+        _bracketRenderer.UpdateBracketPair(pair);
+        _textEditor.TextArea.TextView.InvalidateLayer(AvaloniaEdit.Rendering.KnownLayer.Caret);
     }
 
     private async void OnTextViewPointerHover(object? sender, PointerEventArgs e)

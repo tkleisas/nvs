@@ -372,4 +372,108 @@ public class EditorViewModelTests
         changedProps.Should().Contain(nameof(EditorViewModel.TotalWarnings));
         changedProps.Should().Contain(nameof(EditorViewModel.DiagnosticSummary));
     }
+
+    // --- Split editor ---
+
+    [Fact]
+    public void SplitRight_WithOpenDocument_ShouldActivateSplit()
+    {
+        var vm = CreateEditorViewModel();
+        vm.NewFile();
+
+        vm.SplitRightCommand.Execute(null);
+
+        vm.IsSplitActive.Should().BeTrue();
+        vm.IsSplitVertical.Should().BeTrue();
+        vm.SplitTabIndex.Should().Be(vm.ActiveTabIndex);
+    }
+
+    [Fact]
+    public void SplitDown_WithOpenDocument_ShouldActivateHorizontalSplit()
+    {
+        var vm = CreateEditorViewModel();
+        vm.NewFile();
+
+        vm.SplitDownCommand.Execute(null);
+
+        vm.IsSplitActive.Should().BeTrue();
+        vm.IsSplitVertical.Should().BeFalse();
+        vm.SplitTabIndex.Should().Be(vm.ActiveTabIndex);
+    }
+
+    [Fact]
+    public void SplitRight_WithNoDocuments_ShouldNotActivateSplit()
+    {
+        var vm = CreateEditorViewModel();
+
+        vm.SplitRightCommand.Execute(null);
+
+        vm.IsSplitActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SplitDown_WithNoDocuments_ShouldNotActivateSplit()
+    {
+        var vm = CreateEditorViewModel();
+
+        vm.SplitDownCommand.Execute(null);
+
+        vm.IsSplitActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CloseSplit_ShouldDeactivateSplit()
+    {
+        var vm = CreateEditorViewModel();
+        vm.NewFile();
+        vm.SplitRightCommand.Execute(null);
+
+        vm.CloseSplitCommand.Execute(null);
+
+        vm.IsSplitActive.Should().BeFalse();
+        vm.SplitTabIndex.Should().Be(-1);
+    }
+
+    [Fact]
+    public void SplitRight_ShouldTrackCurrentTabIndex()
+    {
+        var vm = CreateEditorViewModel();
+        vm.NewFile();
+        vm.NewFile();
+        vm.ActiveTabIndex = 1;
+
+        vm.SplitRightCommand.Execute(null);
+
+        vm.SplitTabIndex.Should().Be(1);
+    }
+
+    [Fact]
+    public void SplitDown_AfterSplitRight_ShouldSwitchToHorizontal()
+    {
+        var vm = CreateEditorViewModel();
+        vm.NewFile();
+        vm.SplitRightCommand.Execute(null);
+
+        vm.SplitDownCommand.Execute(null);
+
+        vm.IsSplitActive.Should().BeTrue();
+        vm.IsSplitVertical.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsSplitActive_ShouldRaisePropertyChanged()
+    {
+        var vm = CreateEditorViewModel();
+        vm.NewFile();
+        // Set to non-default so SplitRight triggers IsSplitVertical change
+        vm.IsSplitVertical = false;
+        var changedProps = new List<string>();
+        vm.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName!);
+
+        vm.SplitRightCommand.Execute(null);
+
+        changedProps.Should().Contain(nameof(EditorViewModel.IsSplitActive));
+        changedProps.Should().Contain(nameof(EditorViewModel.IsSplitVertical));
+        changedProps.Should().Contain(nameof(EditorViewModel.SplitTabIndex));
+    }
 }

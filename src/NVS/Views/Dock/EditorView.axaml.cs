@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using AvaloniaEdit;
@@ -13,6 +15,34 @@ public partial class EditorView : UserControl
     public EditorView()
     {
         InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
+    }
+
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is EditorDocumentViewModel editorDocVm && editorDocVm.Main.Editor is { } editor)
+        {
+            editor.PropertyChanged += OnEditorPropertyChanged;
+            UpdateSplitColumnWidth(editor.IsSplitActive);
+        }
+    }
+
+    private void OnEditorPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(EditorViewModel.IsSplitActive) && sender is EditorViewModel editor)
+        {
+            UpdateSplitColumnWidth(editor.IsSplitActive);
+        }
+    }
+
+    private void UpdateSplitColumnWidth(bool isSplitActive)
+    {
+        if (this.Content is Grid grid && grid.ColumnDefinitions.Count >= 3)
+        {
+            grid.ColumnDefinitions[2].Width = isSplitActive
+                ? new GridLength(1, GridUnitType.Star)
+                : new GridLength(0);
+        }
     }
 
     private static TextEditor? GetEditorFromMenuItem(object? sender)
@@ -53,9 +83,14 @@ public partial class EditorView : UserControl
         if (sender is not ContextMenu menu) return;
 
         var isSql = false;
+        var isSplitActive = false;
         if (menu.Parent is TextEditor { DataContext: DocumentViewModel docVm })
         {
             isSql = docVm.Language == Language.Sql;
+        }
+        if (DataContext is EditorDocumentViewModel editorDocVm && editorDocVm.Main.Editor is { } editorVm)
+        {
+            isSplitActive = editorVm.IsSplitActive;
         }
 
         foreach (var item in menu.Items)
@@ -67,6 +102,9 @@ public partial class EditorView : UserControl
                     break;
                 case Separator { Tag: "SqlSeparator" } sep:
                     sep.IsVisible = isSql;
+                    break;
+                case MenuItem { Tag: "CloseSplit" } closeSplit:
+                    closeSplit.IsVisible = isSplitActive;
                     break;
             }
         }
@@ -149,5 +187,23 @@ public partial class EditorView : UserControl
         {
             await editorDocVm.Main.ExecuteSqlInDatabaseExplorer(sql);
         }
+    }
+
+    private void OnSplitRightClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is EditorDocumentViewModel editorDocVm && editorDocVm.Main.Editor is { } editor)
+            editor.SplitRightCommand.Execute(null);
+    }
+
+    private void OnSplitDownClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is EditorDocumentViewModel editorDocVm && editorDocVm.Main.Editor is { } editor)
+            editor.SplitDownCommand.Execute(null);
+    }
+
+    private void OnCloseSplitClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is EditorDocumentViewModel editorDocVm && editorDocVm.Main.Editor is { } editor)
+            editor.CloseSplitCommand.Execute(null);
     }
 }
