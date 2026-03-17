@@ -1519,7 +1519,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         throw new TimeoutException("Debuggee process did not start within the timeout period.");
     }
 
-    private T? FindToolInDock<T>() where T : class
+    internal T? FindToolInDock<T>() where T : class
     {
         if (DockLayout is null) return null;
 

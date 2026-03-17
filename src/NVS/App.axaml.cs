@@ -223,7 +223,37 @@ public partial class App : Application
             return true;
         }));
 
-        Serilog.Log.Information("Registered {Count} LLM agent tools", 6);
+        // Build & test tools
+        Func<IBuildService> getBuildService = () => (IBuildService)Services!.GetService(typeof(IBuildService))!;
+        llmService.RegisterTool(new RunBuildTool(getBuildService, getWorkspaceOrDefault));
+        llmService.RegisterTool(new RunTestsTool(getBuildService, getWorkspaceOrDefault));
+
+        // Terminal tool
+        llmService.RegisterTool(new RunTerminalCommandTool(getWorkspaceOrDefault));
+
+        // Git tools
+        Func<IGitService> getGitService = () => (IGitService)Services!.GetService(typeof(IGitService))!;
+        llmService.RegisterTool(new GitStatusTool(getGitService));
+        llmService.RegisterTool(new GitDiffTool(getGitService));
+
+        // Diagnostics tool
+        llmService.RegisterTool(new GetDiagnosticsTool(() =>
+        {
+            var problemsTool = mainVm.FindToolInDock<ViewModels.Dock.ProblemsToolViewModel>();
+            if (problemsTool is null || problemsTool.Problems.Count == 0)
+                return [];
+            return problemsTool.Problems.Select(p => new GetDiagnosticsTool.DiagnosticInfo
+            {
+                FilePath = p.FilePath ?? "",
+                Line = p.Line ?? 0,
+                Column = p.Column ?? 0,
+                Severity = p.Severity,
+                Message = p.Message,
+                Code = null
+            }).ToList();
+        }));
+
+        Serilog.Log.Information("Registered {Count} LLM agent tools", 12);
     }
 }
 
