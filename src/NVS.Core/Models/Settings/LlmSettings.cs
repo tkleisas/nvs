@@ -41,6 +41,9 @@ public sealed record LlmSettings
     /// <summary>Enable LLM-powered auto-complete suggestions.</summary>
     public bool EnableAutoComplete { get; init; } = false;
 
+    /// <summary>Enable vision/image support (model must support multimodal input).</summary>
+    public bool SupportsVision { get; init; } = false;
+
     /// <summary>Active system prompt template name (coding, debugging, testing, general).</summary>
     public string ActivePromptTemplate { get; init; } = "general";
 }

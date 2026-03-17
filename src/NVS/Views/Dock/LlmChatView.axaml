@@ -157,14 +157,21 @@
         </ItemsControl>
 
         <!-- Input area -->
-        <Grid Grid.Row="4" ColumnDefinitions="Auto,*,Auto" Margin="6,2,6,2">
+        <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto,*,Auto" Margin="6,2,6,2">
             <Button Grid.Column="0"
                     Content="📎" Padding="6,6"
                     Background="Transparent" Foreground="#AAAAAA" FontSize="14"
                     Command="{Binding AttachFileCommand}"
                     VerticalAlignment="Bottom"
                     ToolTip.Tip="Attach file for context" />
-            <TextBox Grid.Column="1"
+            <Button Grid.Column="1"
+                    Content="📷" Padding="6,6"
+                    Background="Transparent" Foreground="#AAAAAA" FontSize="14"
+                    Command="{Binding AttachImageCommand}"
+                    IsVisible="{Binding SupportsVision}"
+                    VerticalAlignment="Bottom"
+                    ToolTip.Tip="Attach image (vision)" />
+            <TextBox Grid.Column="2"
                      Text="{Binding UserInput}"
                      Watermark="Ask anything..."
                      Background="{DynamicResource ToolPanelBackgroundBrush}"
@@ -176,7 +183,7 @@
                      TextWrapping="Wrap"
                      MaxHeight="120"
                      KeyDown="OnInputKeyDown" />
-            <Button Grid.Column="2"
+            <Button Grid.Column="3"
                     Content="➤"
                     Command="{Binding SendMessageCommand}"
                     Background="#264F78"

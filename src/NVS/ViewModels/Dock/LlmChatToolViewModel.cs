@@ -25,6 +25,9 @@ public sealed partial class LlmChatToolViewModel : Tool
     /// <summary>Files attached to the next message for context.</summary>
     public ObservableCollection<string> AttachedFiles { get; } = [];
 
+    /// <summary>Images attached to the next message (base64 data URIs).</summary>
+    public ObservableCollection<string> AttachedImages { get; } = [];
+
     public ObservableCollection<ChatBubble> Messages { get; } = [];
     public ObservableCollection<ChatSession> Sessions { get; } = [];
 
@@ -225,7 +228,11 @@ public sealed partial class LlmChatToolViewModel : Tool
         Messages.Add(new ChatBubble("user", input));
         UserInput = string.Empty;
 
-        _conversationHistory.Add(ChatCompletionMessage.User(input));
+        // Build message with optional images
+        var userMessage = AttachedImages.Count > 0
+            ? ChatCompletionMessage.UserWithImages(input, AttachedImages)
+            : ChatCompletionMessage.User(input);
+        _conversationHistory.Add(userMessage);
 
         // Persist user message and auto-title
         await PersistMessageAsync("user", input);
@@ -290,6 +297,7 @@ public sealed partial class LlmChatToolViewModel : Tool
             IsSending = false;
             IsStreaming = false;
             AttachedFiles.Clear();
+            AttachedImages.Clear();
             _streamCts?.Dispose();
             _streamCts = null;
         }
@@ -311,6 +319,7 @@ public sealed partial class LlmChatToolViewModel : Tool
         Messages.Clear();
         _conversationHistory.Clear();
         AttachedFiles.Clear();
+        AttachedImages.Clear();
         StatusText = "Ready";
     }
 
@@ -348,6 +357,58 @@ public sealed partial class LlmChatToolViewModel : Tool
         if (filePath is not null)
             AttachedFiles.Remove(filePath);
     }
+
+    [RelayCommand]
+    private async Task AttachImage()
+    {
+        try
+        {
+            var topLevel = Avalonia.Application.Current?.ApplicationLifetime is
+                Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                    ? desktop.MainWindow : null;
+
+            if (topLevel is null) return;
+
+            var storage = topLevel.StorageProvider;
+            var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Attach Image",
+                AllowMultiple = true,
+                FileTypeFilter = [new("Images") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.webp"] }]
+            });
+
+            foreach (var file in files)
+            {
+                var path = file.TryGetLocalPath();
+                if (path is null || !File.Exists(path)) continue;
+
+                var bytes = await File.ReadAllBytesAsync(path);
+                var ext = Path.GetExtension(path).ToLowerInvariant();
+                var mime = ext switch
+                {
+                    ".png" => "image/png",
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".gif" => "image/gif",
+                    ".bmp" => "image/bmp",
+                    ".webp" => "image/webp",
+                    _ => "image/png"
+                };
+                var dataUri = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+                AttachedImages.Add(dataUri);
+            }
+        }
+        catch { /* file picker cancelled or error */ }
+    }
+
+    [RelayCommand]
+    private void RemoveAttachedImage(int index)
+    {
+        if (index >= 0 && index < AttachedImages.Count)
+            AttachedImages.RemoveAt(index);
+    }
+
+    /// <summary>Whether the current LLM model supports vision (images in messages).</summary>
+    public bool SupportsVision => Main.SettingsService.AppSettings.Llm.SupportsVision;
 
     private async Task PersistMessageAsync(string role, string content)
     {
