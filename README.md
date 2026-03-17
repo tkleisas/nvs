@@ -8,8 +8,8 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
-![Version](https://img.shields.io/badge/version-0.7.0-green)
-![Tests](https://img.shields.io/badge/tests-1068%20passing-brightgreen)
+![Version](https://img.shields.io/badge/version-0.8.0-green)
+![Tests](https://img.shields.io/badge/tests-1162%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -34,7 +34,7 @@ NVS is a code editor / IDE that:
 - Supports multi-project solutions with startup project selection.
 - Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
-- Has 1068 tests, which is 1068 more than the AI thought were necessary before the human insisted.
+- Has 1162 tests, which is 1162 more than the AI thought were necessary before the human insisted.
 
 ## Features
 
@@ -137,7 +137,12 @@ NVS is a code editor / IDE that:
 - Built-in AI chat panel with streaming responses
 - Any OpenAI-compatible endpoint (OpenAI, OpenRouter, DeepSeek, Ollama, LM Studio)
 - Task modes: General, Coding, Debugging, Testing — each with tailored system prompts
-- Agent tools for file read/write, search, terminal commands, and editor integration
+- **12 agent tools**: file read/write, search, terminal commands, git status/diff, build, test, diagnostics, and editor integration
+- **Chat session persistence** — conversations saved to SQLite per workspace, survive restarts, create/switch/delete sessions via dropdown
+- **Code block highlighting** — assistant responses render code blocks with syntax highlighting, copy and apply-to-editor buttons
+- **Context enrichment** — attach files (📎), auto-includes open files, diagnostics, git branch/status in prompts
+- **Vision/image support** — attach images (📷) for multimodal models, base64 data URI encoding
+- **Inline ghost-text completions** — LLM-powered code suggestions appear as dimmed text after cursor, accept with Tab, dismiss with Escape
 - Configurable model, temperature, max iterations, and prompt templates
 - Yes, we built an AI-powered IDE using AI. It's slop all the way down.
 
@@ -224,7 +229,7 @@ dotnet run --project src/NVS
 # Open a solution directly
 dotnet run --project src/NVS -- path/to/solution.sln
 
-# Run tests (1033 of them)
+# Run tests (1162 of them)
 dotnet test NVS.slnx
 ```
 
@@ -278,11 +283,11 @@ git push origin v0.5.0
 
 ## Testing
 
-1033 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
+1162 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
 
 - **NVS.Core.Tests** — Core model tests
 - **NVS.Plugins.Tests** — Plugin system tests
-- **NVS.Services.Tests** — EditorService, LanguageService, LSP, Git, Terminal, Registry, Solution, Build, DAP, Debug, Breakpoints, LLM Agent Tools, NuGet, Code Metrics
+- **NVS.Services.Tests** — EditorService, LanguageService, LSP, Git, Terminal, Registry, Solution, Build, DAP, Debug, Breakpoints, LLM Agent Tools, Inline Completions, Chat Sessions, NuGet, Code Metrics
 - **NVS.Tests** — ViewModel tests (Editor, Document, Settings, MainViewModel, Build/Run, LLM Chat, NuGet, Help, Welcome)
 
 Test naming convention: `MethodName_Scenario_ExpectedOutcome`
