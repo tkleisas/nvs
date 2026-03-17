@@ -117,10 +117,15 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
         Layout:
         • Left Panel: Explorer, Search, Source Control
         • Center: Editor with tabs for open files
-        • Bottom Panel: Terminal, Build Output, Problems, Debug panels
+        • Bottom Panel: Terminal, Build Output, Problems, Code Metrics
         • Right Panel: LLM Chat assistant
+        • Status Bar: Line/column, branch, diagnostics, method metrics
 
         All panels are dockable — drag tabs to rearrange the layout.
+
+        AI Features:
+        Configure an LLM in Settings → LLM to enable the chat assistant
+        and inline ghost-text code completions (Tab to accept).
         """;
 
     internal static string GetKeyboardShortcutsContent() =>
@@ -143,11 +148,19 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
           Ctrl+F            Find
           Ctrl+H            Replace
           Ctrl+G            Go to line
+          Ctrl+D            Select next occurrence (multi-cursor)
+          Ctrl+Alt+Up       Add cursor above
+          Ctrl+Alt+Down     Add cursor below
+          Escape            Clear extra cursors / dismiss ghost text
 
         CODE
           Ctrl+Space        Autocomplete
           F12               Go to definition
+          Shift+F12         Find references
+          Ctrl+.            Code actions / quick fixes
           F2                Rename symbol
+          Tab               Accept ghost-text suggestion
+          Escape            Dismiss ghost-text suggestion
 
         BUILD & RUN
           Ctrl+Shift+B      Build solution
@@ -162,10 +175,15 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
           F11               Step into
           Shift+F11         Step out
 
+        EDITOR LAYOUT
+          Ctrl+\            Split editor vertically
+          Ctrl+Shift+\      Split editor horizontally
+
         NAVIGATION
           Ctrl+Shift+E      Explorer panel
           Ctrl+Shift+F      Search panel
           Ctrl+Shift+G      Source Control panel
+          Ctrl+Shift+O      Command palette
           Ctrl+`            Terminal panel
 
         HELP
@@ -177,24 +195,52 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
         EDITOR FEATURES
 
         Syntax Highlighting:
-        NVS provides regex-based syntax highlighting for 15+ languages including
-        C#, Python, JavaScript, TypeScript, Rust, Go, Java, C/C++, HTML, CSS,
-        JSON, XML, YAML, Markdown, and SQL.
+        NVS provides regex-based syntax highlighting for 16 languages including
+        C#, Python, JavaScript, TypeScript, Rust, Go, Java, PHP, C/C++, HTML,
+        CSS, JSON, XML, YAML, Markdown, and TOML.
 
         Autocomplete:
         Press Ctrl+Space to trigger autocomplete. When a Language Server is
-        configured, completions come from the LSP. Otherwise basic word-based
-        completion is available.
+        configured, completions come from the LSP. Roslyn provides rich C#
+        completions, hover tooltips, go-to-definition, references, signature
+        help, code actions, and formatting — all in-process.
+
+        Inline Ghost-Text Completions:
+        When an LLM is configured and auto-complete is enabled in Settings,
+        NVS suggests code as dimmed ghost text after the cursor. Press Tab
+        to accept the suggestion, or Escape to dismiss it. Suggestions are
+        triggered after a short pause while typing.
 
         Go to Definition:
         Press F12 to navigate to the definition of a symbol (requires LSP).
+        Shift+F12 to find all references. Ctrl+. for code actions.
+
+        Bracket Matching:
+        Matching brackets () {} [] are highlighted when the caret is adjacent.
+
+        Code Folding:
+        Brace-based folding for C-style languages, indentation-based for
+        Python and YAML. Click the fold markers in the gutter to collapse.
+
+        Minimap:
+        A scaled document overview appears to the right of the editor.
+        Click anywhere on the minimap to scroll to that position.
+
+        Split Editor:
+        Ctrl+\ splits the editor vertically, Ctrl+Shift+\ horizontally.
+        Also available via right-click context menu and View menu.
+
+        Multiple Cursors:
+        Ctrl+D selects the next occurrence of the current selection.
+        Ctrl+Alt+Up/Down adds a cursor above or below. Escape clears
+        extra cursors. Type once to edit at all cursor positions.
 
         Find & Replace:
         Ctrl+F opens the find bar, Ctrl+H opens find and replace.
 
         Line Numbers & Current Line:
         Line and column numbers are shown in the status bar. The current line
-        is highlighted.
+        is highlighted. Code metrics dots appear in the gutter for C# methods.
 
         Undo/Redo:
         Full undo/redo stack with Ctrl+Z and Ctrl+Y.
@@ -282,10 +328,15 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
 
         Features:
         • View changed, staged, and untracked files
-        • Stage/unstage individual files
-        • Commit with a message
-        • View diffs inline
-        • Current branch shown in status bar
+        • Stage/unstage individual files or partial hunks
+        • Commit with a message, amend last commit
+        • Side-by-side diff viewer — click any file to see changes
+        • Merge conflict resolution — 3-pane resolver with Accept Current,
+          Accept Incoming, and Accept Both per conflict block
+        • Branch management — create, checkout, delete, list
+        • Commit log and branch picker in status bar
+        • Reset (soft/mixed/hard), rebase onto branch
+        • Stash management and tag support
 
         Requirements:
         • Git must be installed on your system
@@ -299,7 +350,8 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
         Open Settings from the menu (gear icon) or Help → Settings.
 
         General:
-          Theme, keybinding preset, locale, auto-update check,
+          Theme selection (NVS Dark, NVS Light, Monokai, Solarized Dark),
+          keybinding preset, locale, auto-update check,
           session restore preference.
 
         Editor:
@@ -311,11 +363,12 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
 
         Language Servers:
           Configure LSP servers per language. NVS includes a built-in
-          registry of common language servers.
+          registry of 14 common language servers with one-click install.
 
         LLM:
           Configure AI assistant endpoint, model, API key,
-          temperature, streaming, and prompt templates.
+          temperature, streaming, prompt templates, auto-complete
+          (ghost-text), and vision/image support for multimodal models.
 
         Settings are stored in your user profile and persist across sessions.
         """;
@@ -394,8 +447,38 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
           Debugging — Bug diagnosis and fixes
           Testing — Test creation and coverage
 
-        The assistant can read and modify your project files using
-        built-in tools (file read/write, search, editor integration).
+        Agent Tools:
+        The assistant has 12 built-in tools:
+          • File read/write, search, and editor integration
+          • Build and test execution
+          • Terminal command execution
+          • Git status and diff
+          • Workspace diagnostics
+
+        Chat Sessions:
+        Conversations are saved per workspace and persist across
+        restarts. Use the session dropdown to create, switch between,
+        or delete sessions. Each session has an auto-generated title.
+
+        Code Blocks:
+        Assistant responses render code with syntax highlighting.
+        Use the Copy button to copy code, or Apply to insert it
+        directly into the active editor.
+
+        Context Enrichment:
+        The chat automatically includes context about open files,
+        diagnostics, git status, and the current branch. Use the
+        📎 button to attach additional files to your message.
+
+        Vision Support:
+        When enabled in Settings → LLM → Supports Vision, use the
+        📷 button to attach images (e.g. screenshots of UI issues).
+        Images are sent as base64 data URIs to the model.
+
+        Inline Ghost-Text Completions:
+        Enable auto-complete in Settings → LLM to get LLM-powered
+        code suggestions as you type. Ghost text appears dimmed
+        after the cursor — press Tab to accept, Escape to dismiss.
         """;
 
     internal static string GetSqliteContent() =>

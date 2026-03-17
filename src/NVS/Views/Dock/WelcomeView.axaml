@@ -101,13 +101,13 @@
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
                             <TextBlock Text="🔀 Git Integration" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
-                            <TextBlock Text="Stage, commit, diff, branch tracking" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                            <TextBlock Text="Stage, commit, diff, merge conflicts" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
                             <TextBlock Text="💬 AI Assistant" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
-                            <TextBlock Text="LLM chat with file tools" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                            <TextBlock Text="LLM chat, ghost-text completions, vision" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
