@@ -57,6 +57,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     private TerminalToolViewModel? _debugTerminal;
     private System.Diagnostics.Process? _debuggeeProcess;
     private System.Diagnostics.Process? _runningProcess;
+    private NvsDockFactory? _dockFactory;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -71,12 +72,11 @@ public partial class MainViewModel : INotifyPropertyChanged
     public void InitializeDock()
     {
         var dockSettings = SettingsService.AppSettings.Dock;
-        var factory = new NvsDockFactory(this, dockSettings);
-        var layout = factory.CreateLayout();
-        factory.InitLayout(layout);
+        _dockFactory = new NvsDockFactory(this, dockSettings);
+        var layout = _dockFactory.CreateLayout();
+        _dockFactory.InitLayout(layout);
         DockLayout = layout as IRootDock;
-        DiffViewer = factory.DiffViewer;
-        ConflictResolver = factory.ConflictResolver;
+        ConflictResolver = _dockFactory.ConflictResolver;
     }
 
     public MainViewModel(
@@ -2268,13 +2268,15 @@ public partial class MainViewModel : INotifyPropertyChanged
     [RelayCommand]
     private async Task GitViewDiff(GitFileStatus? file)
     {
-        if (file is null) return;
+        if (file is null || _dockFactory is null) return;
 
         var hunks = file.IsStaged
             ? await _gitService.GetStagedDiffAsync(file.Path)
             : await _gitService.GetDiffAsync(file.Path);
 
-        DiffViewer?.LoadDiff(file.Path, hunks, file.IsStaged);
+        var diffViewer = _dockFactory.OpenDiffDocument();
+        diffViewer.LoadDiff(file.Path, hunks, file.IsStaged);
+        DiffViewer = diffViewer;
         StatusMessage = $"Diff: {file.Path} ({hunks.Count} hunks)";
     }
 

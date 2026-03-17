@@ -10,7 +10,7 @@ using NVS.Services.Git;
 
 namespace NVS.ViewModels.Dock;
 
-public sealed partial class DiffViewerToolViewModel : Tool
+public sealed partial class DiffViewerToolViewModel : Document
 {
     // Value converters for AXAML bindings
     public static readonly IValueConverter IsDeletedConverter = new DiffLineTypeConverter(DiffSideLineType.Deleted);
@@ -75,7 +75,7 @@ public sealed partial class DiffViewerToolViewModel : Tool
         Main = main;
         Id = "DiffViewer";
         Title = "📊 Diff Viewer";
-        CanClose = false;
+        CanClose = true;
         CanPin = true;
     }
 

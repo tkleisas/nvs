@@ -18,7 +18,6 @@ public sealed class NvsDockFactory : Factory
 
     public DiffViewerToolViewModel? DiffViewer { get; private set; }
     public ConflictResolverToolViewModel? ConflictResolver { get; private set; }
-
     public NvsDockFactory(MainViewModel main, NVS.Core.Models.Settings.DockLayoutSettings? dockSettings = null)
     {
         _main = main;
@@ -40,7 +39,6 @@ public sealed class NvsDockFactory : Factory
         var nuget = new NuGetToolViewModel(_main);
         var help = new HelpToolViewModel();
         var codeMetrics = new CodeMetricsToolViewModel(_main);
-        var diffViewer = new DiffViewerToolViewModel(_main);
         var conflictResolver = new ConflictResolverToolViewModel(_main);
         var welcome = new WelcomeDocumentViewModel(_main);
         var editor = new EditorDocumentViewModel(_main);
@@ -70,7 +68,7 @@ public sealed class NvsDockFactory : Factory
                 new ToolDock
                 {
                     ActiveDockable = terminal,
-                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, dbExplorer, nuget, codeMetrics, help, diffViewer, conflictResolver),
+                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, dbExplorer, nuget, codeMetrics, help, conflictResolver),
                     Alignment = Alignment.Bottom,
                     GripMode = GripMode.Visible,
                 }
@@ -146,10 +144,31 @@ public sealed class NvsDockFactory : Factory
 
         _documentDock = documentDock;
         _rootDock = rootDock;
-        DiffViewer = diffViewer;
         ConflictResolver = conflictResolver;
 
         return rootDock;
+    }
+
+    public DiffViewerToolViewModel OpenDiffDocument()
+    {
+        // Reuse existing diff tab if open
+        if (DiffViewer is not null && _documentDock?.VisibleDockables?.Contains(DiffViewer) == true)
+        {
+            _documentDock.ActiveDockable = DiffViewer;
+            return DiffViewer;
+        }
+
+        var diffViewer = new DiffViewerToolViewModel(_main);
+        DiffViewer = diffViewer;
+
+        if (ContextLocator is Dictionary<string, Func<object?>> ctx)
+            ctx["DiffViewer"] = () => _main;
+
+        _documentDock?.VisibleDockables?.Add(diffViewer);
+        if (_documentDock is not null)
+            _documentDock.ActiveDockable = diffViewer;
+
+        return diffViewer;
     }
 
     public override IDockWindow? CreateWindowFrom(IDockable dockable)
