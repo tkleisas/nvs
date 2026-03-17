@@ -607,4 +607,107 @@ public sealed class GitServiceIntegrationTests : IDisposable
 
         skippedCommits.Should().HaveCount(allCommits.Count - 1);
     }
+
+    // ── Staged Diff Tests ──────────────────────────────────────────
+
+    [Fact]
+    public async Task GetStagedDiffAsync_WithStagedChanges_ReturnsDiff()
+    {
+        InitBareRepo();
+        CreateAndCommitFile("file.txt", "line1\nline2\nline3\n");
+
+        // Modify and stage
+        File.WriteAllText(Path.Combine(_tempDir, "file.txt"), "line1\nmodified\nline3\n");
+        using (var repo = new Repository(_tempDir))
+        {
+            Commands.Stage(repo, "file.txt");
+        }
+
+        await _gitService.InitializeAsync(_tempDir);
+        var hunks = await _gitService.GetStagedDiffAsync("file.txt");
+
+        hunks.Should().NotBeEmpty();
+        hunks.SelectMany(h => h.Lines).Should().Contain(l => l.Type == DiffLineType.Addition);
+    }
+
+    [Fact]
+    public async Task GetStagedDiffAsync_NoStagedChanges_ReturnsEmpty()
+    {
+        InitBareRepo();
+        CreateAndCommitFile("file.txt", "content");
+
+        await _gitService.InitializeAsync(_tempDir);
+        var hunks = await _gitService.GetStagedDiffAsync("file.txt");
+
+        hunks.Should().BeEmpty();
+    }
+
+    // ── Reset Tests ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ResetAsync_Soft_KeepsChangesStaged()
+    {
+        InitBareRepo();
+        CreateAndCommitFile("a.txt", "a");
+        CreateAndCommitFile("b.txt", "b");
+
+        await _gitService.InitializeAsync(_tempDir);
+        var logBefore = await _gitService.GetLogAsync();
+        var countBefore = logBefore.Count;
+
+        var result = await _gitService.ResetAsync(Core.Interfaces.ResetMode.Soft, 1);
+
+        result.Success.Should().BeTrue();
+        var logAfter = await _gitService.GetLogAsync();
+        logAfter.Should().HaveCount(countBefore - 1);
+    }
+
+    [Fact]
+    public async Task ResetAsync_NoCommits_Fails()
+    {
+        InitBareRepo();
+        await _gitService.InitializeAsync(_tempDir);
+
+        var result = await _gitService.ResetAsync(Core.Interfaces.ResetMode.Mixed);
+
+        result.Success.Should().BeFalse();
+    }
+
+    // ── Amend Tests ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task AmendCommitAsync_ChangesMessage()
+    {
+        InitBareRepo();
+        CreateAndCommitFile("file.txt", "content");
+
+        await _gitService.InitializeAsync(_tempDir);
+        var result = await _gitService.AmendCommitAsync("New message");
+
+        result.Success.Should().BeTrue();
+        result.CommitHash.Should().NotBeNullOrEmpty();
+
+        var log = await _gitService.GetLogAsync(limit: 1);
+        log.Should().ContainSingle().Which.Message.Should().Contain("New message");
+    }
+
+    [Fact]
+    public async Task AmendCommitAsync_NoCommits_Fails()
+    {
+        InitBareRepo();
+        await _gitService.InitializeAsync(_tempDir);
+
+        var result = await _gitService.AmendCommitAsync("test");
+
+        result.Success.Should().BeFalse();
+    }
+
+    // ── Mark Resolved Tests ────────────────────────────────────────
+
+    [Fact]
+    public async Task MarkResolvedAsync_WithNoRepo_Fails()
+    {
+        var result = await _gitService.MarkResolvedAsync("file.txt");
+        result.Success.Should().BeFalse();
+    }
 }

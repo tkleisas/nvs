@@ -1,5 +1,7 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using NVS.Core.Interfaces;
 using NVS.ViewModels;
 using NVS.ViewModels.Dock;
 
@@ -14,6 +16,24 @@ public partial class GitView : UserControl
 
     private MainViewModel? GetMain() =>
         (DataContext as GitToolViewModel)?.Main;
+
+    private void OnStagedFileClick(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is TextBlock { DataContext: GitFileStatus file })
+        {
+            var main = GetMain();
+            main?.GitViewDiffCommand.Execute(file);
+        }
+    }
+
+    private void OnChangedFileClick(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is TextBlock { DataContext: GitFileStatus file })
+        {
+            var main = GetMain();
+            main?.GitViewDiffCommand.Execute(file);
+        }
+    }
 
     private async void OnCreateBranchClick(object? sender, RoutedEventArgs e)
     {

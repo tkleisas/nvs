@@ -75,6 +75,8 @@ public partial class MainViewModel : INotifyPropertyChanged
         var layout = factory.CreateLayout();
         factory.InitLayout(layout);
         DockLayout = layout as IRootDock;
+        DiffViewer = factory.DiffViewer;
+        ConflictResolver = factory.ConflictResolver;
     }
 
     public MainViewModel(
@@ -130,6 +132,7 @@ public partial class MainViewModel : INotifyPropertyChanged
     public IDebugService? DebugService => _debugService;
     public IBreakpointStore? BreakpointStore => _breakpointStore;
     public ICodeMetricsService? CodeMetricsService => _codeMetricsService;
+    public IGitService GitServiceAccessor => _gitService;
 
     public bool IsDebugging
     {
@@ -201,6 +204,9 @@ public partial class MainViewModel : INotifyPropertyChanged
         get => _editor;
         set => SetProperty(ref _editor, value);
     }
+
+    public DiffViewerToolViewModel? DiffViewer { get; set; }
+    public ConflictResolverToolViewModel? ConflictResolver { get; set; }
 
     public ObservableCollection<FileTreeNode> FileTree { get; } = [];
     public ObservableCollection<InfoBarViewModel> InfoBarItems { get; } = [];
@@ -2257,6 +2263,130 @@ public partial class MainViewModel : INotifyPropertyChanged
         var moreCommits = await _gitService.GetLogAsync(limit: 50, skip: GitCommitLog.Count);
         foreach (var c in moreCommits)
             GitCommitLog.Add(c);
+    }
+
+    [RelayCommand]
+    private async Task GitViewDiff(GitFileStatus? file)
+    {
+        if (file is null) return;
+
+        var hunks = file.IsStaged
+            ? await _gitService.GetStagedDiffAsync(file.Path)
+            : await _gitService.GetDiffAsync(file.Path);
+
+        DiffViewer?.LoadDiff(file.Path, hunks, file.IsStaged);
+        StatusMessage = $"Diff: {file.Path} ({hunks.Count} hunks)";
+    }
+
+    [RelayCommand]
+    private async Task GitReset(string? modeStr)
+    {
+        var mode = modeStr?.ToLowerInvariant() switch
+        {
+            "soft" => ResetMode.Soft,
+            "hard" => ResetMode.Hard,
+            _ => ResetMode.Mixed,
+        };
+        var result = await _gitService.ResetAsync(mode);
+        if (result.Success)
+        {
+            RefreshGitFiles();
+            await RefreshGitExtras();
+            StatusMessage = $"Reset ({mode}) successful";
+        }
+        else
+        {
+            StatusMessage = $"Reset failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitAmendCommit()
+    {
+        var message = string.IsNullOrWhiteSpace(CommitMessage) ? null : CommitMessage;
+        var result = await _gitService.AmendCommitAsync(message);
+        if (result.Success)
+        {
+            StatusMessage = $"Amended: {result.CommitHash?[..7]}";
+            CommitMessage = "";
+            RefreshGitFiles();
+            await RefreshGitExtras();
+        }
+        else
+        {
+            StatusMessage = $"Amend failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitRebase(string? ontoBranch)
+    {
+        if (string.IsNullOrWhiteSpace(ontoBranch)) return;
+        var result = await _gitService.RebaseAsync(ontoBranch);
+        if (result.Success)
+        {
+            CurrentBranch = _gitService.CurrentBranch ?? "";
+            RefreshGitFiles();
+            await RefreshGitExtras();
+            StatusMessage = $"Rebased onto {ontoBranch}";
+        }
+        else
+        {
+            StatusMessage = $"Rebase failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitMarkResolved(GitFileStatus? file)
+    {
+        if (file is null) return;
+        var result = await _gitService.MarkResolvedAsync(file.Path);
+        StatusMessage = result.Success
+            ? $"Resolved: {file.Path}"
+            : $"Mark resolved failed: {result.ErrorMessage}";
+    }
+
+    [RelayCommand]
+    private async Task GitStageHunk((string path, int hunkIndex) args)
+    {
+        var result = await _gitService.StageHunkAsync(args.path, args.hunkIndex);
+        if (result.Success)
+        {
+            RefreshGitFiles();
+            StatusMessage = $"Staged hunk {args.hunkIndex} of {args.path}";
+        }
+        else
+        {
+            StatusMessage = $"Stage hunk failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitUnstageHunk((string path, int hunkIndex) args)
+    {
+        var result = await _gitService.UnstageHunkAsync(args.path, args.hunkIndex);
+        if (result.Success)
+        {
+            RefreshGitFiles();
+            StatusMessage = $"Unstaged hunk {args.hunkIndex} of {args.path}";
+        }
+        else
+        {
+            StatusMessage = $"Unstage hunk failed: {result.ErrorMessage}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task GitOpenConflictResolver(GitFileStatus? file)
+    {
+        if (file is null || _workspacePath is null) return;
+
+        var fullPath = Path.Combine(_workspacePath, file.Path);
+        if (!File.Exists(fullPath)) return;
+
+        var content = await File.ReadAllTextAsync(fullPath);
+        ConflictResolver?.LoadFile(fullPath, content);
+        StatusMessage = $"Conflict resolver: {file.Path}";
     }
 
     private async Task RefreshGitBranches()

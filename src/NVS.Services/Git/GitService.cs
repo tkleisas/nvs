@@ -6,6 +6,7 @@ using Tag = NVS.Core.Interfaces.Tag;
 using Remote = NVS.Core.Interfaces.Remote;
 using RepositoryStatus = NVS.Core.Interfaces.RepositoryStatus;
 using MergeResult = NVS.Core.Interfaces.MergeResult;
+using ResetMode = NVS.Core.Interfaces.ResetMode;
 
 namespace NVS.Services.Git;
 
@@ -603,6 +604,33 @@ public sealed class GitService : IGitService, IDisposable
         return Task.FromResult<IReadOnlyList<DiffHunk>>(hunks);
     }
 
+    public Task<IReadOnlyList<DiffHunk>> GetStagedDiffAsync(string? path = null, CancellationToken cancellationToken = default)
+    {
+        if (_repo is null)
+            return Task.FromResult<IReadOnlyList<DiffHunk>>([]);
+
+        var headTree = _repo.Head?.Tip?.Tree;
+
+        // For initial commits (no HEAD), compare null tree against index
+        Patch diff;
+        if (path is not null)
+        {
+            diff = _repo.Diff.Compare<Patch>(headTree, DiffTargets.Index, [path]);
+        }
+        else
+        {
+            diff = _repo.Diff.Compare<Patch>(headTree, DiffTargets.Index);
+        }
+
+        var hunks = new List<DiffHunk>();
+        foreach (var entry in diff)
+        {
+            hunks.AddRange(ParsePatch(entry.Patch));
+        }
+
+        return Task.FromResult<IReadOnlyList<DiffHunk>>(hunks);
+    }
+
     public Task<GitOperationResult> CherryPickAsync(string commitSha, CancellationToken cancellationToken = default)
     {
         if (_repo is null)
@@ -725,6 +753,229 @@ public sealed class GitService : IGitService, IDisposable
         {
             _repo.Network.Remotes.Update(name, r => r.Url = url);
             return Task.FromResult(GitOperationResult.Ok());
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(GitOperationResult.Fail(ex.Message));
+        }
+    }
+
+    // ── Reset, Amend, Rebase ──────────────────────────────────────
+
+    public Task<GitOperationResult> ResetAsync(ResetMode mode, int commitCount = 1, CancellationToken cancellationToken = default)
+    {
+        if (_repo is null)
+            return Task.FromResult(GitOperationResult.Fail("No repository"));
+
+        try
+        {
+            var head = _repo.Head?.Tip;
+            if (head is null)
+                return Task.FromResult(GitOperationResult.Fail("No commits to reset"));
+
+            var target = head;
+            for (var i = 0; i < commitCount; i++)
+            {
+                if (target.Parents.FirstOrDefault() is { } parent)
+                    target = parent;
+                else
+                    return Task.FromResult(GitOperationResult.Fail($"Cannot reset {commitCount} commits — not enough history"));
+            }
+
+            var libMode = mode switch
+            {
+                ResetMode.Soft => LibGit2Sharp.ResetMode.Soft,
+                ResetMode.Mixed => LibGit2Sharp.ResetMode.Mixed,
+                ResetMode.Hard => LibGit2Sharp.ResetMode.Hard,
+                _ => LibGit2Sharp.ResetMode.Mixed,
+            };
+
+            _repo.Reset(libMode, target);
+            RefreshStatus();
+            return Task.FromResult(GitOperationResult.Ok());
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(GitOperationResult.Fail(ex.Message));
+        }
+    }
+
+    public Task<CommitResult> AmendCommitAsync(string? newMessage = null, CancellationToken cancellationToken = default)
+    {
+        if (_repo is null)
+            return Task.FromResult(new CommitResult { Success = false, ErrorMessage = "No repository" });
+
+        try
+        {
+            var head = _repo.Head?.Tip;
+            if (head is null)
+                return Task.FromResult(new CommitResult { Success = false, ErrorMessage = "No commits to amend" });
+
+            var message = newMessage ?? head.Message;
+            var author = head.Author;
+            var committer = _repo.Config.BuildSignature(DateTimeOffset.Now);
+            if (committer is null)
+                return Task.FromResult(new CommitResult { Success = false, ErrorMessage = "Git user name/email not configured" });
+
+            var amended = _repo.Commit(message, author, committer, new CommitOptions { AmendPreviousCommit = true });
+            RefreshStatus();
+            return Task.FromResult(new CommitResult { Success = true, CommitHash = amended.Sha });
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(new CommitResult { Success = false, ErrorMessage = ex.Message });
+        }
+    }
+
+    public Task<GitOperationResult> RebaseAsync(string ontoBranch, CancellationToken cancellationToken = default)
+    {
+        if (_repo is null)
+            return Task.FromResult(GitOperationResult.Fail("No repository"));
+
+        try
+        {
+            var onto = _repo.Branches[ontoBranch];
+            if (onto is null)
+                return Task.FromResult(GitOperationResult.Fail($"Branch '{ontoBranch}' not found"));
+
+            var signature = _repo.Config.BuildSignature(DateTimeOffset.Now);
+            if (signature is null)
+                return Task.FromResult(GitOperationResult.Fail("Git user name/email not configured"));
+
+            var result = _repo.Rebase.Start(_repo.Head, onto, onto, new Identity(signature.Name, signature.Email), new RebaseOptions());
+
+            if (result.Status == RebaseStatus.Conflicts)
+            {
+                _repo.Rebase.Abort();
+                RefreshStatus();
+                return Task.FromResult(GitOperationResult.Fail("Rebase has conflicts — aborted. Resolve conflicts manually or use merge instead."));
+            }
+
+            RefreshStatus();
+            return Task.FromResult(GitOperationResult.Ok());
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(GitOperationResult.Fail(ex.Message));
+        }
+    }
+
+    // ── Conflict Resolution ─────────────────────────────────────────
+
+    public Task<GitOperationResult> MarkResolvedAsync(string path, CancellationToken cancellationToken = default)
+    {
+        if (_repo is null)
+            return Task.FromResult(GitOperationResult.Fail("No repository"));
+
+        try
+        {
+            _repo.Index.Add(path);
+            _repo.Index.Write();
+            RefreshStatus();
+            return Task.FromResult(GitOperationResult.Ok());
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(GitOperationResult.Fail(ex.Message));
+        }
+    }
+
+    // ── Partial (Hunk) Staging ──────────────────────────────────────
+
+    public Task<GitOperationResult> StageHunkAsync(string path, int hunkIndex, CancellationToken cancellationToken = default)
+    {
+        return ApplyHunkPatchAsync(path, hunkIndex, stage: true);
+    }
+
+    public Task<GitOperationResult> UnstageHunkAsync(string path, int hunkIndex, CancellationToken cancellationToken = default)
+    {
+        return ApplyHunkPatchAsync(path, hunkIndex, stage: false);
+    }
+
+    private Task<GitOperationResult> ApplyHunkPatchAsync(string path, int hunkIndex, bool stage)
+    {
+        if (_repo is null)
+            return Task.FromResult(GitOperationResult.Fail("No repository"));
+
+        try
+        {
+            Patch diff;
+            if (stage)
+            {
+                diff = _repo.Diff.Compare<Patch>([path]);
+            }
+            else
+            {
+                var headTree = _repo.Head?.Tip?.Tree;
+                diff = _repo.Diff.Compare<Patch>(headTree, DiffTargets.Index, [path]);
+            }
+
+            var entry = diff.FirstOrDefault();
+            if (entry is null)
+                return Task.FromResult(GitOperationResult.Fail("No changes found"));
+
+            var hunks = ParsePatch(entry.Patch);
+            if (hunkIndex < 0 || hunkIndex >= hunks.Count)
+                return Task.FromResult(GitOperationResult.Fail($"Hunk index {hunkIndex} out of range (0-{hunks.Count - 1})"));
+
+            // Build a minimal patch containing only the target hunk
+            var hunk = hunks[hunkIndex];
+            var patchBuilder = new System.Text.StringBuilder();
+            patchBuilder.AppendLine($"--- a/{path}");
+            patchBuilder.AppendLine($"+++ b/{path}");
+            patchBuilder.AppendLine($"@@ -{hunk.OldStart},{hunk.OldCount} +{hunk.NewStart},{hunk.NewCount} @@");
+
+            foreach (var line in hunk.Lines)
+            {
+                var prefix = line.Type switch
+                {
+                    DiffLineType.Addition => "+",
+                    DiffLineType.Deletion => "-",
+                    _ => " ",
+                };
+                patchBuilder.AppendLine($"{prefix}{line.Content}");
+            }
+
+            // Apply via git command line since LibGit2Sharp doesn't support patch apply
+            var repoPath = _repo.Info.WorkingDirectory;
+            var patchFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"nvs_hunk_{Guid.NewGuid():N}.patch");
+            System.IO.File.WriteAllText(patchFile, patchBuilder.ToString());
+
+            try
+            {
+                var args = stage
+                    ? $"apply --cached \"{patchFile}\""
+                    : $"apply --cached --reverse \"{patchFile}\"";
+
+                var psi = new System.Diagnostics.ProcessStartInfo("git", args)
+                {
+                    WorkingDirectory = repoPath,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+
+                using var proc = System.Diagnostics.Process.Start(psi);
+                if (proc is null)
+                    return Task.FromResult(GitOperationResult.Fail("Failed to start git process"));
+
+                proc.WaitForExit(10000);
+                if (proc.ExitCode != 0)
+                {
+                    var error = proc.StandardError.ReadToEnd();
+                    return Task.FromResult(GitOperationResult.Fail($"git apply failed: {error}"));
+                }
+
+                // RefreshStatus re-reads from repo after external git modification
+                RefreshStatus();
+                return Task.FromResult(GitOperationResult.Ok());
+            }
+            finally
+            {
+                if (System.IO.File.Exists(patchFile))
+                    System.IO.File.Delete(patchFile);
+            }
         }
         catch (Exception ex)
         {

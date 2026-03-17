@@ -42,7 +42,20 @@ public interface IGitService
     // History & diff
     Task<IReadOnlyList<Commit>> GetLogAsync(int limit = 100, int skip = 0, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DiffHunk>> GetDiffAsync(string? path = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DiffHunk>> GetStagedDiffAsync(string? path = null, CancellationToken cancellationToken = default);
     Task<GitOperationResult> CherryPickAsync(string commitSha, CancellationToken cancellationToken = default);
+
+    // Reset, amend, rebase
+    Task<GitOperationResult> ResetAsync(ResetMode mode, int commitCount = 1, CancellationToken cancellationToken = default);
+    Task<CommitResult> AmendCommitAsync(string? newMessage = null, CancellationToken cancellationToken = default);
+    Task<GitOperationResult> RebaseAsync(string ontoBranch, CancellationToken cancellationToken = default);
+
+    // Conflict resolution
+    Task<GitOperationResult> MarkResolvedAsync(string path, CancellationToken cancellationToken = default);
+
+    // Partial (hunk) staging
+    Task<GitOperationResult> StageHunkAsync(string path, int hunkIndex, CancellationToken cancellationToken = default);
+    Task<GitOperationResult> UnstageHunkAsync(string path, int hunkIndex, CancellationToken cancellationToken = default);
 
     // Remotes
     Task PullAsync(CancellationToken cancellationToken = default);
@@ -182,4 +195,21 @@ public enum DiffLineType
     Context,
     Addition,
     Deletion
+}
+
+public enum ResetMode
+{
+    Soft,
+    Mixed,
+    Hard
+}
+
+public sealed record ConflictBlock
+{
+    public required int StartLine { get; init; }
+    public required int EndLine { get; init; }
+    public required IReadOnlyList<string> OursLines { get; init; }
+    public required IReadOnlyList<string> TheirsLines { get; init; }
+    public string? OursLabel { get; init; }
+    public string? TheirsLabel { get; init; }
 }

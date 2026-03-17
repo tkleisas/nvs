@@ -1,0 +1,101 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             xmlns:git="clr-namespace:NVS.Services.Git;assembly=NVS.Services"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.DiffViewerView"
+             x:DataType="dock:DiffViewerToolViewModel">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{DynamicResource ToolPanelBackgroundBrush}" Padding="8,4">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding DisplayTitle}" FontSize="13" FontWeight="Bold"
+                               Foreground="{DynamicResource TextForegroundBrush}" />
+                    <TextBlock FontSize="11" Foreground="#4EC9B0">
+                        <Run Text="+" /><Run Text="{Binding Additions}" />
+                    </TextBlock>
+                    <TextBlock FontSize="11" Foreground="#F44747">
+                        <Run Text="-" /><Run Text="{Binding Deletions}" />
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Diff Content -->
+        <Border Grid.Row="1" Background="{DynamicResource EditorBackgroundBrush}">
+            <ScrollViewer x:Name="DiffScrollViewer"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding DiffLines}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="git:DiffSidePair">
+                            <Grid ColumnDefinitions="50,*,2,50,*" MinHeight="20">
+                                <!-- Left side (old) -->
+                                <Border Grid.Column="0" Grid.ColumnSpan="2"
+                                        Classes="diffLine"
+                                        Classes.deleted="{Binding Left.Type, Converter={x:Static dock:DiffViewerToolViewModel.IsDeletedConverter}}"
+                                        Classes.empty="{Binding Left.Type, Converter={x:Static dock:DiffViewerToolViewModel.IsEmptyConverter}}">
+                                    <Grid ColumnDefinitions="50,*">
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Left.LineNumber}"
+                                                   FontSize="11" FontFamily="Consolas,monospace"
+                                                   Foreground="#555" HorizontalAlignment="Right"
+                                                   Margin="0,0,8,0" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Left.Content}"
+                                                   FontSize="12" FontFamily="Consolas,monospace"
+                                                   Foreground="{DynamicResource TextForegroundBrush}"
+                                                   TextWrapping="NoWrap" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- Separator -->
+                                <Border Grid.Column="2" Background="#333" />
+
+                                <!-- Right side (new) -->
+                                <Border Grid.Column="3" Grid.ColumnSpan="2"
+                                        Classes="diffLine"
+                                        Classes.added="{Binding Right.Type, Converter={x:Static dock:DiffViewerToolViewModel.IsAddedConverter}}"
+                                        Classes.empty="{Binding Right.Type, Converter={x:Static dock:DiffViewerToolViewModel.IsEmptyConverter}}">
+                                    <Grid ColumnDefinitions="50,*">
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Right.LineNumber}"
+                                                   FontSize="11" FontFamily="Consolas,monospace"
+                                                   Foreground="#555" HorizontalAlignment="Right"
+                                                   Margin="0,0,8,0" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Right.Content}"
+                                                   FontSize="12" FontFamily="Consolas,monospace"
+                                                   Foreground="{DynamicResource TextForegroundBrush}"
+                                                   TextWrapping="NoWrap" />
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+
+    <UserControl.Styles>
+        <Style Selector="Border.diffLine">
+            <Setter Property="Padding" Value="4,1" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.diffLine.deleted">
+            <Setter Property="Background" Value="#30F44747" />
+        </Style>
+        <Style Selector="Border.diffLine.added">
+            <Setter Property="Background" Value="#304EC9B0" />
+        </Style>
+        <Style Selector="Border.diffLine.empty">
+            <Setter Property="Background" Value="#15808080" />
+        </Style>
+    </UserControl.Styles>
+</UserControl>

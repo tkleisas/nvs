@@ -16,6 +16,9 @@ public sealed class NvsDockFactory : Factory
     private IRootDock? _rootDock;
     private IDocumentDock? _documentDock;
 
+    public DiffViewerToolViewModel? DiffViewer { get; private set; }
+    public ConflictResolverToolViewModel? ConflictResolver { get; private set; }
+
     public NvsDockFactory(MainViewModel main, NVS.Core.Models.Settings.DockLayoutSettings? dockSettings = null)
     {
         _main = main;
@@ -37,6 +40,8 @@ public sealed class NvsDockFactory : Factory
         var nuget = new NuGetToolViewModel(_main);
         var help = new HelpToolViewModel();
         var codeMetrics = new CodeMetricsToolViewModel(_main);
+        var diffViewer = new DiffViewerToolViewModel(_main);
+        var conflictResolver = new ConflictResolverToolViewModel(_main);
         var welcome = new WelcomeDocumentViewModel(_main);
         var editor = new EditorDocumentViewModel(_main);
 
@@ -65,7 +70,7 @@ public sealed class NvsDockFactory : Factory
                 new ToolDock
                 {
                     ActiveDockable = terminal,
-                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, dbExplorer, nuget, codeMetrics, help),
+                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, dbExplorer, nuget, codeMetrics, help, diffViewer, conflictResolver),
                     Alignment = Alignment.Bottom,
                     GripMode = GripMode.Visible,
                 }
@@ -141,6 +146,8 @@ public sealed class NvsDockFactory : Factory
 
         _documentDock = documentDock;
         _rootDock = rootDock;
+        DiffViewer = diffViewer;
+        ConflictResolver = conflictResolver;
 
         return rootDock;
     }
@@ -172,6 +179,8 @@ public sealed class NvsDockFactory : Factory
             ["NuGet"] = () => _main,
             ["Help"] = () => _main,
             ["CodeMetrics"] = () => _main,
+            ["DiffViewer"] = () => _main,
+            ["ConflictResolver"] = () => _main,
             ["Welcome"] = () => _main,
             ["Editor"] = () => _main,
             ["Home"] = () => _main,

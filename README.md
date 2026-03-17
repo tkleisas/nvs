@@ -8,8 +8,8 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
-![Version](https://img.shields.io/badge/version-0.5.0-green)
-![Tests](https://img.shields.io/badge/tests-1033%20passing-brightgreen)
+![Version](https://img.shields.io/badge/version-0.7.0-green)
+![Tests](https://img.shields.io/badge/tests-1065%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -34,7 +34,7 @@ NVS is a code editor / IDE that:
 - Supports multi-project solutions with startup project selection.
 - Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
-- Has 1033 tests, which is 1033 more than the AI thought were necessary before the human insisted.
+- Has 1065 tests, which is 1065 more than the AI thought were necessary before the human insisted.
 
 ## Features
 
@@ -90,8 +90,13 @@ NVS is a code editor / IDE that:
 ### 🔀 Git Integration
 - Repository status, staging, unstaging
 - Commit with message (the AI suggested "fix stuff" for every commit message)
+- **Amend last commit** — edit the most recent commit message or contents
 - Branch management (create, checkout, delete, list)
 - Commit log
+- **Side-by-side diff viewer** — click any changed file to see additions (green) and deletions (red) in a split view, supports both staged and unstaged diffs
+- **Merge conflict resolution** — 3-pane resolver with Accept Current / Accept Incoming / Accept Both per conflict block
+- **Partial (hunk) staging** — stage or unstage individual hunks via `git apply --cached`
+- **Reset, Rebase** — soft/mixed/hard reset, interactive rebase onto branch
 - Diff viewer with unified patch parsing — implemented on the third attempt after the AI hallucinated two different diff libraries that don't exist
 - Source Control sidebar panel
 - Branch picker in the status bar
