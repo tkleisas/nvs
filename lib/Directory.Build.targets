@@ -1,0 +1,28 @@
+<Project>
+  <!--
+    AvaloniaVirtualDataGrid (AVDG) dedup for the nvs integration.
+
+    Both the SQLiteExplorer and ApiClient submodules bundle their own copy of
+    AvaloniaVirtualDataGrid as a nested submodule, pinned to the same upstream
+    commit. When nvs references both SQLiteExplorer.Lib and ApiClient.UI, the two
+    separate AVDG projects produce the same assembly name and MSBuild fails with a
+    duplicate-output conflict.
+
+    Rather than editing either submodule (which would create commits that don't
+    exist on their remotes and break fresh clones), we redirect ApiClient.UI here,
+    in an nvs-owned file, to reuse the AVDG copy vendored under SQLiteExplorer. Both
+    consumers then resolve to a single project node, so only one assembly is built.
+    ApiClient's own nested AVDG submodule is intentionally left uninitialized.
+
+    This file is imported (via the standard Directory.Build.targets discovery, after
+    each project body) by every project under lib/, but the ItemGroup below only
+    applies to ApiClient.UI.
+
+    Long-term: publish AvaloniaVirtualDataGrid as a NuGet package and have both
+    submodules consume it via PackageReference; this redirect can then be removed.
+  -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'ApiClient.UI'">
+    <ProjectReference Remove="..\..\external\AvaloniaVirtualDataGrid\**\*.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)SQLiteExplorer\lib\AvaloniaVirtualDataGrid\src\AvaloniaVirtualDataGrid\AvaloniaVirtualDataGrid.csproj" />
+  </ItemGroup>
+</Project>
