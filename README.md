@@ -7,8 +7,8 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 [![Build](https://github.com/tkleisas/nvs/actions/workflows/build.yml/badge.svg)](https://github.com/tkleisas/nvs/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
-![Avalonia 11](https://img.shields.io/badge/AvaloniaUI-11.3-blue)
-![Version](https://img.shields.io/badge/version-0.8.1-green)
+![Avalonia 12](https://img.shields.io/badge/AvaloniaUI-12.0-blue)
+![Version](https://img.shields.io/badge/version-0.9.0-green)
 ![Tests](https://img.shields.io/badge/tests-1162%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
