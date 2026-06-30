@@ -116,6 +116,18 @@
                             <TextBlock Text="Search, install, update packages" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
+                    <Border Classes="feature">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="🗄 Database Explorer" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
+                            <TextBlock Text="SQLite, PostgreSQL, SQL Server, Oracle" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="feature">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="🌐 API Client" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
+                            <TextBlock Text="HTTP requests, collections, scripting" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
                 </WrapPanel>
             </StackPanel>
 

@@ -29,7 +29,7 @@ NVS is a code editor / IDE that:
 - Has .NET solution/project loading with full build integration.
 - Has DAP-based debugging with breakpoints, call stack, and variable inspection.
 - Has an AI chat assistant that can read and modify your project files.
-- Has a NuGet package manager and SQLite database explorer.
+- Has a NuGet package manager, a multi-database explorer (SQLite, PostgreSQL, SQL Server, Oracle), and a built-in HTTP API client.
 - Has Roslyn-based code metrics with gutter indicators and a dashboard panel.
 - Supports multi-project solutions with startup project selection.
 - Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
@@ -153,16 +153,25 @@ NVS is a code editor / IDE that:
 - Uninstall and restore packages
 - Project selector for multi-project solutions
 
-### 🗄️ SQLite Database Explorer
-- Open and browse .db, .sqlite, and .sqlite3 files
-- View table schemas and data
-- Execute SQL queries with results grid
-- Multiple database connections
+### 🗄️ Database Explorer
+- Embeds the [SQLiteExplorer](https://github.com/tkleisas/SQLiteExplorer) component as a dockable panel (View → Database Explorer)
+- Multi-engine: **SQLite** (.db/.sqlite/.sqlite3 files), **PostgreSQL**, **SQL Server**, and **Oracle** via connection dialogs
+- Browse tables, views, and schemas in the object tree
+- Run SQL in query tabs; results render in a high-performance virtualized data grid
+- Multiple simultaneous connections and a built-in SQL cheatsheet
 - Caused a docking crash that took longer to fix than the entire feature took to build. Classic.
+
+### 🌐 API Client
+- Embeds the [ApiClient](https://github.com/tkleisas/ApiClient) component as a dockable panel (View → API Client) — a Postman/Bruno-style HTTP client, fully offline, no account required
+- File-based collections (one plain-text file per request, git-friendly); imports Bruno collections
+- Full request editor (method, URL, params, headers, body, auth) with status/timing/size on the response
+- Response viewer with syntax highlighting and a virtualized tabular view for large JSON arrays; request history with replay
+- Environments and `{{variable}}` substitution, keeping secrets out of version control
+- Code generation (C#-first: HttpClient, Refit, RestSharp; JSON → records) and pre/post-request JavaScript scripting (Jint) with `req`/`res`/`bru`/`crypto` and `test`/`expect`
 
 ### ❓ Help System
 - Welcome tab with getting started links and feature overview
-- Searchable help panel (F1) with 12 built-in topics
+- Searchable help panel (F1) with 13 built-in topics
 - Keyboard shortcuts reference
 - Contextual tooltips on all toolbar buttons
 - The help content was written by the AI, so it sounds very confident about features that were definitely not tested on macOS
@@ -265,10 +274,12 @@ git push origin v0.5.0
 
 | Component | Technology |
 |-----------|------------|
-| UI Framework | [AvaloniaUI](https://avaloniaui.net/) 11.3 |
-| Text Editor | [AvaloniaEdit](https://github.com/AvaloniaUI/AvaloniaEdit) 11.4 |
-| Docking | [Dock.Avalonia](https://github.com/wieslawsoltes/Dock) 11.3 |
-| Terminal | [Iciclecreek.Avalonia.Terminal](https://github.com/tomlm/Iciclecreek.Avalonia.Terminal) 1.0 |
+| UI Framework | [AvaloniaUI](https://avaloniaui.net/) 12.0 |
+| Text Editor | [AvaloniaEdit](https://github.com/AvaloniaUI/AvaloniaEdit) 12.0 |
+| Docking | [Dock.Avalonia](https://github.com/wieslawsoltes/Dock) 12.0 |
+| Terminal | [Iciclecreek.Avalonia.Terminal](https://github.com/tomlm/Iciclecreek.Avalonia.Terminal) 2.0 |
+| Database Explorer | [SQLiteExplorer](https://github.com/tkleisas/SQLiteExplorer) (embedded, multi-engine) |
+| API Client | [ApiClient](https://github.com/tkleisas/ApiClient) (embedded) |
 | MVVM | [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/) 8.4 |
 | Git | [LibGit2Sharp](https://github.com/libgit2/libgit2sharp) 0.31 |
 | Code Metrics | [Microsoft.CodeAnalysis](https://github.com/dotnet/roslyn) (Roslyn) |

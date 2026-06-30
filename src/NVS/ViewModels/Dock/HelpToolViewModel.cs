@@ -92,7 +92,8 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
         AllTopics.Add(new HelpTopic("Language Server Setup", "Configuration", GetLspContent()));
         AllTopics.Add(new HelpTopic("NuGet Packages", "Tools", GetNuGetContent()));
         AllTopics.Add(new HelpTopic("LLM Chat", "Tools", GetLlmContent()));
-        AllTopics.Add(new HelpTopic("SQLite Explorer", "Tools", GetSqliteContent()));
+        AllTopics.Add(new HelpTopic("Database Explorer", "Tools", GetDatabaseExplorerContent()));
+        AllTopics.Add(new HelpTopic("API Client", "Tools", GetApiClientContent()));
     }
 
     private new void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -481,21 +482,74 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
         after the cursor — press Tab to accept, Escape to dismiss.
         """;
 
-    internal static string GetSqliteContent() =>
+    internal static string GetDatabaseExplorerContent() =>
         """
-        SQLITE EXPLORER
+        DATABASE EXPLORER
 
-        The Database Explorer panel lets you browse and query SQLite databases.
+        The Database Explorer panel (bottom area) browses and queries databases.
+        It is built on the embedded SQLiteExplorer component and supports several
+        engines, not just SQLite.
+
+        Supported Databases:
+        • SQLite   — local .db, .sqlite, .sqlite3 files
+        • PostgreSQL
+        • SQL Server
+        • Oracle
 
         Opening a Database:
-        • Double-click a .db, .sqlite, or .sqlite3 file in the explorer
-        • Or use the Database Explorer panel in the bottom area
+        • SQLite: double-click a .db / .sqlite / .sqlite3 file in the Explorer,
+          or open the Database Explorer panel and pick a file
+        • PostgreSQL / SQL Server / Oracle: open the Database Explorer panel and
+          use the connection dialog (host, port, credentials, database)
 
         Features:
-        • Browse tables and their schemas
-        • Execute SQL queries
-        • View query results in a grid
-        • Supports multiple databases simultaneously
+        • Browse tables, views, and their schemas in the object tree
+        • Run SQL in query tabs and view results in a high-performance,
+          virtualized data grid (handles large result sets smoothly)
+        • Multi-statement scripts and multiple simultaneous connections
+        • Built-in SQL cheatsheet for quick syntax reference
+
+        Open it from View → Database Explorer.
+        """;
+
+    internal static string GetApiClientContent() =>
+        """
+        API CLIENT
+
+        The API Client panel (bottom area) is a built-in HTTP client — think
+        Postman/Bruno, embedded directly in nvs. It is built on the ApiClient
+        component and works fully offline with no account required.
+
+        Opening:
+        • View → API Client
+
+        Collections:
+        • Requests are organized into file-based collections — one plain-text
+          file per request, in a folder you control (git-friendly and diffable)
+        • Add folders and requests, rename, and delete from the collection tree
+        • Import existing Bruno collections
+
+        Request Editor:
+        • Set method, URL, query/path params, headers, body, and authentication
+        • Send the request and inspect status, timing, and response size
+
+        Response Viewer:
+        • Syntax-highlighted body and headers
+        • Large JSON arrays render in a virtualized tabular grid for fast browsing
+        • Request history with double-click to replay a previous call
+
+        Environments & Variables:
+        • Define environments with {{variable}} substitution
+        • Keep secrets out of version control
+
+        Code Generation:
+        • Generate client and server code from a request (C#-first:
+          HttpClient, Refit, RestSharp; response JSON to C# records)
+
+        Scripting:
+        • Pre/post-request scripts in JavaScript (Jint) with req / res / bru /
+          crypto plus test / expect — chain values between requests, sign
+          payloads, and assert on responses
         """;
 
     #endregion
