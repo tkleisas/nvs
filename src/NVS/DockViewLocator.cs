@@ -22,6 +22,7 @@ public class DockViewLocator : IDataTemplate
         [typeof(VariablesToolViewModel)] = () => new VariablesView(),
         [typeof(EditorDocumentViewModel)] = () => new EditorView(),
         [typeof(DatabaseExplorerToolViewModel)] = () => new DatabaseExplorerView(),
+        [typeof(ApiClientToolViewModel)] = () => new ApiClientToolView(),
         [typeof(LlmChatToolViewModel)] = () => new LlmChatView(),
         [typeof(NuGetToolViewModel)] = () => new NuGetView(),
         [typeof(WelcomeDocumentViewModel)] = () => new WelcomeView(),

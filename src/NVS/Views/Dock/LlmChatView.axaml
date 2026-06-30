@@ -173,7 +173,7 @@
                     ToolTip.Tip="Attach image (vision)" />
             <TextBox Grid.Column="2"
                      Text="{Binding UserInput}"
-                     Watermark="Ask anything..."
+                     PlaceholderText="Ask anything..."
                      Background="{DynamicResource ToolPanelBackgroundBrush}"
                      Foreground="{DynamicResource EditorForegroundBrush}"
                      BorderBrush="{DynamicResource BorderBrush}"

@@ -12,7 +12,7 @@
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
             <TextBox Grid.Column="0"
                      Text="{Binding Main.SearchQuery}"
-                     Watermark="Search in files..."
+                     PlaceholderText="Search in files..."
                      Background="{DynamicResource InputBackgroundBrush}"
                      Foreground="{DynamicResource TextForegroundBrush}"
                      BorderBrush="#555"

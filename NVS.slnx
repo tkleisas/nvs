@@ -9,6 +9,8 @@
   <Folder Name="/lib/">
     <Project Path="lib/SQLiteExplorer/src/SQLiteExplorer.Lib/SQLiteExplorer.Lib.csproj" />
     <Project Path="lib/SQLiteExplorer/lib/AvaloniaVirtualDataGrid/src/AvaloniaVirtualDataGrid/AvaloniaVirtualDataGrid.csproj" />
+    <Project Path="lib/ApiClient/src/ApiClient.Core/ApiClient.Core.csproj" />
+    <Project Path="lib/ApiClient/src/ApiClient.UI/ApiClient.UI.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/NVS.Core.Tests/NVS.Core.Tests.csproj" />

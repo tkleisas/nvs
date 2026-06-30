@@ -22,7 +22,7 @@ internal static class DialogHelper
         var input = new TextBox
         {
             Text = defaultValue,
-            Watermark = label,
+            PlaceholderText =label,
             Background = Avalonia.Media.Brush.Parse("#3C3C3C"),
             Foreground = Avalonia.Media.Brush.Parse("#CCCCCC"),
         };
@@ -65,7 +65,7 @@ internal static class DialogHelper
         var panel = new StackPanel { Margin = new Avalonia.Thickness(16), Spacing = 8 };
         var input = new TextBox
         {
-            Watermark = "Branch name",
+            PlaceholderText ="Branch name",
             Background = Avalonia.Media.Brush.Parse("#3C3C3C"),
             Foreground = Avalonia.Media.Brush.Parse("#CCCCCC"),
         };
@@ -149,7 +149,7 @@ internal static class DialogHelper
 
         var nameInput = new TextBox
         {
-            Watermark = "Project name",
+            PlaceholderText ="Project name",
             Background = Avalonia.Media.Brush.Parse("#3C3C3C"),
             Foreground = Avalonia.Media.Brush.Parse("#CCCCCC"),
         };

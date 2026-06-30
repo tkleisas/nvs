@@ -1800,6 +1800,14 @@ public partial class MainViewModel : INotifyPropertyChanged
     }
 
     [RelayCommand]
+    private void ShowApiClient()
+    {
+        var apiTool = FindToolInDock<ApiClientToolViewModel>();
+        if (apiTool is not null)
+            ActivateToolInDock(apiTool);
+    }
+
+    [RelayCommand]
     private void ShowWelcome()
     {
         var welcome = FindToolInDock<WelcomeDocumentViewModel>();

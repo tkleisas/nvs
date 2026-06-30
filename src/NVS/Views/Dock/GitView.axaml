@@ -60,7 +60,7 @@
 
                 <!-- Commit message -->
                 <TextBox Text="{Binding Main.CommitMessage}"
-                         Watermark="Commit message"
+                         PlaceholderText="Commit message"
                          AcceptsReturn="True"
                          Height="60"
                          TextWrapping="Wrap"

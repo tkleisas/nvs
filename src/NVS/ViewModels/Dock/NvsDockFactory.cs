@@ -36,6 +36,7 @@ public sealed class NvsDockFactory : Factory
         var callStack = new CallStackToolViewModel(_main);
         var variables = new VariablesToolViewModel(_main);
         var dbExplorer = new DatabaseExplorerToolViewModel(_main);
+        var apiClient = new ApiClientToolViewModel(_main);
         var llmChat = new LlmChatToolViewModel(_main);
         var nuget = new NuGetToolViewModel(_main);
         var help = new HelpToolViewModel();
@@ -69,7 +70,7 @@ public sealed class NvsDockFactory : Factory
                 new ToolDock
                 {
                     ActiveDockable = terminal,
-                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, dbExplorer, nuget, codeMetrics, help, conflictResolver),
+                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, dbExplorer, apiClient, nuget, codeMetrics, help, conflictResolver),
                     Alignment = Alignment.Bottom,
                     GripMode = GripMode.Visible,
                 }
@@ -196,6 +197,7 @@ public sealed class NvsDockFactory : Factory
             ["CallStack"] = () => _main,
             ["Variables"] = () => _main,
             ["DatabaseExplorer"] = () => _main,
+            ["ApiClient"] = () => _main,
             ["LlmChat"] = () => _main,
             ["NuGet"] = () => _main,
             ["Help"] = () => _main,

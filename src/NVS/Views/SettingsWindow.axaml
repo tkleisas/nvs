@@ -176,19 +176,19 @@
                         <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Endpoint URL" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
                             <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding LlmEndpoint}"
-                                       Watermark="http://127.0.0.1:1234" />
+                                       PlaceholderText="http://127.0.0.1:1234" />
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="API Key" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <TextBox   Grid.Row="1" Grid.Column="1" Text="{Binding LlmApiKey}"
-                                       PasswordChar="●" Watermark="Leave empty for local models" Margin="0,8,0,0" />
+                                       PasswordChar="●" PlaceholderText="Leave empty for local models" Margin="0,8,0,0" />
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Auth Scheme" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <TextBox   Grid.Row="2" Grid.Column="1" Text="{Binding LlmAuthScheme}"
-                                       Watermark="Bearer" MaxWidth="200" HorizontalAlignment="Left" Margin="0,8,0,0" />
+                                       PlaceholderText="Bearer" MaxWidth="200" HorizontalAlignment="Left" Margin="0,8,0,0" />
 
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="Completions Path" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <TextBox   Grid.Row="3" Grid.Column="1" Text="{Binding LlmCompletionsPath}"
-                                       Watermark="v1/chat/completions" Margin="0,8,0,0" />
+                                       PlaceholderText="v1/chat/completions" Margin="0,8,0,0" />
                         </Grid>
 
                         <Separator Background="#3F3F46" />
@@ -198,7 +198,7 @@
                         <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4">
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Model ID" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
                             <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding LlmModel}"
-                                       Watermark="codellama, qwen3-coder, deepseek-chat..." />
+                                       PlaceholderText="codellama, qwen3-coder, deepseek-chat..." />
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Max Tokens" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
                             <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding LlmMaxTokens}"

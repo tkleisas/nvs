@@ -235,7 +235,7 @@ public partial class MainWindow : Window
         var panel = new StackPanel { Margin = new Avalonia.Thickness(16), Spacing = 8 };
         var input = new TextBox
         {
-            Watermark = "Line number",
+            PlaceholderText = "Line number",
             Background = Avalonia.Media.Brush.Parse("#3C3C3C"),
             Foreground = Avalonia.Media.Brush.Parse("#CCCCCC"),
         };

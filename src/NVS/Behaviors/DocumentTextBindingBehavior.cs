@@ -6,6 +6,7 @@ using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Reactive;
 using Avalonia.Xaml.Interactivity;
 using AvaloniaEdit;
 using AvaloniaEdit.CodeCompletion;
@@ -13,6 +14,7 @@ using AvaloniaEdit.Rendering;
 using AvaloniaEdit.Search;
 using CommunityToolkit.Mvvm.Input;
 using NVS.Controls;
+using NVS.Core.Enums;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
 using NVS.ViewModels;
@@ -263,13 +265,14 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
             _foldingHelper = new FoldingHelper(_textEditor, language);
 
             // Listen for Language attached property changes so folding updates when binding applies
-            _languagePropertySubscription = TextEditorSyntaxHighlighting.LanguageProperty.Changed.Subscribe(args =>
-            {
-                if (args.Sender == _textEditor && _foldingHelper is not null)
+            _languagePropertySubscription = TextEditorSyntaxHighlighting.LanguageProperty.Changed.Subscribe(
+                new AnonymousObserver<AvaloniaPropertyChangedEventArgs<Language>>(args =>
                 {
-                    _foldingHelper.SetLanguage(args.NewValue.GetValueOrDefault());
-                }
-            });
+                    if (args.Sender == _textEditor && _foldingHelper is not null)
+                    {
+                        _foldingHelper.SetLanguage(args.NewValue.GetValueOrDefault());
+                    }
+                }));
 
             // Defer minimap wiring to AttachedToVisualTree so sibling controls exist
             _textEditor.AttachedToVisualTree += OnEditorAttachedToVisualTree;

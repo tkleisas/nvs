@@ -1,3 +1,6 @@
 [submodule "lib/SQLiteExplorer"]
 	path = lib/SQLiteExplorer
 	url = https://github.com/tkleisas/SQLiteExplorer.git
+[submodule "lib/ApiClient"]
+	path = lib/ApiClient
+	url = https://github.com/tkleisas/ApiClient.git
