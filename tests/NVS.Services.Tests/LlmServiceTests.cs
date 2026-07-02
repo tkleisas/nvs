@@ -499,6 +499,31 @@ public sealed class LlmServiceTests
     }
 
     [Fact]
+    public async Task CancelCurrentRequest_CancelsAllConcurrentRequests()
+    {
+        var settingsService = CreateSettingsService(new LlmSettings
+        {
+            Endpoint = "http://localhost:9999",
+            Model = "test",
+            Stream = false
+        });
+
+        var handler = new BlockingHttpHandler(expectedRequests: 2);
+        var service = new LlmService(settingsService, () => handler);
+
+        var first = service.SendAsync(CreateRequest());
+        var second = service.SendAsync(CreateRequest());
+        await handler.AllRequestsStarted;
+
+        service.IsProcessing.Should().BeTrue();
+        service.CancelCurrentRequest();
+
+        var responses = await Task.WhenAll(first, second);
+        responses.Should().OnlyContain(r => r.FinishReason == "cancelled");
+        service.IsProcessing.Should().BeFalse();
+    }
+
+    [Fact]
     public void DestructiveTools_AreMarkedAsRequiringApproval()
     {
         IAgentTool runTerminal = new NVS.Services.LLM.Tools.RunTerminalCommandTool(() => ".");
@@ -549,6 +574,30 @@ public sealed class LlmServiceTests
         var settingsService = Substitute.For<ISettingsService>();
         settingsService.AppSettings.Returns(new AppSettings { Llm = llmSettings });
         return settingsService;
+    }
+
+    /// <summary>Holds every request open until its cancellation token fires.</summary>
+    private sealed class BlockingHttpHandler : HttpMessageHandler
+    {
+        private readonly TaskCompletionSource _allStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly int _expectedRequests;
+        private int _started;
+
+        public BlockingHttpHandler(int expectedRequests)
+        {
+            _expectedRequests = expectedRequests;
+        }
+
+        public Task AllRequestsStarted => _allStarted.Task;
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (Interlocked.Increment(ref _started) >= _expectedRequests)
+                _allStarted.TrySetResult();
+
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            throw new InvalidOperationException("unreachable");
+        }
     }
 
     private sealed class FakeHttpHandler : HttpMessageHandler

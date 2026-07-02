@@ -22,7 +22,8 @@ public sealed class LlmService : ILlmService
     private readonly ISettingsService _settingsService;
     private readonly Func<HttpMessageHandler>? _handlerFactory;
     private readonly Dictionary<string, IAgentTool> _tools = new();
-    private CancellationTokenSource? _currentCts;
+    private readonly object _requestLock = new();
+    private readonly List<CancellationTokenSource> _activeRequests = new();
     private HttpClient? _httpClient;
     private int _httpClientTimeoutSeconds;
 
@@ -36,7 +37,16 @@ public sealed class LlmService : ILlmService
         }
     }
 
-    public bool IsProcessing => _currentCts is not null && !_currentCts.IsCancellationRequested;
+    public bool IsProcessing
+    {
+        get
+        {
+            lock (_requestLock)
+            {
+                return _activeRequests.Count > 0;
+            }
+        }
+    }
 
     public event EventHandler? RequestStarted;
     public event EventHandler? RequestCompleted;
@@ -79,7 +89,11 @@ public sealed class LlmService : ILlmService
         Action<string>? onToken = null,
         CancellationToken cancellationToken = default)
     {
-        _currentCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var requestCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        lock (_requestLock)
+        {
+            _activeRequests.Add(requestCts);
+        }
         RequestStarted?.Invoke(this, EventArgs.Empty);
 
         try
@@ -117,21 +131,21 @@ public sealed class LlmService : ILlmService
                 using var response = await client.SendAsync(
                     httpRequest,
                     HttpCompletionOption.ResponseHeadersRead,
-                    _currentCts.Token);
+                    requestCts.Token);
 
                 response.EnsureSuccessStatusCode();
 
                 result = await StreamParser.ParseStreamAsync(
                     response,
                     onToken,
-                    cancellationToken: _currentCts.Token);
+                    cancellationToken: requestCts.Token);
             }
             else
             {
-                using var response = await client.SendAsync(httpRequest, _currentCts.Token);
+                using var response = await client.SendAsync(httpRequest, requestCts.Token);
                 response.EnsureSuccessStatusCode();
 
-                var responseJson = await response.Content.ReadAsStringAsync(_currentCts.Token);
+                var responseJson = await response.Content.ReadAsStringAsync(requestCts.Token);
                 var chatResponse = JsonSerializer.Deserialize<ChatCompletionResponse>(responseJson, JsonOptions);
 
                 result = chatResponse is not null
@@ -171,7 +185,11 @@ public sealed class LlmService : ILlmService
         }
         finally
         {
-            _currentCts = null;
+            lock (_requestLock)
+            {
+                _activeRequests.Remove(requestCts);
+                requestCts.Dispose();
+            }
             RequestCompleted?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -337,7 +355,13 @@ public sealed class LlmService : ILlmService
 
     public void CancelCurrentRequest()
     {
-        _currentCts?.Cancel();
+        lock (_requestLock)
+        {
+            foreach (var cts in _activeRequests)
+            {
+                cts.Cancel();
+            }
+        }
     }
 
     private HttpClient GetOrCreateHttpClient()
