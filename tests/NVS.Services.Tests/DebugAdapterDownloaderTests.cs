@@ -91,6 +91,64 @@ public sealed class DebugAdapterDownloaderTests : IDisposable
         }
     }
 
+    // ── Checksum Verification ───────────────────────────────────
+
+    [Fact]
+    public void GetExpectedSha256_ShouldHavePinForCurrentPlatformArtifact()
+    {
+        var (url, _) = DebugAdapterDownloader.GetNetcoredbgDownloadUrl();
+
+        var sha = DebugAdapterDownloader.GetExpectedSha256(url);
+
+        sha.Should().MatchRegex("^[0-9a-f]{64}$");
+    }
+
+    [Fact]
+    public void GetExpectedSha256_UnknownArtifact_ShouldThrow()
+    {
+        var act = () => DebugAdapterDownloader.GetExpectedSha256("https://example.com/evil.zip");
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*No pinned checksum*");
+    }
+
+    [Fact]
+    public async Task VerifyChecksumAsync_MatchingHash_ShouldNotThrow()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        await File.WriteAllTextAsync(tempFile, "hello");
+        try
+        {
+            // SHA-256 of "hello"
+            const string expected = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
+
+            var act = () => DebugAdapterDownloader.VerifyChecksumAsync(tempFile, expected);
+
+            await act.Should().NotThrowAsync();
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public async Task VerifyChecksumAsync_MismatchedHash_ShouldThrow()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        await File.WriteAllTextAsync(tempFile, "tampered content");
+        try
+        {
+            var act = () => DebugAdapterDownloader.VerifyChecksumAsync(
+                tempFile, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
+
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*Checksum mismatch*");
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
     // ── StripFirstDirectory ─────────────────────────────────────
 
     [Theory]
