@@ -68,7 +68,16 @@ public sealed class RunTerminalCommandTool : IAgentTool
             var stdoutTask = ReadCappedAsync(process.StandardOutput, cts.Token);
             var stderrTask = ReadCappedAsync(process.StandardError, cts.Token);
 
-            await process.WaitForExitAsync(cts.Token);
+            try
+            {
+                await process.WaitForExitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                try { process.Kill(entireProcessTree: true); } catch { /* already exited */ }
+                try { await Task.WhenAll(stdoutTask, stderrTask); } catch { }
+                return JsonSerializer.Serialize(new { error = $"Command timed out after {timeout}s" });
+            }
 
             var stdout = await stdoutTask;
             var stderr = await stderrTask;
@@ -95,14 +104,20 @@ public sealed class RunTerminalCommandTool : IAgentTool
     {
         var sb = new StringBuilder();
         var buffer = new char[4096];
-        int totalRead = 0;
+        int kept = 0;
 
-        while (totalRead < MaxOutputBytes)
+        // Drain the stream past the cap (discarding the excess) so the child
+        // never blocks on a full pipe before exiting.
+        while (true)
         {
-            var read = await reader.ReadAsync(buffer.AsMemory(0, Math.Min(buffer.Length, MaxOutputBytes - totalRead)), ct);
+            var read = await reader.ReadAsync(buffer.AsMemory(), ct);
             if (read == 0) break;
-            sb.Append(buffer, 0, read);
-            totalRead += read;
+            if (kept < MaxOutputBytes)
+            {
+                var take = Math.Min(read, MaxOutputBytes - kept);
+                sb.Append(buffer, 0, take);
+                kept += take;
+            }
         }
 
         return sb.ToString();

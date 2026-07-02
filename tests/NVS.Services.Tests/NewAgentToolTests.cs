@@ -48,6 +48,46 @@ public sealed class NewAgentToolTests : IDisposable
     }
 
     [Fact]
+    public async Task RunTerminal_CommandExceedsTimeout_KillsProcessTree()
+    {
+        var tool = new RunTerminalCommandTool(() => _tempDir);
+        var heartbeat = Path.Combine(_tempDir, "heartbeat.txt");
+        var cmd = OperatingSystem.IsWindows()
+            ? "for /l %i in (1,1,60) do (echo x >> heartbeat.txt & ping -n 2 127.0.0.1 > nul)"
+            : "for i in $(seq 1 60); do echo x >> heartbeat.txt; sleep 1; done";
+        var args = JsonSerializer.Serialize(new { command = cmd, timeout_seconds = 2 });
+
+        var result = await tool.ExecuteAsync(args);
+        var json = JsonSerializer.Deserialize<JsonElement>(result);
+
+        json.GetProperty("error").GetString().Should().Contain("timed out");
+
+        // A killed process tree stops appending; a leaked one keeps writing for ~60s.
+        await Task.Delay(2500);
+        var sizeAfterKill = File.Exists(heartbeat) ? new FileInfo(heartbeat).Length : 0;
+        await Task.Delay(2000);
+        var sizeLater = File.Exists(heartbeat) ? new FileInfo(heartbeat).Length : 0;
+        sizeLater.Should().Be(sizeAfterKill, "the child process tree should be killed on timeout");
+    }
+
+    [Fact]
+    public async Task RunTerminal_OutputExceedsCap_TruncatesWithoutStalling()
+    {
+        var tool = new RunTerminalCommandTool(() => _tempDir);
+        File.WriteAllText(Path.Combine(_tempDir, "big.txt"), new string('x', 512 * 1024));
+        var cmd = OperatingSystem.IsWindows() ? "type big.txt" : "cat big.txt";
+        var args = JsonSerializer.Serialize(new { command = cmd, timeout_seconds = 10 });
+
+        var result = await tool.ExecuteAsync(args);
+        var json = JsonSerializer.Deserialize<JsonElement>(result);
+
+        json.TryGetProperty("error", out _).Should().BeFalse("the command should finish instead of stalling on a full pipe");
+        json.GetProperty("exit_code").GetInt32().Should().Be(0);
+        json.GetProperty("truncated").GetBoolean().Should().BeTrue();
+        json.GetProperty("stdout").GetString()!.Length.Should().Be(8192);
+    }
+
+    [Fact]
     public void RunTerminal_HasCorrectName()
     {
         var tool = new RunTerminalCommandTool(() => _tempDir);
