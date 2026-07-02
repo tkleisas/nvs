@@ -7,8 +7,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest</AnalysisLevel>
-    <!-- Suppress NuGet audit warnings for transitive dependencies from AvaloniaEdit -->
-    <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -17,7 +15,7 @@
     <Product>NVS - No Vim Substitute</Product>
     <Copyright>Copyright (c) 2025 NVS Contributors</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/nvs-ide/nvs</RepositoryUrl>
+    <RepositoryUrl>https://github.com/tkleisas/nvs</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
@@ -36,5 +34,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SQLite vulnerability in SQLitePCLRaw.lib.e_sqlite3 (via Microsoft.Data.Sqlite);
+         no patched SQLitePCLRaw release exists yet as of 2026-07. Remove this suppression
+         once a fixed version ships. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-2m69-gcr7-jv3q" />
   </ItemGroup>
 </Project>

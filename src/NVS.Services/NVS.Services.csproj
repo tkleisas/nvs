@@ -14,7 +14,12 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.13.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.13.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.13.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
+    <!-- Direct pins over vulnerable transitives (GHSA-h4j7-5rxr-p4wc from Workspaces.MSBuild,
+         GHSA-37gx-xxp4-5rgx / GHSA-w3x6-4m5h-cxqf from Build.Tasks.Core).
+         MSBuild runtime assets excluded: MSBuildLocator supplies MSBuild from the installed SDK. -->
+    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.14.28" ExcludeAssets="runtime" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.9" />
   </ItemGroup>
 
   <ItemGroup>
