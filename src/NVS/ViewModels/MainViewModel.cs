@@ -1,21 +1,17 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using System.Windows.Input;
-using Avalonia.Input;
 using Avalonia.Platform.Storage;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Dock.Model.Controls;
 using Dock.Model.Core;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
-using NVS.Core.Enums;
 using NVS.ViewModels.Dock;
 
 namespace NVS.ViewModels;
 
-public partial class MainViewModel : INotifyPropertyChanged
+public partial class MainViewModel : ObservableObject
 {
     private readonly IWorkspaceService _workspaceService;
     private readonly IEditorService _editorService;
@@ -41,8 +37,6 @@ public partial class MainViewModel : INotifyPropertyChanged
     private string _sidebarMode = "Explorer";
     private IRootDock? _dockLayout;
     private NvsDockFactory? _dockFactory;
-
-    public event PropertyChangedEventHandler? PropertyChanged;
 
     public IStorageProvider? StorageProvider { get; set; }
 
@@ -849,17 +843,4 @@ public partial class MainViewModel : INotifyPropertyChanged
         ];
     }
 
-    protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-            return false;
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
 }
