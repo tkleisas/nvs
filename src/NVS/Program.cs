@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace NVS;
 
-class Program
+internal sealed class Program
 {
     [STAThread]
     public static void Main(string[] args)
