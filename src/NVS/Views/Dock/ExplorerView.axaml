@@ -9,7 +9,7 @@
              x:DataType="dock:ExplorerToolViewModel">
 
     <TreeView Padding="4" Background="Transparent"
-              ItemsSource="{Binding Main.FileTree}"
+              ItemsSource="{Binding Main.Explorer.FileTree}"
               DoubleTapped="OnFileTreeDoubleTapped"
               x:Name="FileTreeView">
         <TreeView.Resources>

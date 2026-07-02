@@ -231,7 +231,7 @@ public sealed partial class GitViewModel : ObservableObject
             await RefreshBranchesAsync();
 
             // Reload file tree and open documents to reflect new branch
-            await _main.ReloadFileTreeAsync();
+            await _main.Explorer.ReloadAsync();
             await _main.ReloadOpenDocumentsFromDiskAsync();
 
             _main.StatusMessage = $"Switched to branch: {branch.Name}";

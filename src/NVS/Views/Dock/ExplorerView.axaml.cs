@@ -22,7 +22,7 @@ public partial class ExplorerView : UserControl
             var main = GetMain();
             if (main is not null)
             {
-                await main.OpenFileFromTreeCommand.ExecuteAsync(node);
+                await main.Explorer.OpenFileFromTreeCommand.ExecuteAsync(node);
             }
         }
     }
@@ -161,7 +161,7 @@ public partial class ExplorerView : UserControl
     {
         if (GetMain() is { } main)
         {
-            await main.RefreshFileTreeCommand.ExecuteAsync(null);
+            await main.Explorer.RefreshFileTreeCommand.ExecuteAsync(null);
         }
     }
 }

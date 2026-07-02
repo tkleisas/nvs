@@ -222,7 +222,7 @@ public sealed partial class BuildRunViewModel : ObservableObject
                     : "";
                 var runCommand = $"dotnet run{projectArg} --nologo";
 
-                _main.IsTerminalVisible = true;
+                _main.Terminal.IsVisible = true;
 
                 var terminalTool = _main.FindTerminalTool();
                 if (terminalTool is not null)

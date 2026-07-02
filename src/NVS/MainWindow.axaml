@@ -21,7 +21,7 @@
         <KeyBinding Gesture="Ctrl+Shift+E" Command="{Binding ShowExplorerCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+F" Command="{Binding ShowSearchCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+G" Command="{Binding ShowSourceControlCommand}" />
-        <KeyBinding Gesture="Ctrl+OemTilde" Command="{Binding ToggleTerminalCommand}" />
+        <KeyBinding Gesture="Ctrl+OemTilde" Command="{Binding Terminal.ToggleCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+B" Command="{Binding BuildRun.BuildSolutionCommand}" />
         <KeyBinding Gesture="Ctrl+F5" Command="{Binding BuildRun.RunProjectCommand}" />
         <KeyBinding Gesture="F5" Command="{Binding Debug.StartDebuggingCommand}" />
@@ -76,7 +76,7 @@
                 <MenuItem Header="_API Client" Command="{Binding ShowApiClientCommand}" />
                 <MenuItem Header="_Code Metrics" Command="{Binding ShowCodeMetricsCommand}" />
                 <Separator />
-                <MenuItem Header="_Terminal" Command="{Binding ToggleTerminalCommand}" InputGesture="Ctrl+OemTilde" />
+                <MenuItem Header="_Terminal" Command="{Binding Terminal.ToggleCommand}" InputGesture="Ctrl+OemTilde" />
                 <Separator />
                 <MenuItem Header="Split Editor _Right" InputGesture="Ctrl+OemPipe" Command="{Binding SplitEditorRightCommand}" />
                 <MenuItem Header="Split Editor _Down" Command="{Binding SplitEditorDownCommand}" />
@@ -116,7 +116,7 @@
                 <MenuItem Header="_Refresh" InputGesture="Ctrl+Shift+G" Command="{Binding Git.RefreshCommand}" />
             </MenuItem>
             <MenuItem Header="_Terminal">
-                <MenuItem Header="_New Terminal" InputGesture="Ctrl+Shift+OemTilde" Command="{Binding NewTerminalCommand}" />
+                <MenuItem Header="_New Terminal" InputGesture="Ctrl+Shift+OemTilde" Command="{Binding Terminal.NewTerminalCommand}" />
             </MenuItem>
             <MenuItem Header="_Settings" Click="OnSettingsClick" />
             <MenuItem Header="_Help">

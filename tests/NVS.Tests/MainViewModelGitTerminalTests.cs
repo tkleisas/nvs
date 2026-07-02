@@ -177,7 +177,7 @@ public class MainViewModelGitTerminalTests
     public void IsTerminalVisible_DefaultsFalse()
     {
         var vm = CreateViewModel();
-        vm.IsTerminalVisible.Should().BeFalse();
+        vm.Terminal.IsVisible.Should().BeFalse();
     }
 
     [Fact]
@@ -187,9 +187,9 @@ public class MainViewModelGitTerminalTests
         terminal.ActiveTerminal.Returns((ITerminalInstance?)null);
         var vm = CreateViewModel(terminalService: terminal);
 
-        vm.ToggleTerminalCommand.Execute(null);
+        vm.Terminal.ToggleCommand.Execute(null);
 
-        vm.IsTerminalVisible.Should().BeTrue();
+        vm.Terminal.IsVisible.Should().BeTrue();
     }
 
     [Fact]
@@ -199,18 +199,18 @@ public class MainViewModelGitTerminalTests
         terminal.ActiveTerminal.Returns((ITerminalInstance?)null);
         var vm = CreateViewModel(terminalService: terminal);
 
-        vm.ToggleTerminalCommand.Execute(null);
-        vm.ToggleTerminalCommand.Execute(null);
+        vm.Terminal.ToggleCommand.Execute(null);
+        vm.Terminal.ToggleCommand.Execute(null);
 
-        vm.IsTerminalVisible.Should().BeFalse();
+        vm.Terminal.IsVisible.Should().BeFalse();
     }
 
     [Fact]
     public void TerminalInput_CanBeSet()
     {
         var vm = CreateViewModel();
-        vm.TerminalInput = "ls -la";
-        vm.TerminalInput.Should().Be("ls -la");
+        vm.Terminal.Input = "ls -la";
+        vm.Terminal.Input.Should().Be("ls -la");
     }
 
     [Fact]
@@ -218,9 +218,9 @@ public class MainViewModelGitTerminalTests
     {
         var terminal = Substitute.For<ITerminalService>();
         var vm = CreateViewModel(terminalService: terminal);
-        vm.TerminalInput = "";
+        vm.Terminal.Input = "";
 
-        vm.SendTerminalInputCommand.Execute(null);
+        vm.Terminal.SendInputCommand.Execute(null);
 
         terminal.ActiveTerminal.DidNotReceive();
     }
@@ -233,11 +233,11 @@ public class MainViewModelGitTerminalTests
         terminal.ActiveTerminal.Returns(instance);
         var vm = CreateViewModel(terminalService: terminal);
 
-        vm.TerminalInput = "echo hello";
-        vm.SendTerminalInputCommand.Execute(null);
+        vm.Terminal.Input = "echo hello";
+        vm.Terminal.SendInputCommand.Execute(null);
 
         instance.Received(1).WriteLine("echo hello");
-        vm.TerminalInput.Should().BeEmpty();
+        vm.Terminal.Input.Should().BeEmpty();
     }
 
     [Fact]
@@ -249,8 +249,8 @@ public class MainViewModelGitTerminalTests
         terminal.CreateTerminal(Arg.Any<TerminalOptions>()).Returns(instance);
         var vm = CreateViewModel(terminalService: terminal);
 
-        vm.TerminalInput = "dir";
-        vm.SendTerminalInputCommand.Execute(null);
+        vm.Terminal.Input = "dir";
+        vm.Terminal.SendInputCommand.Execute(null);
 
         terminal.Received(1).CreateTerminal(Arg.Any<TerminalOptions>());
         instance.Received(1).WriteLine("dir");
@@ -276,12 +276,12 @@ public class MainViewModelGitTerminalTests
     {
         var vm = CreateViewModel();
         var changed = false;
-        vm.PropertyChanged += (_, e) =>
+        vm.Terminal.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == "IsTerminalVisible") changed = true;
+            if (e.PropertyName == "IsVisible") changed = true;
         };
 
-        vm.IsTerminalVisible = true;
+        vm.Terminal.IsVisible = true;
 
         changed.Should().BeTrue();
     }
@@ -292,7 +292,7 @@ public class MainViewModelGitTerminalTests
     public async Task RefreshFileTreeCommand_WithNoWorkspace_DoesNotThrow()
     {
         var vm = CreateViewModel();
-        var act = () => vm.RefreshFileTreeCommand.ExecuteAsync(null);
+        var act = () => vm.Explorer.RefreshFileTreeCommand.ExecuteAsync(null);
         await act.Should().NotThrowAsync();
     }
 }
