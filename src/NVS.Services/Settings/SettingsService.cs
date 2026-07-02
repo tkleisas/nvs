@@ -1,7 +1,7 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using NVS.Core.Interfaces;
 using NVS.Core.Models.Settings;
+using Serilog;
 
 namespace NVS.Services.Settings;
 
@@ -23,12 +23,25 @@ public sealed class SettingsService : ISettingsService
     public event EventHandler<AppSettings>? AppSettingsChanged;
     public event EventHandler<WorkspaceSettings>? WorkspaceSettingsChanged;
 
-    public SettingsService()
+    public SettingsService(string? appSettingsPath = null)
     {
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var nvsPath = Path.Combine(appDataPath, "NVS");
-        Directory.CreateDirectory(nvsPath);
-        _appSettingsPath = Path.Combine(nvsPath, "settings.json");
+        if (appSettingsPath is null)
+        {
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var nvsPath = Path.Combine(appDataPath, "NVS");
+            Directory.CreateDirectory(nvsPath);
+            appSettingsPath = Path.Combine(nvsPath, "settings.json");
+        }
+        else
+        {
+            var directory = Path.GetDirectoryName(appSettingsPath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+        }
+
+        _appSettingsPath = appSettingsPath;
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -38,60 +51,41 @@ public sealed class SettingsService : ISettingsService
 
     public async Task<AppSettings> LoadAppSettingsAsync(CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(_appSettingsPath))
-        {
-            return new AppSettings();
-        }
-
-        try
-        {
-            var json = await File.ReadAllTextAsync(_appSettingsPath, cancellationToken).ConfigureAwait(false);
-            return JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
-        }
-        catch
-        {
-            return new AppSettings();
-        }
+        var loaded = await TryLoadSettingsFileAsync<AppSettings>(_appSettingsPath, cancellationToken).ConfigureAwait(false);
+        return loaded ?? new AppSettings();
     }
 
     public async Task SaveAppSettingsAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         _appSettings = settings;
         var json = JsonSerializer.Serialize(settings, JsonOptions);
-        await File.WriteAllTextAsync(_appSettingsPath, json, cancellationToken).ConfigureAwait(false);
+        await WriteFileAtomicAsync(_appSettingsPath, json, cancellationToken).ConfigureAwait(false);
         AppSettingsChanged?.Invoke(this, settings);
     }
 
     public async Task<WorkspaceSettings> LoadWorkspaceSettingsAsync(string workspacePath, CancellationToken cancellationToken = default)
     {
         var settingsPath = Path.Combine(workspacePath, ".nvs", "workspace.json");
-        
-        if (!File.Exists(settingsPath))
+
+        var loaded = await TryLoadSettingsFileAsync<WorkspaceSettings>(settingsPath, cancellationToken).ConfigureAwait(false);
+        if (loaded is null)
         {
             return new WorkspaceSettings();
         }
 
-        try
-        {
-            var json = await File.ReadAllTextAsync(settingsPath, cancellationToken).ConfigureAwait(false);
-            _workspaceSettings = JsonSerializer.Deserialize<WorkspaceSettings>(json, JsonOptions) ?? new WorkspaceSettings();
-            return _workspaceSettings;
-        }
-        catch
-        {
-            return new WorkspaceSettings();
-        }
+        _workspaceSettings = loaded;
+        return loaded;
     }
 
     public async Task SaveWorkspaceSettingsAsync(string workspacePath, WorkspaceSettings settings, CancellationToken cancellationToken = default)
     {
         var nvsPath = Path.Combine(workspacePath, ".nvs");
         Directory.CreateDirectory(nvsPath);
-        
+
         var settingsPath = Path.Combine(nvsPath, "workspace.json");
         var json = JsonSerializer.Serialize(settings, JsonOptions);
-        await File.WriteAllTextAsync(settingsPath, json, cancellationToken).ConfigureAwait(false);
-        
+        await WriteFileAtomicAsync(settingsPath, json, cancellationToken).ConfigureAwait(false);
+
         _workspaceSettings = settings;
         WorkspaceSettingsChanged?.Invoke(this, settings);
     }
@@ -109,5 +103,80 @@ public sealed class SettingsService : ISettingsService
     public void Set<T>(string key, T value)
     {
         _appSettings = _appSettings with { Properties = new Dictionary<string, object>(_appSettings.Properties) { [key] = value! } };
+    }
+
+    /// <summary>
+    /// Loads and deserializes a settings file. Returns null when the file is missing
+    /// or unreadable. A file that exists but fails to parse is backed up to
+    /// "&lt;file&gt;.bak" first, so a later save cannot silently destroy the user's
+    /// only copy of their settings.
+    /// </summary>
+    private static async Task<T?> TryLoadSettingsFileAsync<T>(string path, CancellationToken cancellationToken)
+        where T : class, new()
+    {
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            return JsonSerializer.Deserialize<T>(json, JsonOptions) ?? new T();
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            BackupCorruptFile(path, ex);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to read settings file {Path}; using defaults", path);
+            return null;
+        }
+    }
+
+    private static void BackupCorruptFile(string path, Exception cause)
+    {
+        var backupPath = path + ".bak";
+        try
+        {
+            File.Copy(path, backupPath, overwrite: true);
+            Log.Warning(cause, "Settings file {Path} is corrupt; backed it up to {BackupPath} and reset to defaults", path, backupPath);
+        }
+        catch (Exception copyEx)
+        {
+            Log.Warning(copyEx, "Settings file {Path} is corrupt and could not be backed up; resetting to defaults", path);
+        }
+    }
+
+    /// <summary>
+    /// Writes via a temp file and an atomic rename so a crash mid-write can never
+    /// leave a truncated settings file behind.
+    /// </summary>
+    private static async Task WriteFileAtomicAsync(string path, string contents, CancellationToken cancellationToken)
+    {
+        var tempPath = path + ".tmp";
+        try
+        {
+            await File.WriteAllTextAsync(tempPath, contents, cancellationToken).ConfigureAwait(false);
+            File.Move(tempPath, path, overwrite: true);
+        }
+        catch
+        {
+            try
+            {
+                File.Delete(tempPath);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup; the stray .tmp file is harmless.
+            }
+            throw;
+        }
     }
 }

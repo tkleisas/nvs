@@ -8,21 +8,18 @@ public class SettingsServiceTests : IDisposable
 {
     private readonly SettingsService _service;
     private readonly string _testSettingsPath;
+    private readonly TempDirectory _tempDir;
 
     public SettingsServiceTests()
     {
-        _service = new SettingsService();
-        
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        _testSettingsPath = Path.Combine(appDataPath, "NVS", "settings.json");
+        _tempDir = new TempDirectory();
+        _testSettingsPath = Path.Combine(_tempDir.Path, "settings.json");
+        _service = new SettingsService(_testSettingsPath);
     }
 
     public void Dispose()
     {
-        if (File.Exists(_testSettingsPath))
-        {
-            File.Delete(_testSettingsPath);
-        }
+        _tempDir.Dispose();
     }
 
     [Fact]
@@ -165,6 +162,56 @@ public class SettingsServiceTests : IDisposable
         loaded.Window.Should().NotBeNull();
         loaded.Window.Width.Should().Be(1200);
         loaded.Window.IsMaximized.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task LoadAppSettingsAsync_CorruptFile_ReturnsDefaultsAndBacksUpFile()
+    {
+        const string corruptJson = "{ \"theme\": \"NVS Dark\", THIS IS NOT JSON";
+        await File.WriteAllTextAsync(_testSettingsPath, corruptJson);
+
+        var loaded = await _service.LoadAppSettingsAsync();
+
+        loaded.Theme.Should().Be("NVS Dark");
+        var backupPath = _testSettingsPath + ".bak";
+        File.Exists(backupPath).Should().BeTrue("the corrupt file must be preserved, not silently discarded");
+        (await File.ReadAllTextAsync(backupPath)).Should().Be(corruptJson);
+    }
+
+    [Fact]
+    public async Task SaveAppSettingsAsync_AfterCorruptLoad_DoesNotDestroyBackup()
+    {
+        const string corruptJson = "not json at all";
+        await File.WriteAllTextAsync(_testSettingsPath, corruptJson);
+
+        await _service.LoadAppSettingsAsync();
+        await _service.SaveAppSettingsAsync(new NVS.Core.Models.Settings.AppSettings { Theme = "Fresh" });
+
+        (await File.ReadAllTextAsync(_testSettingsPath + ".bak")).Should().Be(corruptJson);
+        (await _service.LoadAppSettingsAsync()).Theme.Should().Be("Fresh");
+    }
+
+    [Fact]
+    public async Task SaveAppSettingsAsync_ShouldNotLeaveTempFile()
+    {
+        await _service.SaveAppSettingsAsync(new NVS.Core.Models.Settings.AppSettings());
+
+        File.Exists(_testSettingsPath).Should().BeTrue();
+        File.Exists(_testSettingsPath + ".tmp").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task LoadWorkspaceSettingsAsync_CorruptFile_ReturnsDefaultsAndBacksUpFile()
+    {
+        using var tempDir = new TempDirectory();
+        var workspaceSettingsPath = Path.Combine(tempDir.Path, ".nvs", "workspace.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(workspaceSettingsPath)!);
+        await File.WriteAllTextAsync(workspaceSettingsPath, "{{{{");
+
+        var loaded = await _service.LoadWorkspaceSettingsAsync(tempDir.Path);
+
+        loaded.Should().NotBeNull();
+        File.Exists(workspaceSettingsPath + ".bak").Should().BeTrue();
     }
 
     [Fact]
