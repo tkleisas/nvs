@@ -418,9 +418,10 @@ public partial class EditorViewModel : INotifyPropertyChanged
             if (docVm == _activeDocument)
                 OnPropertyChanged(nameof(CurrentMethodInfo));
         }
-        catch
+        catch (Exception ex)
         {
             // Metrics analysis failure is non-critical
+            Serilog.Log.Debug(ex, "Code metrics analysis failed for {Path}", docVm.Document.FilePath);
         }
     }
 
@@ -465,9 +466,9 @@ public partial class EditorViewModel : INotifyPropertyChanged
                     await _editorService.OpenDocumentAsync(location.FilePath);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Language server unavailable — silently ignore
+                Serilog.Log.Debug(ex, "Go to definition failed (language server unavailable?)");
             }
         });
 

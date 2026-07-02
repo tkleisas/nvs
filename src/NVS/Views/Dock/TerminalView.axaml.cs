@@ -125,9 +125,9 @@ public partial class TerminalView : UserControl
                         await writer.FlushAsync();
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // Terminal may not be ready yet
+                    Serilog.Log.Warning(ex, "Failed to send command to terminal (not ready yet?)");
                 }
             });
         };

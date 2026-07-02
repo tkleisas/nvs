@@ -157,9 +157,10 @@ public sealed partial class SearchViewModel : ObservableObject
                 results.Add(file);
             }
         }
-        catch
+        catch (Exception ex)
         {
             // Return whatever we collected
+            Serilog.Log.Debug(ex, "File enumeration stopped early under {Root}", rootPath);
         }
         return results;
     }

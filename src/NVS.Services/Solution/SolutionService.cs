@@ -52,9 +52,9 @@ public sealed partial class SolutionService : ISolutionService
                 if (startupProjectPath is null && project.IsExecutable)
                     startupProjectPath = projectPath;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Skip projects that can't be parsed
+                Serilog.Log.Warning(ex, "Skipping project that failed to parse: {ProjectPath}", projectPath);
             }
         }
 

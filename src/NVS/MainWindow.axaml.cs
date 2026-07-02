@@ -113,9 +113,10 @@ public partial class MainWindow : Window
         {
             Task.Run(() => settingsService.SaveAppSettingsAsync(newSettings)).GetAwaiter().GetResult();
         }
-        catch
+        catch (Exception ex)
         {
             // Best-effort: don't prevent window close if save fails
+            Serilog.Log.Warning(ex, "Failed to save window state on close");
         }
     }
 

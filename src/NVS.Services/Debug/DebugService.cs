@@ -110,12 +110,14 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
                 if (_client is not null)
                 {
                     UnsubscribeFromClientEvents(_client);
-                    try { await _client.DisposeAsync().ConfigureAwait(false); } catch { }
+                    try { await _client.DisposeAsync().ConfigureAwait(false); }
+                    catch (Exception ex) { Serilog.Log.Debug(ex, "Disposing stale DAP client failed"); }
                     _client = null;
                 }
                 if (_adapterProcess is not null)
                 {
-                    try { if (!_adapterProcess.HasExited) _adapterProcess.Kill(entireProcessTree: true); } catch { }
+                    try { if (!_adapterProcess.HasExited) _adapterProcess.Kill(entireProcessTree: true); }
+                    catch (Exception ex) { Serilog.Log.Debug(ex, "Killing stale debug adapter failed"); }
                     _adapterProcess.Dispose();
                     _adapterProcess = null;
                 }

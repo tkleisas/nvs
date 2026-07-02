@@ -61,9 +61,9 @@ public partial class CallStackToolViewModel : Tool
         {
             await _main.OpenFileAsync(frame.Source);
         }
-        catch
+        catch (Exception ex)
         {
-            // Best effort navigation
+            Serilog.Log.Warning(ex, "Failed to navigate to stack frame in {Path}", frame.Source);
         }
     }
 }

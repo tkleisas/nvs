@@ -45,7 +45,7 @@ public partial class App : Application
             if (settingsService is not null)
             {
                 try { Task.Run(() => settingsService.InitializeAsync()).GetAwaiter().GetResult(); }
-                catch { /* Continue with defaults if settings fail to load */ }
+                catch (Exception ex) { Serilog.Log.Warning(ex, "Failed to load settings at startup; continuing with defaults"); }
             }
 
             var mainWindow = Services?.GetService(typeof(MainWindow)) as MainWindow ?? new MainWindow();

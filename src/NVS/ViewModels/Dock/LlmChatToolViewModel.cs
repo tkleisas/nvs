@@ -390,7 +390,7 @@ public sealed partial class LlmChatToolViewModel : Tool
                     AttachedFiles.Add(path);
             }
         }
-        catch { /* file picker cancelled or error */ }
+        catch (Exception ex) { Serilog.Log.Debug(ex, "File attach failed or was cancelled"); }
     }
 
     [RelayCommand]
@@ -439,7 +439,7 @@ public sealed partial class LlmChatToolViewModel : Tool
                 AttachedImages.Add(dataUri);
             }
         }
-        catch { /* file picker cancelled or error */ }
+        catch (Exception ex) { Serilog.Log.Debug(ex, "File attach failed or was cancelled"); }
     }
 
     [RelayCommand]
@@ -557,7 +557,7 @@ public sealed partial class LlmChatToolViewModel : Tool
                         attachedContents.Add($"### {Path.GetFileName(filePath)}\n```\n{content}\n```");
                     }
                 }
-                catch { /* skip unreadable files */ }
+                catch (Exception ex) { Serilog.Log.Debug(ex, "Skipping unreadable attached file"); }
             }
         }
 

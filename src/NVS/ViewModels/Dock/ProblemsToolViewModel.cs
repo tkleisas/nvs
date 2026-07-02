@@ -96,9 +96,9 @@ public partial class ProblemsToolViewModel : Tool
                 // EditorViewModel handles cursor positioning via event
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Ignore navigation errors
+            Serilog.Log.Warning(ex, "Failed to navigate to problem in {Path}", problem.FilePath);
         }
     }
 }
