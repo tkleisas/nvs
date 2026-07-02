@@ -11,6 +11,7 @@ public sealed class WriteFileTool : IAgentTool
     private readonly Func<string> _getWorkspacePath;
 
     public string Name => "write_file";
+    public bool RequiresApproval => true;
     public string Description => "Write content to a file. Creates the file and any parent directories if they don't exist. Overwrites existing content.";
 
     public JsonElement ParameterSchema { get; } = JsonSerializer.Deserialize<JsonElement>("""

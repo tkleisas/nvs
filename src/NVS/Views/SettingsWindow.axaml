@@ -234,6 +234,7 @@
                         <CheckBox IsChecked="{Binding LlmStream}" Content="Enable streaming responses" Foreground="{DynamicResource TextForegroundBrush}" />
                         <CheckBox IsChecked="{Binding LlmEnableChat}" Content="Enable AI chat panel" Foreground="{DynamicResource TextForegroundBrush}" />
                         <CheckBox IsChecked="{Binding LlmEnableAutoComplete}" Content="Enable AI auto-complete (experimental)" Foreground="{DynamicResource TextForegroundBrush}" />
+                        <CheckBox IsChecked="{Binding LlmRequireToolApproval}" Content="Ask before the agent runs terminal commands or writes files" Foreground="{DynamicResource TextForegroundBrush}" />
                     </StackPanel>
 
                 </Grid>

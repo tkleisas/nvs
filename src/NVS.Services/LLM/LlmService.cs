@@ -182,6 +182,7 @@ public sealed class LlmService : ILlmService
         string? systemPrompt = null,
         Action<string>? onToken = null,
         Action<AgentToolCallEvent>? onToolCall = null,
+        Func<ToolApprovalRequest, Task<bool>>? onApprovalRequired = null,
         int maxIterations = 20,
         CancellationToken cancellationToken = default)
     {
@@ -256,9 +257,30 @@ public sealed class LlmService : ILlmService
                 {
                     if (_tools.TryGetValue(toolCall.Function.Name, out var tool))
                     {
-                        toolResult = await tool.ExecuteAsync(
-                            toolCall.Function.Arguments,
-                            cancellationToken);
+                        var approved = !tool.RequiresApproval
+                            || !settings.RequireToolApproval
+                            || (onApprovalRequired is not null
+                                && await onApprovalRequired(new ToolApprovalRequest
+                                {
+                                    ToolName = tool.Name,
+                                    Description = tool.Description,
+                                    Arguments = toolCall.Function.Arguments
+                                }));
+
+                        if (approved)
+                        {
+                            toolResult = await tool.ExecuteAsync(
+                                toolCall.Function.Arguments,
+                                cancellationToken);
+                        }
+                        else
+                        {
+                            toolResult = JsonSerializer.Serialize(new
+                            {
+                                error = $"The user denied permission to run '{tool.Name}'. Do not retry this call; ask the user how to proceed instead."
+                            });
+                            success = false;
+                        }
                     }
                     else
                     {

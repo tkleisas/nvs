@@ -51,6 +51,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     private int _llmHttpTimeoutSeconds = 120;
     private bool _llmEnableAutoComplete;
     private bool _llmEnableChat = true;
+    private bool _llmRequireToolApproval = true;
     private bool _llmStream = true;
     private string _llmActivePromptTemplate = "general";
 
@@ -282,6 +283,12 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         set => SetProperty(ref _llmEnableChat, value);
     }
 
+    public bool LlmRequireToolApproval
+    {
+        get => _llmRequireToolApproval;
+        set => SetProperty(ref _llmRequireToolApproval, value);
+    }
+
     public string LlmActivePromptTemplate
     {
         get => _llmActivePromptTemplate;
@@ -327,6 +334,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         LlmStream = settings.Llm.Stream;
         LlmEnableAutoComplete = settings.Llm.EnableAutoComplete;
         LlmEnableChat = settings.Llm.EnableChat;
+        LlmRequireToolApproval = settings.Llm.RequireToolApproval;
         LlmActivePromptTemplate = settings.Llm.ActivePromptTemplate;
 
         // Terminal
@@ -410,7 +418,9 @@ public partial class SettingsViewModel : INotifyPropertyChanged
                 AutoSave = AutoSave,
                 AutoSaveDelay = AutoSaveDelay,
             },
-            Llm = new LlmSettings
+            // "with" on the current settings so LLM fields without a UI control
+            // (SupportsVision, MaxContextLength, ...) survive a save.
+            Llm = _settings.Llm with
             {
                 Endpoint = LlmEndpoint,
                 ApiKey = LlmApiKey,
@@ -424,6 +434,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
                 Stream = LlmStream,
                 EnableAutoComplete = LlmEnableAutoComplete,
                 EnableChat = LlmEnableChat,
+                RequireToolApproval = LlmRequireToolApproval,
                 ActivePromptTemplate = LlmActivePromptTemplate,
             },
             Terminal = new TerminalSettings

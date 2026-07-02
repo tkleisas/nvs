@@ -21,6 +21,9 @@ public interface ILlmService
 
     /// <summary>
     /// Run the agent loop: send messages, execute tool calls, repeat until done or max iterations.
+    /// Tools marked <see cref="IAgentTool.RequiresApproval"/> are passed to
+    /// <paramref name="onApprovalRequired"/> before execution; when the handler returns false
+    /// or no handler is provided, the call is denied and an error result is returned to the model.
     /// </summary>
     Task<AgentLoopResult> RunAgentLoopAsync(
         List<ChatCompletionMessage> messages,
@@ -28,6 +31,7 @@ public interface ILlmService
         string? systemPrompt = null,
         Action<string>? onToken = null,
         Action<AgentToolCallEvent>? onToolCall = null,
+        Func<ToolApprovalRequest, Task<bool>>? onApprovalRequired = null,
         int maxIterations = 20,
         CancellationToken cancellationToken = default);
 

@@ -268,6 +268,7 @@ public sealed partial class LlmChatToolViewModel : Tool
                     StatusText = $"Running {toolCall.ToolName}...";
                     Messages.Add(new ChatBubble("tool", $"⚡ {toolCall.ToolName}: {(toolCall.Success ? "✓" : "✗")} ({toolCall.Duration.TotalMilliseconds:F0}ms)"));
                 },
+                onApprovalRequired: RequestToolApprovalAsync,
                 maxIterations: Main.SettingsService.AppSettings.Llm.MaxIterations,
                 cancellationToken: _streamCts.Token);
 
@@ -304,6 +305,47 @@ public sealed partial class LlmChatToolViewModel : Tool
     }
 
     private bool CanSend() => !IsSending && !string.IsNullOrWhiteSpace(UserInput);
+
+    /// <summary>
+    /// Shows an inline Allow/Deny prompt for a destructive tool call and waits for
+    /// the user's decision. Stopping the generation counts as a denial.
+    /// </summary>
+    private async Task<bool> RequestToolApprovalAsync(ToolApprovalRequest request)
+    {
+        var bubble = new ChatBubble("approval", FormatApprovalPrompt(request));
+        bubble.BeginApproval();
+        Messages.Add(bubble);
+        StatusText = $"Waiting for approval: {request.ToolName}";
+
+        using var cancelRegistration = _streamCts is not null
+            ? _streamCts.Token.Register(() => bubble.ResolveApproval(false))
+            : default;
+
+        return await bubble.ApprovalTask;
+    }
+
+    private static string FormatApprovalPrompt(ToolApprovalRequest request)
+    {
+        const int maxArgumentChars = 600;
+
+        var arguments = request.Arguments;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(arguments);
+            arguments = System.Text.Json.JsonSerializer.Serialize(
+                doc.RootElement,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // Show the raw arguments if they aren't valid JSON.
+        }
+
+        if (arguments.Length > maxArgumentChars)
+            arguments = arguments[..maxArgumentChars] + "\n… (truncated)";
+
+        return $"🛡 The assistant wants to run \"{request.ToolName}\":\n{arguments}";
+    }
 
     [RelayCommand(CanExecute = nameof(CanStop))]
     private void Stop()
@@ -549,6 +591,8 @@ public sealed partial class LlmChatToolViewModel : Tool
 public sealed class ChatBubble : INotifyPropertyChanged
 {
     private string _content;
+    private bool _isApprovalPending;
+    private TaskCompletionSource<bool>? _approvalTcs;
 
     public string Role { get; }
     public string Content
@@ -568,7 +612,28 @@ public sealed class ChatBubble : INotifyPropertyChanged
     public bool IsAssistant => Role == "assistant";
     public bool IsSystem => Role == "system";
     public bool IsTool => Role == "tool";
+    public bool IsApproval => Role == "approval";
     public DateTimeOffset Timestamp { get; } = DateTimeOffset.Now;
+
+    /// <summary>Whether this approval bubble is still waiting for the user's decision.</summary>
+    public bool IsApprovalPending
+    {
+        get => _isApprovalPending;
+        private set
+        {
+            if (_isApprovalPending != value)
+            {
+                _isApprovalPending = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsApprovalPending)));
+            }
+        }
+    }
+
+    public IRelayCommand AllowCommand { get; }
+    public IRelayCommand DenyCommand { get; }
+
+    /// <summary>Completes when the user allows or denies this approval bubble.</summary>
+    public Task<bool> ApprovalTask => _approvalTcs?.Task ?? Task.FromResult(false);
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -576,6 +641,24 @@ public sealed class ChatBubble : INotifyPropertyChanged
     {
         Role = role;
         _content = content;
+        AllowCommand = new RelayCommand(() => ResolveApproval(true));
+        DenyCommand = new RelayCommand(() => ResolveApproval(false));
+    }
+
+    /// <summary>Put the bubble into the waiting-for-decision state.</summary>
+    public void BeginApproval()
+    {
+        _approvalTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        IsApprovalPending = true;
+    }
+
+    /// <summary>Record the user's decision; safe to call more than once.</summary>
+    public void ResolveApproval(bool approved)
+    {
+        if (!IsApprovalPending) return;
+        IsApprovalPending = false;
+        Content += approved ? "\n✓ Allowed" : "\n✗ Denied";
+        _approvalTcs?.TrySetResult(approved);
     }
 
     /// <summary>Append a token during streaming.</summary>

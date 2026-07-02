@@ -28,6 +28,7 @@ public sealed class ApplyEditTool : IAgentTool
     private readonly Func<EditOperation, bool> _applyEdit;
 
     public string Name => "apply_edit";
+    public bool RequiresApproval => true;
     public string Description => "Apply a text edit to the active editor. Can replace the current selection, insert at cursor, or replace a specific line range.";
 
     public JsonElement ParameterSchema { get; } = JsonSerializer.Deserialize<JsonElement>("""

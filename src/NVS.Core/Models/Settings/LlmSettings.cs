@@ -38,6 +38,12 @@ public sealed record LlmSettings
     /// <summary>Enable the LLM chat panel.</summary>
     public bool EnableChat { get; init; } = true;
 
+    /// <summary>
+    /// Require user approval before the agent runs destructive tools
+    /// (terminal commands, file writes/edits).
+    /// </summary>
+    public bool RequireToolApproval { get; init; } = true;
+
     /// <summary>Enable LLM-powered auto-complete suggestions.</summary>
     public bool EnableAutoComplete { get; init; } = false;
 

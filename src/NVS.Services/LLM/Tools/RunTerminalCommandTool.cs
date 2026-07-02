@@ -15,6 +15,7 @@ public sealed class RunTerminalCommandTool : IAgentTool
     private readonly Func<string> _getWorkspacePath;
 
     public string Name => "run_terminal";
+    public bool RequiresApproval => true;
     public string Description => "Execute a shell command in the workspace directory. Returns stdout and stderr (max 8KB). Use for arbitrary commands like grep, find, curl, etc.";
 
     public JsonElement ParameterSchema { get; } = JsonSerializer.Deserialize<JsonElement>("""

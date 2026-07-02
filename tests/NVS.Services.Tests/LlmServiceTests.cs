@@ -417,6 +417,126 @@ public sealed class LlmServiceTests
         clientsCreated.Should().Be(2, "the client is cached until the configured timeout changes");
     }
 
+    [Fact]
+    public async Task RunAgentLoopAsync_ApprovalGranted_ExecutesDestructiveTool()
+    {
+        var (service, tool) = CreateAgentLoopService(requireToolApproval: true);
+        var approvalRequests = new List<ToolApprovalRequest>();
+
+        var result = await service.RunAgentLoopAsync(
+            [ChatCompletionMessage.User("go")],
+            onApprovalRequired: request =>
+            {
+                approvalRequests.Add(request);
+                return Task.FromResult(true);
+            });
+
+        tool.ExecuteCount.Should().Be(1);
+        approvalRequests.Should().ContainSingle().Which.ToolName.Should().Be("danger_tool");
+        result.ToolCallHistory.Should().ContainSingle().Which.Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RunAgentLoopAsync_ApprovalDenied_DoesNotExecuteTool()
+    {
+        var (service, tool) = CreateAgentLoopService(requireToolApproval: true);
+
+        var result = await service.RunAgentLoopAsync(
+            [ChatCompletionMessage.User("go")],
+            onApprovalRequired: _ => Task.FromResult(false));
+
+        tool.ExecuteCount.Should().Be(0);
+        var toolEvent = result.ToolCallHistory.Should().ContainSingle().Subject;
+        toolEvent.Success.Should().BeFalse();
+        toolEvent.Result.Should().Contain("denied");
+    }
+
+    [Fact]
+    public async Task RunAgentLoopAsync_NoApprovalHandler_DeniesDestructiveTool()
+    {
+        var (service, tool) = CreateAgentLoopService(requireToolApproval: true);
+
+        var result = await service.RunAgentLoopAsync([ChatCompletionMessage.User("go")]);
+
+        tool.ExecuteCount.Should().Be(0, "with no way to ask the user, destructive tools must be denied");
+        result.ToolCallHistory.Should().ContainSingle().Which.Success.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RunAgentLoopAsync_ApprovalDisabledInSettings_ExecutesWithoutPrompt()
+    {
+        var (service, tool) = CreateAgentLoopService(requireToolApproval: false);
+        var handlerInvoked = false;
+
+        await service.RunAgentLoopAsync(
+            [ChatCompletionMessage.User("go")],
+            onApprovalRequired: _ =>
+            {
+                handlerInvoked = true;
+                return Task.FromResult(false);
+            });
+
+        tool.ExecuteCount.Should().Be(1);
+        handlerInvoked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RunAgentLoopAsync_NonDestructiveTool_DoesNotRequestApproval()
+    {
+        var (service, tool) = CreateAgentLoopService(requireToolApproval: true, toolRequiresApproval: false);
+        var handlerInvoked = false;
+
+        await service.RunAgentLoopAsync(
+            [ChatCompletionMessage.User("go")],
+            onApprovalRequired: _ =>
+            {
+                handlerInvoked = true;
+                return Task.FromResult(true);
+            });
+
+        tool.ExecuteCount.Should().Be(1);
+        handlerInvoked.Should().BeFalse();
+    }
+
+    [Fact]
+    public void DestructiveTools_AreMarkedAsRequiringApproval()
+    {
+        IAgentTool runTerminal = new NVS.Services.LLM.Tools.RunTerminalCommandTool(() => ".");
+        IAgentTool writeFile = new NVS.Services.LLM.Tools.WriteFileTool(() => ".");
+        IAgentTool applyEdit = new NVS.Services.LLM.Tools.ApplyEditTool(_ => true);
+
+        runTerminal.RequiresApproval.Should().BeTrue();
+        writeFile.RequiresApproval.Should().BeTrue();
+        applyEdit.RequiresApproval.Should().BeTrue();
+    }
+
+    /// <summary>Builds a service whose fake LLM calls "danger_tool" once, then finishes.</summary>
+    private static (LlmService Service, FakeTool Tool) CreateAgentLoopService(
+        bool requireToolApproval,
+        bool toolRequiresApproval = true)
+    {
+        var settingsService = CreateSettingsService(new LlmSettings
+        {
+            Endpoint = "http://localhost:9999",
+            Model = "test",
+            Stream = false,
+            RequireToolApproval = requireToolApproval
+        });
+
+        const string toolCallResponse =
+            """{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"call_1","type":"function","function":{"name":"danger_tool","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}""";
+        const string finalResponse =
+            """{"choices":[{"message":{"role":"assistant","content":"done"},"finish_reason":"stop"}]}""";
+
+        var handler = new FakeHttpHandler(toolCallResponse, finalResponse);
+        var service = new LlmService(settingsService, () => handler);
+
+        var tool = new FakeTool("danger_tool", "A destructive test tool", toolRequiresApproval);
+        service.RegisterTool(tool);
+
+        return (service, tool);
+    }
+
     private static ChatCompletionRequest CreateRequest() => new()
     {
         Model = "test",
@@ -433,18 +553,26 @@ public sealed class LlmServiceTests
 
     private sealed class FakeHttpHandler : HttpMessageHandler
     {
+        private const string DefaultResponse =
+            """{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}""";
+
+        private readonly Queue<string> _responses;
+
         public List<string?> AuthorizationHeaders { get; } = [];
+
+        public FakeHttpHandler(params string[] responseBodies)
+        {
+            _responses = new Queue<string>(responseBodies);
+        }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             AuthorizationHeaders.Add(request.Headers.Authorization?.ToString());
 
+            var body = _responses.Count > 0 ? _responses.Dequeue() : DefaultResponse;
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent(
-                    """{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}""",
-                    Encoding.UTF8,
-                    "application/json")
+                Content = new StringContent(body, Encoding.UTF8, "application/json")
             };
             return Task.FromResult(response);
         }
@@ -454,19 +582,23 @@ public sealed class LlmServiceTests
     {
         public string Name { get; }
         public string Description { get; }
+        public bool RequiresApproval { get; }
+        public int ExecuteCount { get; private set; }
 
         public JsonElement ParameterSchema { get; } = JsonSerializer.Deserialize<JsonElement>("""
             {"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}
             """);
 
-        public FakeTool(string name, string description)
+        public FakeTool(string name, string description, bool requiresApproval = false)
         {
             Name = name;
             Description = description;
+            RequiresApproval = requiresApproval;
         }
 
         public Task<string> ExecuteAsync(string argumentsJson, CancellationToken cancellationToken = default)
         {
+            ExecuteCount++;
             return Task.FromResult("""{"result":"ok"}""");
         }
     }

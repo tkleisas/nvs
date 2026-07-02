@@ -16,6 +16,25 @@ public interface IAgentTool
     /// <summary>JSON Schema for the tool's parameters.</summary>
     JsonElement ParameterSchema { get; }
 
+    /// <summary>
+    /// Whether the tool performs a destructive or outward-facing action (running commands,
+    /// writing files) and must be approved by the user before each execution.
+    /// </summary>
+    bool RequiresApproval => false;
+
     /// <summary>Execute the tool with the given JSON arguments.</summary>
     Task<string> ExecuteAsync(string argumentsJson, CancellationToken cancellationToken = default);
+}
+
+/// <summary>A request for the user to approve a destructive tool call.</summary>
+public sealed record ToolApprovalRequest
+{
+    /// <summary>Tool name (e.g., "run_terminal").</summary>
+    public required string ToolName { get; init; }
+
+    /// <summary>Human-readable tool description.</summary>
+    public required string Description { get; init; }
+
+    /// <summary>Raw JSON arguments the LLM wants to invoke the tool with.</summary>
+    public required string Arguments { get; init; }
 }
