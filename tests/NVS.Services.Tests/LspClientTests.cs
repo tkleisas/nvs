@@ -396,6 +396,24 @@ public sealed class LspClientTests : IAsyncLifetime
 
     // ─── Document Notifications ─────────────────────────────────────────────
 
+    /// <summary>
+    /// Notifications are written fire-and-forget, so poll for arrival rather than
+    /// sleeping a fixed interval — loaded CI runners regularly exceed 100ms.
+    /// </summary>
+    private async Task<JsonRpcNotification?> WaitForNotificationAsync(string method)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (DateTime.UtcNow < deadline)
+        {
+            var notification = _mockServer.ReceivedNotifications
+                .FirstOrDefault(n => n.Method == method);
+            if (notification is not null)
+                return notification;
+            await Task.Delay(25);
+        }
+        return null;
+    }
+
     [Fact]
     public async Task NotifyDocumentOpened_ShouldSendNotification()
     {
@@ -404,11 +422,7 @@ public sealed class LspClientTests : IAsyncLifetime
         var doc = CreateDocument("test.cs");
         _client.NotifyDocumentOpened(doc);
 
-        // Give the async notification time to be written
-        await Task.Delay(100);
-
-        var received = _mockServer.ReceivedNotifications
-            .FirstOrDefault(n => n.Method == "textDocument/didOpen");
+        var received = await WaitForNotificationAsync("textDocument/didOpen");
         received.Should().NotBeNull();
     }
 
@@ -420,10 +434,7 @@ public sealed class LspClientTests : IAsyncLifetime
         var doc = CreateDocument("test.cs");
         _client.NotifyDocumentChanged(doc, "new content");
 
-        await Task.Delay(100);
-
-        var received = _mockServer.ReceivedNotifications
-            .FirstOrDefault(n => n.Method == "textDocument/didChange");
+        var received = await WaitForNotificationAsync("textDocument/didChange");
         received.Should().NotBeNull();
     }
 
@@ -435,10 +446,7 @@ public sealed class LspClientTests : IAsyncLifetime
         var doc = CreateDocument("test.cs");
         _client.NotifyDocumentClosed(doc);
 
-        await Task.Delay(100);
-
-        var received = _mockServer.ReceivedNotifications
-            .FirstOrDefault(n => n.Method == "textDocument/didClose");
+        var received = await WaitForNotificationAsync("textDocument/didClose");
         received.Should().NotBeNull();
     }
 
@@ -450,10 +458,7 @@ public sealed class LspClientTests : IAsyncLifetime
         var doc = CreateDocument("test.cs");
         _client.NotifyDocumentSaved(doc);
 
-        await Task.Delay(100);
-
-        var received = _mockServer.ReceivedNotifications
-            .FirstOrDefault(n => n.Method == "textDocument/didSave");
+        var received = await WaitForNotificationAsync("textDocument/didSave");
         received.Should().NotBeNull();
     }
 
