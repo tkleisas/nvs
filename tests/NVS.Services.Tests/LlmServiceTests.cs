@@ -347,11 +347,107 @@ public sealed class LlmServiceTests
         defs[0].Type.Should().Be("function");
     }
 
+    [Fact]
+    public async Task SendAsync_ApiKeyChangedInSettings_UsesNewKeyWithoutRestart()
+    {
+        var currentSettings = new LlmSettings
+        {
+            Endpoint = "http://localhost:9999",
+            Model = "test",
+            ApiKey = "old-key",
+            Stream = false
+        };
+        var settingsService = Substitute.For<ISettingsService>();
+        settingsService.AppSettings.Returns(_ => new AppSettings { Llm = currentSettings });
+
+        var handler = new FakeHttpHandler();
+        var service = new LlmService(settingsService, () => handler);
+
+        await service.SendAsync(CreateRequest());
+        currentSettings = currentSettings with { ApiKey = "new-key" };
+        await service.SendAsync(CreateRequest());
+
+        handler.AuthorizationHeaders.Should().Equal("Bearer old-key", "Bearer new-key");
+    }
+
+    [Fact]
+    public async Task SendAsync_EmptyApiKey_SendsNoAuthorizationHeader()
+    {
+        var settingsService = CreateSettingsService(new LlmSettings
+        {
+            Endpoint = "http://localhost:9999",
+            Model = "test",
+            ApiKey = "",
+            Stream = false
+        });
+
+        var handler = new FakeHttpHandler();
+        var service = new LlmService(settingsService, () => handler);
+
+        await service.SendAsync(CreateRequest());
+
+        handler.AuthorizationHeaders.Should().Equal([null]);
+    }
+
+    [Fact]
+    public async Task SendAsync_TimeoutChangedInSettings_RecreatesHttpClient()
+    {
+        var currentSettings = new LlmSettings
+        {
+            Endpoint = "http://localhost:9999",
+            Model = "test",
+            HttpTimeoutSeconds = 120,
+            Stream = false
+        };
+        var settingsService = Substitute.For<ISettingsService>();
+        settingsService.AppSettings.Returns(_ => new AppSettings { Llm = currentSettings });
+
+        int clientsCreated = 0;
+        var service = new LlmService(settingsService, () =>
+        {
+            clientsCreated++;
+            return new FakeHttpHandler();
+        });
+
+        await service.SendAsync(CreateRequest());
+        await service.SendAsync(CreateRequest());
+        currentSettings = currentSettings with { HttpTimeoutSeconds = 30 };
+        await service.SendAsync(CreateRequest());
+
+        clientsCreated.Should().Be(2, "the client is cached until the configured timeout changes");
+    }
+
+    private static ChatCompletionRequest CreateRequest() => new()
+    {
+        Model = "test",
+        Messages = [ChatCompletionMessage.User("hi")],
+        Stream = false
+    };
+
     private static ISettingsService CreateSettingsService(LlmSettings llmSettings)
     {
         var settingsService = Substitute.For<ISettingsService>();
         settingsService.AppSettings.Returns(new AppSettings { Llm = llmSettings });
         return settingsService;
+    }
+
+    private sealed class FakeHttpHandler : HttpMessageHandler
+    {
+        public List<string?> AuthorizationHeaders { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            AuthorizationHeaders.Add(request.Headers.Authorization?.ToString());
+
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """{"choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}""",
+                    Encoding.UTF8,
+                    "application/json")
+            };
+            return Task.FromResult(response);
+        }
     }
 
     private sealed class FakeTool : IAgentTool

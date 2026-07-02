@@ -20,9 +20,11 @@ public sealed class LlmService : ILlmService
     };
 
     private readonly ISettingsService _settingsService;
+    private readonly Func<HttpMessageHandler>? _handlerFactory;
     private readonly Dictionary<string, IAgentTool> _tools = new();
     private CancellationTokenSource? _currentCts;
     private HttpClient? _httpClient;
+    private int _httpClientTimeoutSeconds;
 
     public bool IsConfigured
     {
@@ -43,6 +45,13 @@ public sealed class LlmService : ILlmService
     public LlmService(ISettingsService settingsService)
     {
         _settingsService = settingsService;
+    }
+
+    /// <summary>Test constructor allowing the HTTP transport to be faked.</summary>
+    internal LlmService(ISettingsService settingsService, Func<HttpMessageHandler> handlerFactory)
+    {
+        _settingsService = settingsService;
+        _handlerFactory = handlerFactory;
     }
 
     /// <summary>Register an agent tool for use in the agent loop.</summary>
@@ -92,6 +101,14 @@ public sealed class LlmService : ILlmService
             {
                 Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
             };
+
+            // Auth is applied per request (not on the cached client) so that API key
+            // changes in Settings take effect immediately.
+            if (!string.IsNullOrEmpty(settings.ApiKey) && !string.IsNullOrEmpty(settings.AuthScheme))
+            {
+                httpRequest.Headers.Authorization =
+                    new AuthenticationHeaderValue(settings.AuthScheme, settings.ApiKey);
+            }
 
             StreamParser.StreamResult result;
 
@@ -305,19 +322,14 @@ public sealed class LlmService : ILlmService
     {
         var settings = _settingsService.AppSettings.Llm;
 
-        // Recreate client if settings changed
-        if (_httpClient is null)
+        // The timeout is fixed at client creation, so recreate the client when it
+        // changes. Endpoint and auth are read from current settings on every request.
+        if (_httpClient is null || _httpClientTimeoutSeconds != settings.HttpTimeoutSeconds)
         {
-            _httpClient = new HttpClient
-            {
-                Timeout = TimeSpan.FromSeconds(settings.HttpTimeoutSeconds)
-            };
-
-            if (!string.IsNullOrEmpty(settings.ApiKey) && !string.IsNullOrEmpty(settings.AuthScheme))
-            {
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue(settings.AuthScheme, settings.ApiKey);
-            }
+            _httpClient?.Dispose();
+            _httpClient = _handlerFactory is null ? new HttpClient() : new HttpClient(_handlerFactory());
+            _httpClient.Timeout = TimeSpan.FromSeconds(settings.HttpTimeoutSeconds);
+            _httpClientTimeoutSeconds = settings.HttpTimeoutSeconds;
         }
 
         return _httpClient;
