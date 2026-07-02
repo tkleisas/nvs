@@ -71,3 +71,6 @@ ehthumbs.db
 
 # Logs
 *.log
+
+# Local AI assistant instructions
+.github/copilot-instructions.md
