@@ -85,30 +85,30 @@ public class MainViewModelSearchTests
     public void SearchQuery_CanBeSetAndGet()
     {
         var vm = CreateViewModel();
-        vm.SearchQuery = "hello";
-        vm.SearchQuery.Should().Be("hello");
+        vm.Search.Query = "hello";
+        vm.Search.Query.Should().Be("hello");
     }
 
     [Fact]
     public async Task SearchFiles_WithNoWorkspace_DoesNothing()
     {
         var vm = CreateViewModel();
-        vm.SearchQuery = "test";
+        vm.Search.Query = "test";
 
-        await vm.SearchFilesCommand.ExecuteAsync(null);
+        await vm.Search.SearchFilesCommand.ExecuteAsync(null);
 
-        vm.SearchResults.Should().BeEmpty();
+        vm.Search.Results.Should().BeEmpty();
     }
 
     [Fact]
     public async Task SearchFiles_WithEmptyQuery_DoesNothing()
     {
         var vm = CreateViewModel();
-        vm.SearchQuery = "";
+        vm.Search.Query = "";
 
-        await vm.SearchFilesCommand.ExecuteAsync(null);
+        await vm.Search.SearchFilesCommand.ExecuteAsync(null);
 
-        vm.SearchResults.Should().BeEmpty();
+        vm.Search.Results.Should().BeEmpty();
     }
 
     [Fact]
@@ -127,15 +127,15 @@ public class MainViewModelSearchTests
         // Need a workspace open
         vm.WorkspacePath = "/workspace";
         vm.IsWorkspaceOpen = true;
-        vm.SearchQuery = "hello";
+        vm.Search.Query = "hello";
 
-        await vm.SearchFilesCommand.ExecuteAsync(null);
+        await vm.Search.SearchFilesCommand.ExecuteAsync(null);
 
-        vm.SearchResults.Should().HaveCount(2);
-        vm.SearchResults[0].RelativePath.Should().Contain("file1.cs");
-        vm.SearchResults[0].LineNumber.Should().Be(2);
-        vm.SearchResults[0].LineText.Should().Be("foo bar hello");
-        vm.SearchResults[1].LineNumber.Should().Be(2);
+        vm.Search.Results.Should().HaveCount(2);
+        vm.Search.Results[0].RelativePath.Should().Contain("file1.cs");
+        vm.Search.Results[0].LineNumber.Should().Be(2);
+        vm.Search.Results[0].LineText.Should().Be("foo bar hello");
+        vm.Search.Results[1].LineNumber.Should().Be(2);
     }
 
     [Fact]
@@ -151,12 +151,12 @@ public class MainViewModelSearchTests
         var vm = CreateViewModel(fs);
         vm.WorkspacePath = "/workspace";
         vm.IsWorkspaceOpen = true;
-        vm.SearchQuery = "hello";
+        vm.Search.Query = "hello";
 
-        await vm.SearchFilesCommand.ExecuteAsync(null);
+        await vm.Search.SearchFilesCommand.ExecuteAsync(null);
 
-        vm.SearchResults.Should().HaveCount(1);
-        vm.SearchResults[0].RelativePath.Should().Contain("readme.txt");
+        vm.Search.Results.Should().HaveCount(1);
+        vm.Search.Results[0].RelativePath.Should().Contain("readme.txt");
     }
 
     [Fact]
@@ -172,11 +172,11 @@ public class MainViewModelSearchTests
         var vm = CreateViewModel(fs);
         vm.WorkspacePath = "/workspace";
         vm.IsWorkspaceOpen = true;
-        vm.SearchQuery = "hello";
+        vm.Search.Query = "hello";
 
-        await vm.SearchFilesCommand.ExecuteAsync(null);
+        await vm.Search.SearchFilesCommand.ExecuteAsync(null);
 
-        vm.SearchResults.Should().HaveCount(3);
+        vm.Search.Results.Should().HaveCount(3);
     }
 
     [Fact]
@@ -193,14 +193,14 @@ public class MainViewModelSearchTests
         vm.WorkspacePath = "/workspace";
         vm.IsWorkspaceOpen = true;
 
-        vm.SearchQuery = "first";
-        await vm.SearchFilesCommand.ExecuteAsync(null);
-        vm.SearchResults.Should().HaveCount(1);
+        vm.Search.Query = "first";
+        await vm.Search.SearchFilesCommand.ExecuteAsync(null);
+        vm.Search.Results.Should().HaveCount(1);
 
-        vm.SearchQuery = "second";
-        await vm.SearchFilesCommand.ExecuteAsync(null);
-        vm.SearchResults.Should().HaveCount(1);
-        vm.SearchResults[0].LineText.Should().Be("second search");
+        vm.Search.Query = "second";
+        await vm.Search.SearchFilesCommand.ExecuteAsync(null);
+        vm.Search.Results.Should().HaveCount(1);
+        vm.Search.Results[0].LineText.Should().Be("second search");
     }
 
     [Fact]
@@ -213,9 +213,9 @@ public class MainViewModelSearchTests
         var vm = CreateViewModel(fs);
         vm.WorkspacePath = "/workspace";
         vm.IsWorkspaceOpen = true;
-        vm.SearchQuery = "test";
+        vm.Search.Query = "test";
 
-        await vm.SearchFilesCommand.ExecuteAsync(null);
+        await vm.Search.SearchFilesCommand.ExecuteAsync(null);
 
         vm.StatusMessage.Should().Contain("0 result(s)");
     }
@@ -237,24 +237,24 @@ public class MainViewModelSearchTests
     [Fact]
     public void IsBinaryExtension_DetectsCommonBinaryFormats()
     {
-        MainViewModel.IsBinaryExtension("test.exe").Should().BeTrue();
-        MainViewModel.IsBinaryExtension("test.dll").Should().BeTrue();
-        MainViewModel.IsBinaryExtension("test.png").Should().BeTrue();
-        MainViewModel.IsBinaryExtension("test.so").Should().BeTrue();
-        MainViewModel.IsBinaryExtension("test.o").Should().BeTrue();
-        MainViewModel.IsBinaryExtension("test.a").Should().BeTrue();
-        MainViewModel.IsBinaryExtension("test.dylib").Should().BeTrue();
-        MainViewModel.IsBinaryExtension("test.class").Should().BeTrue();
-        MainViewModel.IsBinaryExtension("test.pyc").Should().BeTrue();
-        MainViewModel.IsBinaryExtension("test.wasm").Should().BeTrue();
-        MainViewModel.IsBinaryExtension("test.sqlite").Should().BeTrue();
-        MainViewModel.IsBinaryExtension("test.pdf").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.exe").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.dll").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.png").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.so").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.o").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.a").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.dylib").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.class").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.pyc").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.wasm").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.sqlite").Should().BeTrue();
+        SearchViewModel.IsBinaryExtension("test.pdf").Should().BeTrue();
 
-        MainViewModel.IsBinaryExtension("test.cs").Should().BeFalse();
-        MainViewModel.IsBinaryExtension("test.txt").Should().BeFalse();
-        MainViewModel.IsBinaryExtension("test.json").Should().BeFalse();
-        MainViewModel.IsBinaryExtension("test.xml").Should().BeFalse();
-        MainViewModel.IsBinaryExtension("test.md").Should().BeFalse();
+        SearchViewModel.IsBinaryExtension("test.cs").Should().BeFalse();
+        SearchViewModel.IsBinaryExtension("test.txt").Should().BeFalse();
+        SearchViewModel.IsBinaryExtension("test.json").Should().BeFalse();
+        SearchViewModel.IsBinaryExtension("test.xml").Should().BeFalse();
+        SearchViewModel.IsBinaryExtension("test.md").Should().BeFalse();
     }
 
     [Theory]
@@ -269,7 +269,7 @@ public class MainViewModelSearchTests
     [InlineData("/workspace/README.md", false)]
     public void IsInExcludedDirectory_CorrectlyFilters(string path, bool expected)
     {
-        MainViewModel.IsInExcludedDirectory(path).Should().Be(expected);
+        SearchViewModel.IsInExcludedDirectory(path).Should().Be(expected);
     }
 
     [Fact]
@@ -292,11 +292,11 @@ public class MainViewModelSearchTests
         var vm = CreateViewModel(fs);
         vm.WorkspacePath = "/workspace";
         vm.IsWorkspaceOpen = true;
-        vm.SearchQuery = "hello";
+        vm.Search.Query = "hello";
 
-        await vm.SearchFilesCommand.ExecuteAsync(null);
+        await vm.Search.SearchFilesCommand.ExecuteAsync(null);
 
-        vm.SearchResults.Should().HaveCount(1);
-        vm.SearchResults[0].RelativePath.Should().Contain("Program.cs");
+        vm.Search.Results.Should().HaveCount(1);
+        vm.Search.Results[0].RelativePath.Should().Contain("Program.cs");
     }
 }

@@ -16,7 +16,7 @@ public partial class SearchView : UserControl
     {
         if (e.Key == Key.Enter && DataContext is SearchToolViewModel tool)
         {
-            tool.Main.SearchFilesCommand.Execute(null);
+            tool.Main.Search.SearchFilesCommand.Execute(null);
             e.Handled = true;
         }
     }
@@ -26,7 +26,7 @@ public partial class SearchView : UserControl
         if (sender is ListBox listBox && listBox.SelectedItem is FileSearchResult result
             && DataContext is SearchToolViewModel tool)
         {
-            await tool.Main.OpenSearchResultCommand.ExecuteAsync(result);
+            await tool.Main.Search.OpenSearchResultCommand.ExecuteAsync(result);
         }
     }
 }

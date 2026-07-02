@@ -11,7 +11,7 @@
     <Grid RowDefinitions="Auto,*" Margin="8,4">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
             <TextBox Grid.Column="0"
-                     Text="{Binding Main.SearchQuery}"
+                     Text="{Binding Main.Search.Query}"
                      PlaceholderText="Search in files..."
                      Background="{DynamicResource InputBackgroundBrush}"
                      Foreground="{DynamicResource TextForegroundBrush}"
@@ -20,19 +20,19 @@
                      Padding="6,4"
                      KeyDown="OnSearchQueryKeyDown">
                 <TextBox.KeyBindings>
-                    <KeyBinding Gesture="Enter" Command="{Binding Main.SearchFilesCommand}" />
+                    <KeyBinding Gesture="Enter" Command="{Binding Main.Search.SearchFilesCommand}" />
                 </TextBox.KeyBindings>
             </TextBox>
             <Button Grid.Column="1" Content="🔍" Padding="6,4" Margin="4,0,0,0"
-                    Command="{Binding Main.SearchFilesCommand}"
+                    Command="{Binding Main.Search.SearchFilesCommand}"
                     Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
         </Grid>
-        <Border Grid.Row="1" IsVisible="{Binding Main.IsSearching}"
+        <Border Grid.Row="1" IsVisible="{Binding Main.Search.IsSearching}"
                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8">
             <TextBlock Text="Searching..." Foreground="#808080" FontSize="12" />
         </Border>
         <ListBox Grid.Row="1"
-                 ItemsSource="{Binding Main.SearchResults}"
+                 ItemsSource="{Binding Main.Search.Results}"
                  Background="Transparent"
                  BorderThickness="0"
                  DoubleTapped="OnSearchResultDoubleTapped">

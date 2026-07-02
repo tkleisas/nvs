@@ -42,9 +42,6 @@ public partial class MainViewModel : INotifyPropertyChanged
     private bool _isTerminalVisible;
     private string _terminalOutput = "";
     private string _terminalInput = "";
-    private string _searchQuery = "";
-    private bool _isSearching;
-    private CancellationTokenSource? _searchCts;
     private IRootDock? _dockLayout;
     private NvsDockFactory? _dockFactory;
 
@@ -108,6 +105,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         Git = new GitViewModel(gitService, this);
         BuildRun = new BuildRunViewModel(buildService, solutionService, this);
         Debug = new DebugViewModel(debugService, breakpointStore, solutionService, buildService, this);
+        Search = new SearchViewModel(fileSystemService, this);
         _editorService.DocumentOpened += OnEditorDocumentOpened;
 
     }
@@ -130,6 +128,9 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     /// <summary>Debug-session state, commands, and event handling.</summary>
     public DebugViewModel Debug { get; }
+
+    /// <summary>Workspace-wide text search state and commands.</summary>
+    public SearchViewModel Search { get; }
 
     public string Title
     {
@@ -190,21 +191,6 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     public bool IsSidebarShowingExplorer => _sidebarMode == "Explorer";
     public bool IsSidebarShowingSearch => _sidebarMode == "Search";
-
-    // Search properties
-    public string SearchQuery
-    {
-        get => _searchQuery;
-        set => SetProperty(ref _searchQuery, value);
-    }
-
-    public bool IsSearching
-    {
-        get => _isSearching;
-        set => SetProperty(ref _isSearching, value);
-    }
-
-    public ObservableCollection<FileSearchResult> SearchResults { get; } = [];
 
     // Terminal properties
     public bool IsTerminalVisible
@@ -550,7 +536,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             foreach (var dir in Directory.GetDirectories(projectDir).OrderBy(d => d))
             {
                 var dirName = Path.GetFileName(dir);
-                if (dirName.StartsWith('.') || IsInExcludedDirectory(dirName))
+                if (dirName.StartsWith('.') || SearchViewModel.IsInExcludedDirectory(dirName))
                     continue;
 
                 // Skip sibling project directories when loading a root-level project
@@ -1134,167 +1120,6 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private const int MaxSearchResults = 200;
-
-    [RelayCommand]
-    private async Task SearchFiles()
-    {
-        if (string.IsNullOrWhiteSpace(SearchQuery) || _workspacePath is null) return;
-
-        _searchCts?.Cancel();
-        _searchCts = new CancellationTokenSource();
-        var token = _searchCts.Token;
-
-        IsSearching = true;
-        SearchResults.Clear();
-        var query = SearchQuery;
-        var resultsCapped = false;
-
-        try
-        {
-            IReadOnlyList<string> files;
-            try
-            {
-                files = await _fileSystemService.GetFilesAsync(_workspacePath, "*", recursive: true, token);
-            }
-            catch (OperationCanceledException) { throw; }
-            catch
-            {
-                files = await Task.Run(() => EnumerateFilesSafe(_workspacePath), token);
-            }
-
-            var batch = new List<FileSearchResult>();
-
-            foreach (var file in files)
-            {
-                if (token.IsCancellationRequested) break;
-                if (IsInExcludedDirectory(file) || IsBinaryExtension(file)) continue;
-
-                try
-                {
-                    try
-                    {
-                        var fileInfo = new FileInfo(file);
-                        if (fileInfo.Exists && fileInfo.Length > 5 * 1024 * 1024) continue;
-                    }
-                    catch { /* If we can't check size, try reading anyway */ }
-
-                    var content = await _fileSystemService.ReadAllTextAsync(file, token);
-                    var lines = content.Split('\n');
-                    for (var i = 0; i < lines.Length; i++)
-                    {
-                        if (lines[i].Contains(query, StringComparison.OrdinalIgnoreCase))
-                        {
-                            batch.Add(new FileSearchResult
-                            {
-                                FilePath = file,
-                                RelativePath = System.IO.Path.GetRelativePath(_workspacePath, file),
-                                LineNumber = i + 1,
-                                LineText = lines[i].Trim(),
-                            });
-
-                            if (batch.Count >= MaxSearchResults)
-                            {
-                                resultsCapped = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (resultsCapped) break;
-                }
-                catch (OperationCanceledException) { throw; }
-                catch
-                {
-                    // Skip files that can't be read
-                }
-            }
-
-            foreach (var result in batch)
-                SearchResults.Add(result);
-
-            StatusMessage = resultsCapped
-                ? $"Search: showing first {MaxSearchResults} result(s) for \"{query}\" (refine your query for more)"
-                : $"Search: {SearchResults.Count} result(s) for \"{query}\"";
-        }
-        catch (OperationCanceledException)
-        {
-            // Search was cancelled
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Search error: {ex.Message}";
-        }
-        finally
-        {
-            IsSearching = false;
-        }
-    }
-
-    private static List<string> EnumerateFilesSafe(string rootPath)
-    {
-        var results = new List<string>();
-        try
-        {
-            foreach (var file in Directory.EnumerateFiles(rootPath, "*", new EnumerationOptions
-            {
-                RecurseSubdirectories = true,
-                IgnoreInaccessible = true,
-                AttributesToSkip = FileAttributes.System | FileAttributes.ReparsePoint,
-            }))
-            {
-                results.Add(file);
-            }
-        }
-        catch
-        {
-            // Return whatever we collected
-        }
-        return results;
-    }
-
-    [RelayCommand]
-    private async Task OpenSearchResult(FileSearchResult? result)
-    {
-        if (result is null) return;
-        await OpenFileAsync(result.FilePath);
-        if (Editor?.ActiveDocument is { } doc)
-        {
-            doc.CursorLine = result.LineNumber;
-        }
-    }
-
-    private static readonly HashSet<string> ExcludedDirectories = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".git", "bin", "obj", "node_modules", "__pycache__", ".vs", ".idea",
-        "packages", "TestResults", ".nuget", "dist", "build", ".cache",
-    };
-
-    internal static bool IsInExcludedDirectory(string filePath)
-    {
-        var parts = filePath.Split(
-            System.IO.Path.DirectorySeparatorChar,
-            System.IO.Path.AltDirectorySeparatorChar);
-        return parts.Any(p => ExcludedDirectories.Contains(p));
-    }
-
-    internal static bool IsBinaryExtension(string path)
-    {
-        var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
-        return ext is ".exe" or ".dll" or ".pdb" or ".obj" or ".o" or ".a"
-            or ".so" or ".dylib" or ".lib" or ".bin" or ".class" or ".pyc"
-            or ".pyo" or ".wasm" or ".node"
-            or ".zip" or ".gz" or ".tar" or ".7z" or ".rar" or ".nupkg"
-            or ".png" or ".jpg" or ".jpeg" or ".gif" or ".bmp" or ".ico"
-            or ".svg" or ".webp" or ".tiff" or ".tif"
-            or ".mp3" or ".mp4" or ".avi" or ".mov" or ".wav" or ".flac"
-            or ".ogg" or ".webm" or ".mkv"
-            or ".pdf" or ".doc" or ".docx" or ".xls" or ".xlsx"
-            or ".snk" or ".pfx" or ".p12"
-            or ".woff" or ".woff2" or ".ttf" or ".eot" or ".otf"
-            or ".sqlite" or ".db" or ".mdb"
-            or ".suo" or ".user";
-    }
-
     private static List<FilePickerFileType> GetFileTypes()
     {
         return
@@ -1393,11 +1218,3 @@ public class FileTreeNode : INotifyPropertyChanged
     }
 }
 
-public class FileSearchResult
-{
-    public string FilePath { get; init; } = "";
-    public string RelativePath { get; init; } = "";
-    public int LineNumber { get; init; }
-    public string LineText { get; init; } = "";
-    public string Display => $"{RelativePath}:{LineNumber}";
-}
