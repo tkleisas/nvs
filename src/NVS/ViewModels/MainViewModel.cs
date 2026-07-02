@@ -37,28 +37,15 @@ public partial class MainViewModel : INotifyPropertyChanged
     private bool _isWorkspaceOpen;
     private string? _workspacePath;
     private string _statusMessage = "Ready";
-    private string _currentBranch = "";
     private EditorViewModel? _editor;
     private string _sidebarMode = "Explorer";
     private bool _isTerminalVisible;
     private string _terminalOutput = "";
     private string _terminalInput = "";
-    private string _commitMessage = "";
     private string _searchQuery = "";
     private bool _isSearching;
     private CancellationTokenSource? _searchCts;
     private IRootDock? _dockLayout;
-    private bool _isBuilding;
-    private bool _isRunning;
-    private CancellationTokenSource? _buildCts;
-    private CancellationTokenSource? _pauseCts;
-    private bool _isDebugging;
-    private bool _isDebugPaused;
-    private bool _debugUsesTerminal;
-    private int _debugSessionGeneration;
-    private TerminalToolViewModel? _debugTerminal;
-    private System.Diagnostics.Process? _debuggeeProcess;
-    private System.Diagnostics.Process? _runningProcess;
     private NvsDockFactory? _dockFactory;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -118,17 +105,11 @@ public partial class MainViewModel : INotifyPropertyChanged
         SettingsService = settingsService;
         Editor = editor;
 
-        _gitService.StatusChanged += OnGitStatusChanged;
+        Git = new GitViewModel(gitService, this);
+        BuildRun = new BuildRunViewModel(buildService, solutionService, this);
+        Debug = new DebugViewModel(debugService, breakpointStore, solutionService, buildService, this);
         _editorService.DocumentOpened += OnEditorDocumentOpened;
 
-        if (_debugService is not null)
-        {
-            _debugService.DebuggingStarted += OnDebuggingStarted;
-            _debugService.DebuggingStopped += OnDebuggingStopped;
-            _debugService.DebuggingPaused += OnDebuggingPaused;
-            _debugService.DebuggingContinued += OnDebuggingContinued;
-            _debugService.OutputReceived += OnDebugOutput;
-        }
     }
 
     public ISettingsService SettingsService { get; }
@@ -141,17 +122,14 @@ public partial class MainViewModel : INotifyPropertyChanged
     public IChatSessionService? ChatSessionService => _chatSessionService;
     public IGitService GitServiceAccessor => _gitService;
 
-    public bool IsDebugging
-    {
-        get => _isDebugging;
-        set => SetProperty(ref _isDebugging, value);
-    }
+    /// <summary>Source-control state and commands.</summary>
+    public GitViewModel Git { get; }
 
-    public bool IsDebugPaused
-    {
-        get => _isDebugPaused;
-        set => SetProperty(ref _isDebugPaused, value);
-    }
+    /// <summary>Build, run, and stop-execution state and commands.</summary>
+    public BuildRunViewModel BuildRun { get; }
+
+    /// <summary>Debug-session state, commands, and event handling.</summary>
+    public DebugViewModel Debug { get; }
 
     public string Title
     {
@@ -175,35 +153,6 @@ public partial class MainViewModel : INotifyPropertyChanged
     {
         get => _statusMessage;
         set => SetProperty(ref _statusMessage, value);
-    }
-
-    public string CurrentBranch
-    {
-        get => _currentBranch;
-        set => SetProperty(ref _currentBranch, value);
-    }
-
-    public bool GitIsRepository => _gitService.IsRepository;
-    public bool GitIsNotRepository => !_gitService.IsRepository;
-    public bool HasGitStashes => GitStashes.Count > 0;
-    public bool HasGitTags => GitTags.Count > 0;
-
-    private Branch? _selectedGitBranch;
-    private bool _isRefreshingBranches;
-    public Branch? SelectedGitBranch
-    {
-        get => _selectedGitBranch;
-        set
-        {
-            if (_isRefreshingBranches) return;
-            if (value is not null && value.Name != (_selectedGitBranch?.Name))
-            {
-                SetProperty(ref _selectedGitBranch, value);
-                _ = GitCheckoutBranch(value);
-                return;
-            }
-            SetProperty(ref _selectedGitBranch, value);
-        }
     }
 
     public EditorViewModel? Editor
@@ -257,21 +206,6 @@ public partial class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<FileSearchResult> SearchResults { get; } = [];
 
-    // Git properties
-    public ObservableCollection<GitFileStatus> GitChangedFiles { get; } = [];
-    public ObservableCollection<GitFileStatus> GitStagedFiles { get; } = [];
-    public ObservableCollection<Branch> GitBranches { get; } = [];
-    public ObservableCollection<StashEntry> GitStashes { get; } = [];
-    public ObservableCollection<Tag> GitTags { get; } = [];
-    public ObservableCollection<Commit> GitCommitLog { get; } = [];
-    public ObservableCollection<Remote> GitRemotes { get; } = [];
-
-    public string CommitMessage
-    {
-        get => _commitMessage;
-        set => SetProperty(ref _commitMessage, value);
-    }
-
     // Terminal properties
     public bool IsTerminalVisible
     {
@@ -290,34 +224,6 @@ public partial class MainViewModel : INotifyPropertyChanged
         get => _terminalInput;
         set => SetProperty(ref _terminalInput, value);
     }
-
-    // Build properties
-    public bool IsBuilding
-    {
-        get => _isBuilding;
-        set
-        {
-            if (SetProperty(ref _isBuilding, value))
-                OnPropertyChanged(nameof(CanBuild));
-        }
-    }
-
-    public bool IsRunning
-    {
-        get => _isRunning;
-        set
-        {
-            if (SetProperty(ref _isRunning, value))
-            {
-                OnPropertyChanged(nameof(CanRun));
-                OnPropertyChanged(nameof(CanStop));
-            }
-        }
-    }
-
-    public bool CanBuild => !IsBuilding && IsWorkspaceOpen;
-    public bool CanRun => !IsRunning && IsWorkspaceOpen;
-    public bool CanStop => IsRunning || IsBuilding;
 
     public ObservableCollection<string> ProjectNames { get; } = [];
 
@@ -406,7 +312,7 @@ public partial class MainViewModel : INotifyPropertyChanged
             Title = $"NVS - {Path.GetFileNameWithoutExtension(solutionPath)}";
 
             await LoadFileTree(solutionDir);
-            await InitializeGitAsync(solutionDir);
+            await Git.InitializeAsync(solutionDir);
 
             // Load the specific solution file
             try
@@ -436,7 +342,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         Title = $"NVS - {Path.GetFileNameWithoutExtension(solutionPath)}";
 
         await LoadFileTree(solutionDir);
-        await InitializeGitAsync(solutionDir);
+        await Git.InitializeAsync(solutionDir);
 
         try
         {
@@ -478,7 +384,7 @@ public partial class MainViewModel : INotifyPropertyChanged
         Title = $"NVS - {Path.GetFileName(folderPath)}";
 
         await LoadFileTree(folderPath);
-        await InitializeGitAsync(folderPath);
+        await Git.InitializeAsync(folderPath);
         await DetectAndLoadSolutionAsync(folderPath);
         _ = CheckPrerequisitesAsync(folderPath);
         await InitializeChatSessionsAsync(folderPath);
@@ -714,713 +620,13 @@ public partial class MainViewModel : INotifyPropertyChanged
             // Reload solution
             var reloaded = await _solutionService.LoadSolutionAsync(solution.FilePath);
             LoadSolutionTree(reloaded);
-            RefreshGitFiles();
+            Git.RefreshFiles();
 
             StatusMessage = $"Added project: {projectName} ({template})";
         }
         catch (Exception ex)
         {
             StatusMessage = $"Add project failed: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task BuildSolution()
-    {
-        await RunBuildCommandAsync("Build Solution", "build");
-    }
-
-    [RelayCommand]
-    private async Task CleanSolution()
-    {
-        await RunBuildCommandAsync("Clean Solution", "clean");
-    }
-
-    [RelayCommand]
-    private async Task RebuildSolution()
-    {
-        await RunBuildCommandAsync("Clean Solution", "clean");
-        if (!IsBuilding)
-            await RunBuildCommandAsync("Build Solution", "build");
-    }
-
-    private async Task RunBuildCommandAsync(string name, string dotnetVerb)
-    {
-        if (!CanBuild || WorkspacePath is null) return;
-
-        IsBuilding = true;
-        StatusMessage = dotnetVerb == "clean" ? "Cleaning..." : "Building...";
-
-        var buildOutput = FindBuildOutputTool();
-        var problemsTool = FindProblemsTool();
-        if (dotnetVerb != "clean" || name.StartsWith("Clean"))
-            buildOutput?.ClearOutput();
-
-        _buildCts = new CancellationTokenSource();
-
-        void OnOutput(object? sender, BuildOutputEventArgs e)
-        {
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                buildOutput?.AppendOutput(e.Output, e.IsError));
-        }
-
-        _buildService.OutputReceived += OnOutput;
-
-        try
-        {
-            var args = new List<string> { dotnetVerb };
-            if (_solutionService.CurrentSolution is { } sol)
-                args.Add(sol.FilePath);
-            args.Add("--nologo");
-
-            var task = new Core.Interfaces.BuildTask
-            {
-                Name = name,
-                Command = "dotnet",
-                Args = [.. args],
-                WorkingDirectory = WorkspacePath
-            };
-
-            var result = await _buildService.RunTaskAsync(task, _buildCts.Token);
-
-            if (dotnetVerb != "clean")
-                problemsTool?.SetProblems(result.Errors, result.Warnings);
-
-            StatusMessage = dotnetVerb switch
-            {
-                "clean" => result.Success ? "Clean succeeded" : "Clean failed",
-                _ => result.Success
-                    ? $"Build succeeded ({result.Duration.TotalSeconds:F1}s)"
-                    : $"Build failed — {result.Errors.Count} error(s), {result.Warnings.Count} warning(s)"
-            };
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"{name} error: {ex.Message}";
-        }
-        finally
-        {
-            _buildService.OutputReceived -= OnOutput;
-            IsBuilding = false;
-            _buildCts?.Dispose();
-            _buildCts = null;
-        }
-    }
-
-    [RelayCommand]
-    private async Task RunProject()
-    {
-        if (!CanRun || WorkspacePath is null) return;
-
-        IsRunning = true;
-        StatusMessage = "Building...";
-
-        try
-        {
-            var startup = _solutionService.GetStartupProject();
-
-            // Build first
-            var buildOutput = FindBuildOutputTool();
-            buildOutput?.ClearOutput();
-
-            var buildArgs = new List<string> { "build" };
-            if (_solutionService.CurrentSolution is { } sol)
-                buildArgs.Add(sol.FilePath);
-            buildArgs.Add("--nologo");
-
-            var buildTask = new Core.Interfaces.BuildTask
-            {
-                Name = "Build",
-                Command = "dotnet",
-                Args = [.. buildArgs],
-                WorkingDirectory = WorkspacePath,
-            };
-
-            void OnBuildOutput(object? sender, BuildOutputEventArgs e)
-            {
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                    buildOutput?.AppendOutput(e.Output, e.IsError));
-            }
-
-            _buildService.OutputReceived += OnBuildOutput;
-            BuildResult buildResult;
-            try
-            {
-                buildResult = await _buildService.RunTaskAsync(buildTask);
-            }
-            finally
-            {
-                _buildService.OutputReceived -= OnBuildOutput;
-            }
-
-            if (!buildResult.Success)
-            {
-                StatusMessage = $"Build failed — {buildResult.Errors.Count} error(s)";
-                FindProblemsTool()?.SetProblems(buildResult.Errors, buildResult.Warnings);
-                return;
-            }
-
-            // Run — GUI apps (WinExe) launch as detached processes;
-            // console apps run in the integrated terminal.
-            StatusMessage = "Running...";
-
-            var isGuiApp = startup is not null
-                && string.Equals(startup.OutputType, "WinExe", StringComparison.OrdinalIgnoreCase);
-
-            if (isGuiApp)
-            {
-                var projectArg = $" --project \"{startup!.FilePath}\"";
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "dotnet",
-                    Arguments = $"run{projectArg} --nologo",
-                    WorkingDirectory = WorkspacePath,
-                    UseShellExecute = false,
-                    CreateNoWindow = false,
-                };
-                _runningProcess = System.Diagnostics.Process.Start(psi);
-                StatusMessage = _runningProcess is not null
-                    ? $"{startup.Name} launched (PID {_runningProcess.Id})"
-                    : "Failed to start application";
-            }
-            else
-            {
-                var projectArg = startup is not null
-                    ? $" --project \"{startup.FilePath}\""
-                    : "";
-                var runCommand = $"dotnet run{projectArg} --nologo";
-
-                IsTerminalVisible = true;
-
-                var terminalTool = FindTerminalTool();
-                if (terminalTool is not null)
-                {
-                    await terminalTool.SendCommandToTerminalAsync(runCommand);
-                    StatusMessage = "Application started in terminal";
-                }
-                else
-                {
-                    StatusMessage = "Terminal not available — open a terminal first";
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Run error: {ex.Message}";
-        }
-        finally
-        {
-            IsRunning = false;
-        }
-    }
-
-    [RelayCommand]
-    private async Task StopExecution()
-    {
-        // Kill a detached GUI process if running
-        if (_runningProcess is not null && !_runningProcess.HasExited)
-        {
-            try { _runningProcess.Kill(entireProcessTree: true); } catch { /* best effort */ }
-            _runningProcess.Dispose();
-            _runningProcess = null;
-            StatusMessage = "Application stopped";
-            return;
-        }
-
-        // Kill the process tree immediately, then cancel the token
-        await _buildService.CancelAsync();
-
-        if (_buildCts is not null)
-        {
-            await _buildCts.CancelAsync();
-            StatusMessage = "Build cancelled";
-        }
-        else
-        {
-            StatusMessage = "Stopped";
-        }
-    }
-
-    // ── Debug Commands ─────────────────────────────────────────────
-
-    [RelayCommand]
-    private async Task StartDebugging()
-    {
-        if (_debugService is null)
-        {
-            StatusMessage = "Debug service not available";
-            return;
-        }
-
-        if (_debugService.IsDebugging)
-        {
-            // If paused, continue; otherwise ignore
-            if (_debugService.IsPaused)
-                await _debugService.ContinueAsync();
-            return;
-        }
-
-        var solution = _solutionService.CurrentSolution;
-        if (solution is null)
-        {
-            StatusMessage = "No solution loaded — cannot debug";
-            return;
-        }
-
-        var startup = _solutionService.GetStartupProject();
-        if (startup is null)
-        {
-            StatusMessage = "No startup project set — cannot debug";
-            return;
-        }
-
-        try
-        {
-            // Bump generation so stale OnDebuggingStopped posts from a previous
-            // session will skip their cleanup and not destroy our new terminal.
-            _debugSessionGeneration++;
-
-            // Build first — debugger needs compiled output
-            StatusMessage = "Building before debug...";
-            var buildOutput = FindBuildOutputTool();
-            buildOutput?.ClearOutput();
-
-            var buildArgs = new List<string> { "build" };
-            if (_solutionService.CurrentSolution is { } sol)
-                buildArgs.Add(sol.FilePath);
-            buildArgs.Add("--nologo");
-
-            var buildTask = new Core.Interfaces.BuildTask
-            {
-                Name = "Build for Debug",
-                Command = "dotnet",
-                Args = [.. buildArgs],
-                WorkingDirectory = WorkspacePath,
-            };
-
-            void OnBuildOutput(object? sender, Core.Interfaces.BuildOutputEventArgs e)
-            {
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                    buildOutput?.AppendOutput(e.Output, e.IsError));
-            }
-
-            _buildService.OutputReceived += OnBuildOutput;
-            BuildResult buildResult;
-            try
-            {
-                buildResult = await _buildService.RunTaskAsync(buildTask);
-            }
-            finally
-            {
-                _buildService.OutputReceived -= OnBuildOutput;
-            }
-
-            if (!buildResult.Success)
-            {
-                StatusMessage = $"Build failed — {buildResult.Errors.Count} error(s)";
-                FindProblemsTool()?.SetProblems(buildResult.Errors, buildResult.Warnings);
-                return;
-            }
-
-            StatusMessage = "Starting debugger...";
-            var projectDir = System.IO.Path.GetDirectoryName(startup.FilePath) ?? ".";
-            var assemblyName = startup.AssemblyName ?? startup.Name;
-            var programPath = System.IO.Path.Combine(projectDir, "bin", "Debug", startup.TargetFramework, assemblyName + ".dll");
-
-            // If exact path doesn't exist, search for the DLL under bin/Debug/
-            if (!System.IO.File.Exists(programPath))
-            {
-                var binDir = System.IO.Path.Combine(projectDir, "bin", "Debug");
-                if (System.IO.Directory.Exists(binDir))
-                {
-                    var found = System.IO.Directory.GetFiles(binDir, assemblyName + ".dll", System.IO.SearchOption.AllDirectories);
-                    if (found.Length > 0)
-                        programPath = found[0];
-                }
-            }
-
-            // Console apps: launch inside a debug terminal with a startup hook
-            // that pauses for debugger attach. GUI apps: launch via DAP directly.
-            var isConsoleApp = string.Equals(startup.OutputType, "Exe", StringComparison.OrdinalIgnoreCase)
-                            || startup.OutputType is null;
-
-            if (isConsoleApp)
-            {
-                _debugUsesTerminal = true;
-
-                // Locate the startup hook DLL shipped with NVS
-                var hookDll = System.IO.Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory, "tools", "DebugStartupHook.dll");
-                if (!System.IO.File.Exists(hookDll))
-                    throw new System.IO.FileNotFoundException("Debug startup hook not found.", hookDll);
-
-                // Temp file where the hook will write the debuggee PID
-                var pidFile = System.IO.Path.Combine(
-                    System.IO.Path.GetTempPath(), $"nvs_debug_{Guid.NewGuid():N}.pid");
-
-                // Signal files for the two-phase handshake with the startup hook:
-                // ready = ConfigurationDone complete, go = breakpoints re-synced
-                var readyFile = pidFile + ".ready";
-                var goFile = pidFile + ".go";
-
-                Serilog.Log.Debug("Debug session: pidFile={PidFile}", pidFile);
-
-                CreateDebugTerminal(projectDir);
-
-                // Build the terminal command to launch the debuggee with the hook
-                string terminalCommand;
-                if (OperatingSystem.IsWindows())
-                {
-                    terminalCommand = $"$env:DOTNET_STARTUP_HOOKS='{hookDll}'; " +
-                                      $"$env:NVS_DEBUG_PID_FILE='{pidFile}'; " +
-                                      $"$env:NVS_DEBUG_READY_FILE='{readyFile}'; " +
-                                      $"$env:NVS_DEBUG_GO_FILE='{goFile}'; " +
-                                      $"$env:NVS_DEBUG_PROGRAM='{programPath}'; " +
-                                      $"dotnet exec \"{programPath}\"";
-                }
-                else
-                {
-                    terminalCommand = $"DOTNET_STARTUP_HOOKS='{hookDll}' " +
-                                      $"NVS_DEBUG_PID_FILE='{pidFile}' " +
-                                      $"NVS_DEBUG_READY_FILE='{readyFile}' " +
-                                      $"NVS_DEBUG_GO_FILE='{goFile}' " +
-                                      $"NVS_DEBUG_PROGRAM='{programPath}' " +
-                                      $"dotnet exec \"{programPath}\"";
-                }
-
-                await _debugTerminal!.SendCommandToTerminalAsync(terminalCommand);
-
-                // Wait for the startup hook to write the PID file
-                int debuggeePid = await WaitForPidFileAsync(pidFile, TimeSpan.FromSeconds(15));
-
-                var config = new NVS.Core.Models.Settings.DebugConfiguration
-                {
-                    Name = startup.Name,
-                    Type = "coreclr",
-                    Request = "attach",
-                    ProcessId = debuggeePid,
-                    Cwd = projectDir,
-                };
-
-                await _debugService.StartDebuggingAsync(config);
-
-                // Phase 1: Signal that ConfigurationDone is complete.
-                // The hook will pre-load the assembly, triggering module load in netcoredbg.
-                try { await System.IO.File.WriteAllTextAsync(readyFile, "ready"); }
-                catch { /* best effort */ }
-
-                // Wait for the assembly to be loaded by the hook, then re-sync
-                // breakpoints so they resolve against the now-loaded module.
-                await Task.Delay(500);
-                await _debugService.ResyncBreakpointsAsync();
-
-                // Phase 2: Signal that breakpoints are re-synced — program can run.
-                try { await System.IO.File.WriteAllTextAsync(goFile, "go"); }
-                catch { /* best effort */ }
-            }
-            else
-            {
-                _debugUsesTerminal = false;
-
-                var config = new NVS.Core.Models.Settings.DebugConfiguration
-                {
-                    Name = startup.Name,
-                    Type = "coreclr",
-                    Request = "launch",
-                    Program = programPath,
-                    Cwd = projectDir,
-                };
-
-                await _debugService.StartDebuggingAsync(config);
-            }
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Debug error: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task StopDebugging()
-    {
-        if (_debugService is null || !_debugService.IsDebugging) return;
-
-        try
-        {
-            await _debugService.StopDebuggingAsync();
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Stop debug error: {ex.Message}";
-        }
-
-        // Ensure UI resets even if the DebuggingStopped event didn't fire
-        IsDebugging = false;
-        IsDebugPaused = false;
-        _debugUsesTerminal = false;
-        StatusMessage = "Debug session ended";
-        ClearDebugCurrentLine();
-        DestroyDebugTerminal();
-        CleanupDebuggeeProcess();
-    }
-
-    [RelayCommand]
-    private async Task DebugStepOver()
-    {
-        if (_debugService is null || !_debugService.IsPaused) return;
-        try
-        {
-            await _debugService.StepOverAsync();
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Debug step-over error: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task DebugStepInto()
-    {
-        if (_debugService is null || !_debugService.IsPaused) return;
-        try
-        {
-            await _debugService.StepIntoAsync();
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Debug step-into error: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task DebugStepOut()
-    {
-        if (_debugService is null || !_debugService.IsPaused) return;
-        try
-        {
-            await _debugService.StepOutAsync();
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Debug step-out error: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task DebugContinue()
-    {
-        if (_debugService is null || !_debugService.IsPaused) return;
-        try
-        {
-            await _debugService.ContinueAsync();
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Debug continue error: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task DebugPause()
-    {
-        if (_debugService is null || !_debugService.IsDebugging || _debugService.IsPaused) return;
-        try
-        {
-            await _debugService.PauseAsync();
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Debug pause error: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private void ToggleBreakpoint()
-    {
-        if (_breakpointStore is null || Editor?.ActiveDocument is null) return;
-
-        var doc = Editor.ActiveDocument;
-        var filePath = doc.Document.FilePath;
-        if (string.IsNullOrEmpty(filePath)) return;
-
-        _breakpointStore.ToggleBreakpoint(filePath, doc.CursorLine);
-        RefreshDocumentBreakpoints(doc);
-    }
-
-    private void RefreshDocumentBreakpoints(DocumentViewModel doc)
-    {
-        if (_breakpointStore is null || string.IsNullOrEmpty(doc.Document.FilePath)) return;
-
-        var bps = _breakpointStore.GetBreakpoints(doc.Document.FilePath);
-        doc.Breakpoints = bps.Select(b => (b.Line, b.IsVerified)).ToList();
-    }
-
-    // ── Debug Event Handlers ──────────────────────────────────────
-
-    private void OnDebuggingStarted(object? sender, DebugSession session)
-    {
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            IsDebugging = true;
-            IsDebugPaused = false;
-            StatusMessage = $"Debugging: {session.Name}";
-        });
-    }
-
-    private void OnDebuggingStopped(object? sender, DebugSession session)
-    {
-        _pauseCts?.Cancel();
-        _pauseCts?.Dispose();
-        _pauseCts = null;
-
-        // Capture the current generation so the posted lambda can detect
-        // whether a newer debug session has started in the meantime.
-        var gen = _debugSessionGeneration;
-
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            // A newer session is already running — don't destroy its state.
-            if (gen != _debugSessionGeneration) return;
-
-            IsDebugging = false;
-            IsDebugPaused = false;
-            _debugUsesTerminal = false;
-            StatusMessage = "Debug session ended";
-            ClearDebugCurrentLine();
-            ClearDebugEvaluateOnDocuments();
-            DestroyDebugTerminal();
-            CleanupDebuggeeProcess();
-
-            // Clear call stack and variables
-            FindToolInDock<CallStackToolViewModel>()?.ClearFrames();
-            FindToolInDock<VariablesToolViewModel>()?.ClearVariables();
-        });
-    }
-
-    private async void OnDebuggingPaused(object? sender, EventArgs e)
-    {
-        // Cancel any previous pause processing (rapid stepping)
-        _pauseCts?.Cancel();
-        _pauseCts?.Dispose();
-        var cts = _pauseCts = new CancellationTokenSource();
-
-        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            IsDebugPaused = true;
-            StatusMessage = "Paused";
-        });
-
-        if (_debugService is null) return;
-
-        try
-        {
-            var threads = await _debugService.GetThreadsAsync(cts.Token);
-            var activeThreadId = _debugService.ActiveThreadId;
-            if (cts.Token.IsCancellationRequested) return;
-
-            if (threads.Count > 0)
-            {
-                var frames = await _debugService.GetStackTraceAsync(activeThreadId, cts.Token);
-                if (cts.Token.IsCancellationRequested) return;
-
-                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
-                    FindToolInDock<CallStackToolViewModel>()?.UpdateFrames(frames));
-
-                if (frames.Count > 0)
-                {
-                    var topFrame = frames[0];
-                    var vars = await _debugService.GetVariablesAsync(topFrame.Id, cts.Token);
-                    if (cts.Token.IsCancellationRequested) return;
-
-                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        var varsTool = FindToolInDock<VariablesToolViewModel>();
-                        if (varsTool is not null)
-                        {
-                            varsTool.SetDebugService(_debugService);
-                            varsTool.UpdateVariables(vars);
-                        }
-
-                        // Set up debug hover evaluate callback on all open documents
-                        SetDebugEvaluateOnDocuments(topFrame.Id);
-                    });
-
-                    // Navigate to the stopped location in the editor
-                    if (!string.IsNullOrEmpty(topFrame.Source) && topFrame.Line > 0)
-                    {
-                        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
-                        {
-                            await OpenFileAsync(topFrame.Source);
-                            if (Editor?.ActiveDocument is { } doc)
-                            {
-                                doc.CursorLine = topFrame.Line;
-                                doc.DebugCurrentLine = topFrame.Line;
-                            }
-                        });
-                    }
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected when a new pause event supersedes this one
-        }
-        catch (Exception ex)
-        {
-            Serilog.Log.Warning(ex, "OnDebuggingPaused failed");
-        }
-    }
-
-    private void OnDebuggingContinued(object? sender, EventArgs e)
-    {
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            IsDebugPaused = false;
-            StatusMessage = "Running...";
-            ClearDebugCurrentLine();
-            ClearDebugEvaluateOnDocuments();
-        });
-    }
-
-    private void OnDebugOutput(object? sender, OutputEvent evt)
-    {
-        // When the debuggee runs in the integrated terminal, its stdout/stderr
-        // goes directly to the terminal. Only route DAP console/telemetry output
-        // to the Build Output panel to avoid duplicate text.
-        if (_debugUsesTerminal && evt.Category is OutputCategory.Stdout or OutputCategory.Stderr)
-            return;
-
-        var isError = evt.Category is OutputCategory.Stderr;
-        FindBuildOutputTool()?.AppendOutput(evt.Output, isError);
-    }
-
-    private void ClearDebugCurrentLine()
-    {
-        if (Editor?.OpenDocuments is not null)
-        {
-            foreach (var doc in Editor.OpenDocuments)
-                doc.DebugCurrentLine = null;
-        }
-    }
-
-    private void SetDebugEvaluateOnDocuments(int frameId)
-    {
-        if (Editor?.OpenDocuments is null || _debugService is null) return;
-
-        var debugService = _debugService;
-        Func<string, CancellationToken, Task<string?>> evaluateFunc =
-            (expression, ct) => debugService.EvaluateAsync(expression, frameId, ct);
-
-        foreach (var doc in Editor.OpenDocuments)
-            doc.DebugEvaluateFunc = evaluateFunc;
-    }
-
-    private void ClearDebugEvaluateOnDocuments()
-    {
-        if (Editor?.OpenDocuments is not null)
-        {
-            foreach (var doc in Editor.OpenDocuments)
-                doc.DebugEvaluateFunc = null;
         }
     }
 
@@ -1436,102 +642,19 @@ public partial class MainViewModel : INotifyPropertyChanged
             service.GetInlineCompletionAsync(filePath, line, col, prefix, suffix, language, ct);
     }
 
-    private BuildOutputToolViewModel? FindBuildOutputTool()
+    internal BuildOutputToolViewModel? FindBuildOutputTool()
     {
         return FindToolInDock<BuildOutputToolViewModel>();
     }
 
-    private ProblemsToolViewModel? FindProblemsTool()
+    internal ProblemsToolViewModel? FindProblemsTool()
     {
         return FindToolInDock<ProblemsToolViewModel>();
     }
 
-    private TerminalToolViewModel? FindTerminalTool()
+    internal TerminalToolViewModel? FindTerminalTool()
     {
         return FindToolInDock<TerminalToolViewModel>();
-    }
-
-    private void CreateDebugTerminal(string workingDirectory)
-    {
-        DestroyDebugTerminal();
-
-        _debugTerminal = new TerminalToolViewModel(this)
-        {
-            Id = "DebugTerminal",
-            Title = "🐛 Debug",
-        };
-        _debugTerminal.WorkingDirectory = workingDirectory;
-
-        // Add the debug terminal to the same ToolDock as the regular terminal
-        var existingTerminal = FindTerminalTool();
-        if (existingTerminal is not null)
-        {
-            var parentDock = FindParentDock(DockLayout!, existingTerminal);
-            if (parentDock is not null)
-            {
-                parentDock.VisibleDockables?.Add(_debugTerminal);
-                parentDock.ActiveDockable = _debugTerminal;
-                return;
-            }
-        }
-    }
-
-    private void DestroyDebugTerminal()
-    {
-        if (_debugTerminal is null) return;
-
-        var parentDock = DockLayout is not null ? FindParentDock(DockLayout, _debugTerminal) : null;
-        parentDock?.VisibleDockables?.Remove(_debugTerminal);
-
-        _debugTerminal = null;
-    }
-
-    private void CleanupDebuggeeProcess()
-    {
-        if (_debuggeeProcess is null) return;
-
-        try
-        {
-            if (!_debuggeeProcess.HasExited)
-                _debuggeeProcess.Kill(entireProcessTree: true);
-        }
-        catch { /* process may have already exited */ }
-
-        _debuggeeProcess.Dispose();
-        _debuggeeProcess = null;
-    }
-
-    private static IDock? FindParentDock(IDockable root, IDockable target)
-    {
-        if (root is IDock dock && dock.VisibleDockables is not null)
-        {
-            foreach (var child in dock.VisibleDockables)
-            {
-                if (child == target) return dock;
-                var found = FindParentDock(child, target);
-                if (found is not null) return found;
-            }
-        }
-        return null;
-    }
-
-    private static async Task<int> WaitForPidFileAsync(string pidFile, TimeSpan timeout)
-    {
-        using var cts = new CancellationTokenSource(timeout);
-        while (!cts.Token.IsCancellationRequested)
-        {
-            if (System.IO.File.Exists(pidFile))
-            {
-                var content = await System.IO.File.ReadAllTextAsync(pidFile, cts.Token);
-                if (int.TryParse(content.Trim(), out var pid))
-                {
-                    try { System.IO.File.Delete(pidFile); } catch { }
-                    return pid;
-                }
-            }
-            await Task.Delay(100, cts.Token);
-        }
-        throw new TimeoutException("Debuggee process did not start within the timeout period.");
     }
 
     internal T? FindToolInDock<T>() where T : class
@@ -1555,18 +678,6 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
 
         return null;
-    }
-
-    private async Task InitializeGitAsync(string folderPath)
-    {
-        await _gitService.InitializeAsync(folderPath);
-        CurrentBranch = _gitService.CurrentBranch ?? "";
-        RefreshGitFiles();
-        if (_gitService.IsRepository)
-        {
-            await RefreshGitBranches();
-            await RefreshGitExtras();
-        }
     }
 
     private async Task InitializeChatSessionsAsync(string folderPath)
@@ -1899,159 +1010,17 @@ public partial class MainViewModel : INotifyPropertyChanged
         return false;
     }
 
-    [RelayCommand]
-    private async Task GitStageFile(GitFileStatus? file)
-    {
-        if (file is null) return;
-        await _gitService.StageAsync(file.Path);
-        StatusMessage = $"Staged: {file.Path}";
-    }
-
-    [RelayCommand]
-    private async Task GitUnstageFile(GitFileStatus? file)
-    {
-        if (file is null) return;
-        await _gitService.UnstageAsync(file.Path);
-        StatusMessage = $"Unstaged: {file.Path}";
-    }
-
-    [RelayCommand]
-    private async Task GitStageAll()
-    {
-        await _gitService.StageAllAsync();
-        StatusMessage = "Staged all changes";
-    }
-
-    [RelayCommand]
-    private async Task GitCommit()
-    {
-        if (string.IsNullOrWhiteSpace(CommitMessage)) return;
-
-        // Auto-stage all changes if nothing is staged (like VS Code)
-        if (GitStagedFiles.Count == 0 && GitChangedFiles.Count > 0)
-        {
-            await _gitService.StageAllAsync();
-        }
-
-        var result = await _gitService.CommitAsync(CommitMessage);
-        if (result.Success)
-        {
-            StatusMessage = $"Committed: {result.CommitHash?[..7]}";
-            CommitMessage = "";
-            CurrentBranch = _gitService.CurrentBranch ?? "";
-            RefreshGitFiles();
-            await RefreshGitExtras();
-        }
-        else
-        {
-            StatusMessage = $"Commit failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitRefresh()
+    /// <summary>Reloads the explorer file tree for the current workspace.</summary>
+    internal async Task ReloadFileTreeAsync()
     {
         if (_workspacePath is not null)
-        {
-            await _gitService.InitializeAsync(_workspacePath);
-            CurrentBranch = _gitService.CurrentBranch ?? "";
-            RefreshGitFiles();
-            await RefreshGitBranches();
-            await RefreshGitExtras();
-        }
+            await LoadFileTree(_workspacePath);
     }
 
-    [RelayCommand]
-    private async Task GitInitRepository()
-    {
-        if (_workspacePath is null) return;
+    /// <summary>Opens (or activates) the diff viewer document in the dock.</summary>
+    internal DiffViewerToolViewModel? OpenDiffDocument() => _dockFactory?.OpenDiffDocument();
 
-        // Auto-detect project type and create .gitignore before init
-        var template = DetectGitignoreTemplate(_workspacePath);
-        if (template is not null)
-        {
-            await _gitService.CreateGitignoreAsync(_workspacePath, template);
-        }
-
-        var result = await _gitService.InitRepositoryAsync(_workspacePath);
-        if (result.Success)
-        {
-            CurrentBranch = _gitService.CurrentBranch ?? "";
-            RefreshGitFiles();
-            await RefreshGitBranches();
-            StatusMessage = template is not null
-                ? $"Repository initialized with .gitignore ({template})"
-                : "Repository initialized";
-        }
-        else
-        {
-            StatusMessage = $"Init failed: {result.ErrorMessage}";
-        }
-    }
-
-    private static string? DetectGitignoreTemplate(string path)
-    {
-        if (Directory.EnumerateFiles(path, "*.csproj", SearchOption.AllDirectories).Any()
-            || Directory.EnumerateFiles(path, "*.sln", SearchOption.AllDirectories).Any()
-            || Directory.EnumerateFiles(path, "*.slnx", SearchOption.AllDirectories).Any()
-            || Directory.EnumerateFiles(path, "*.fsproj", SearchOption.AllDirectories).Any())
-            return "dotnet";
-
-        if (File.Exists(Path.Combine(path, "package.json")))
-            return "node";
-
-        if (File.Exists(Path.Combine(path, "requirements.txt"))
-            || File.Exists(Path.Combine(path, "pyproject.toml"))
-            || Directory.EnumerateFiles(path, "*.py", SearchOption.TopDirectoryOnly).Any())
-            return "python";
-
-        if (File.Exists(Path.Combine(path, "go.mod")))
-            return "go";
-
-        if (File.Exists(Path.Combine(path, "Cargo.toml")))
-            return "rust";
-
-        if (File.Exists(Path.Combine(path, "pom.xml"))
-            || File.Exists(Path.Combine(path, "build.gradle")))
-            return "java";
-
-        return null;
-    }
-
-    [RelayCommand]
-    private async Task GitCreateGitignore(string? template)
-    {
-        if (_workspacePath is null || template is null) return;
-
-        var result = await _gitService.CreateGitignoreAsync(_workspacePath, template);
-        StatusMessage = result.Success ? ".gitignore created" : $"Failed: {result.ErrorMessage}";
-    }
-
-    [RelayCommand]
-    private async Task GitCheckoutBranch(Branch? branch)
-    {
-        if (branch is null) return;
-        try
-        {
-            await _gitService.CheckoutAsync(branch.Name);
-            CurrentBranch = _gitService.CurrentBranch ?? "";
-            RefreshGitFiles();
-            await RefreshGitBranches();
-
-            // Reload file tree and open documents to reflect new branch
-            if (_workspacePath is not null)
-                await LoadFileTree(_workspacePath);
-            await ReloadOpenDocumentsFromDisk();
-
-            StatusMessage = $"Switched to branch: {branch.Name}";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Checkout failed: {ex.Message}";
-        }
-    }
-
-    private async Task ReloadOpenDocumentsFromDisk()
+    internal async Task ReloadOpenDocumentsFromDiskAsync()
     {
         if (Editor?.OpenDocuments is null) return;
         var toClose = new List<DocumentViewModel>();
@@ -2073,434 +1042,6 @@ public partial class MainViewModel : INotifyPropertyChanged
         }
         foreach (var doc in toClose)
             Editor.CloseDocument(doc);
-    }
-
-    public async Task GitCreateBranchAsync(string branchName, bool includeChanges = true)
-    {
-        if (string.IsNullOrWhiteSpace(branchName)) return;
-        var name = branchName.Trim();
-
-        if (!includeChanges)
-        {
-            // Stash changes before switching, then drop the stash
-            var hasChanges = _gitService.Status.Files.Count > 0;
-            if (hasChanges)
-                await _gitService.StashSaveAsync("temp-branch-create");
-
-            await _gitService.CreateBranchAsync(name);
-            await _gitService.CheckoutAsync(name);
-
-            if (hasChanges)
-                await _gitService.StashDropAsync(0);
-        }
-        else
-        {
-            await _gitService.CreateBranchAsync(name);
-            await _gitService.CheckoutAsync(name);
-        }
-
-        CurrentBranch = _gitService.CurrentBranch ?? "";
-        RefreshGitFiles();
-        await RefreshGitBranches();
-        await RefreshGitExtras();
-        StatusMessage = $"Created and switched to: {name}";
-    }
-
-    public async Task GitDeleteBranchAsync(string branchName)
-    {
-        if (string.IsNullOrWhiteSpace(branchName)) return;
-        var result = await _gitService.DeleteBranchAsync(branchName.Trim());
-        if (result.Success)
-        {
-            await RefreshGitBranches();
-            StatusMessage = $"Deleted branch: {branchName}";
-        }
-        else
-        {
-            StatusMessage = $"Delete failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitMergeBranch(Branch? branch)
-    {
-        if (branch is null) return;
-        var result = await _gitService.MergeBranchAsync(branch.Name);
-        if (result.Success)
-        {
-            CurrentBranch = _gitService.CurrentBranch ?? "";
-            RefreshGitFiles();
-            StatusMessage = $"Merged {branch.Name} ({result.Status})";
-        }
-        else if (result.Status == Core.Interfaces.MergeStatus.Conflicts)
-        {
-            RefreshGitFiles();
-            StatusMessage = $"Merge conflicts in {result.ConflictedFiles.Count} file(s)";
-        }
-        else
-        {
-            StatusMessage = $"Merge failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitStashSave()
-    {
-        var result = await _gitService.StashSaveAsync(includeUntracked: true);
-        if (result.Success)
-        {
-            await RefreshGitExtras();
-            StatusMessage = "Changes stashed";
-        }
-        else
-        {
-            StatusMessage = $"Stash failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitStashPop()
-    {
-        var result = await _gitService.StashPopAsync();
-        if (result.Success)
-        {
-            await RefreshGitExtras();
-            StatusMessage = "Stash popped";
-        }
-        else
-        {
-            StatusMessage = $"Pop failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitStashApply(StashEntry? entry)
-    {
-        var index = entry?.Index ?? 0;
-        var result = await _gitService.StashApplyAsync(index);
-        StatusMessage = result.Success ? $"Stash @{{{index}}} applied" : $"Apply failed: {result.ErrorMessage}";
-    }
-
-    [RelayCommand]
-    private async Task GitStashDrop(StashEntry? entry)
-    {
-        var index = entry?.Index ?? 0;
-        var result = await _gitService.StashDropAsync(index);
-        if (result.Success) await RefreshGitExtras();
-        StatusMessage = result.Success ? $"Stash @{{{index}}} dropped" : $"Drop failed: {result.ErrorMessage}";
-    }
-
-    [RelayCommand]
-    private async Task GitCreateTag(string? tagName)
-    {
-        if (string.IsNullOrWhiteSpace(tagName)) return;
-        var result = await _gitService.CreateTagAsync(tagName);
-        if (result.Success)
-        {
-            await RefreshGitExtras();
-            StatusMessage = $"Created tag: {tagName}";
-        }
-        else
-        {
-            StatusMessage = $"Tag failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitDeleteTag(Tag? tag)
-    {
-        if (tag is null) return;
-        var result = await _gitService.DeleteTagAsync(tag.Name);
-        if (result.Success)
-        {
-            await RefreshGitExtras();
-            StatusMessage = $"Deleted tag: {tag.Name}";
-        }
-        else
-        {
-            StatusMessage = $"Delete tag failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitPush()
-    {
-        try
-        {
-            StatusMessage = "Pushing...";
-            await _gitService.PushAsync();
-            StatusMessage = "Push completed";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Push failed: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitPull()
-    {
-        try
-        {
-            StatusMessage = "Pulling...";
-            await _gitService.PullAsync();
-            CurrentBranch = _gitService.CurrentBranch ?? "";
-            RefreshGitFiles();
-            StatusMessage = "Pull completed";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Pull failed: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitFetch()
-    {
-        try
-        {
-            StatusMessage = "Fetching...";
-            await _gitService.FetchAsync();
-            StatusMessage = "Fetch completed";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Fetch failed: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitCherryPick(Commit? commit)
-    {
-        if (commit is null) return;
-        var result = await _gitService.CherryPickAsync(commit.Hash);
-        if (result.Success)
-        {
-            RefreshGitFiles();
-            StatusMessage = $"Cherry-picked: {commit.Hash[..7]}";
-        }
-        else
-        {
-            StatusMessage = $"Cherry-pick failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitAddRemote(string? args)
-    {
-        if (string.IsNullOrWhiteSpace(args)) return;
-        var parts = args.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2) return;
-        var result = await _gitService.AddRemoteAsync(parts[0], parts[1]);
-        if (result.Success) await RefreshGitExtras();
-        StatusMessage = result.Success ? $"Added remote: {parts[0]}" : $"Failed: {result.ErrorMessage}";
-    }
-
-    [RelayCommand]
-    private async Task GitRemoveRemote(Remote? remote)
-    {
-        if (remote is null) return;
-        var result = await _gitService.RemoveRemoteAsync(remote.Name);
-        if (result.Success) await RefreshGitExtras();
-        StatusMessage = result.Success ? $"Removed remote: {remote.Name}" : $"Failed: {result.ErrorMessage}";
-    }
-
-    [RelayCommand]
-    private async Task GitLoadMoreHistory()
-    {
-        var moreCommits = await _gitService.GetLogAsync(limit: 50, skip: GitCommitLog.Count);
-        foreach (var c in moreCommits)
-            GitCommitLog.Add(c);
-    }
-
-    [RelayCommand]
-    private async Task GitViewDiff(GitFileStatus? file)
-    {
-        if (file is null || _dockFactory is null) return;
-
-        var hunks = file.IsStaged
-            ? await _gitService.GetStagedDiffAsync(file.Path)
-            : await _gitService.GetDiffAsync(file.Path);
-
-        // Get old/new file content for full-file diff view
-        string? oldContent;
-        string? newContent;
-
-        if (file.IsStaged)
-        {
-            // Staged: old = HEAD, new = index
-            oldContent = await _gitService.GetFileContentFromHeadAsync(file.Path);
-            newContent = await _gitService.GetFileContentFromIndexAsync(file.Path);
-        }
-        else
-        {
-            // Unstaged: old = index (or HEAD if not staged), new = working tree
-            newContent = null;
-            oldContent = await _gitService.GetFileContentFromIndexAsync(file.Path)
-                         ?? await _gitService.GetFileContentFromHeadAsync(file.Path);
-
-            var fullPath = System.IO.Path.Combine(_workspacePath ?? "", file.Path);
-            if (System.IO.File.Exists(fullPath))
-                newContent = await System.IO.File.ReadAllTextAsync(fullPath);
-        }
-
-        var diffViewer = _dockFactory.OpenDiffDocument();
-        diffViewer.LoadDiff(file.Path, hunks, file.IsStaged, oldContent, newContent);
-        DiffViewer = diffViewer;
-        StatusMessage = $"Diff: {file.Path} ({hunks.Count} hunks)";
-    }
-
-    [RelayCommand]
-    private async Task GitReset(string? modeStr)
-    {
-        var mode = modeStr?.ToLowerInvariant() switch
-        {
-            "soft" => ResetMode.Soft,
-            "hard" => ResetMode.Hard,
-            _ => ResetMode.Mixed,
-        };
-        var result = await _gitService.ResetAsync(mode);
-        if (result.Success)
-        {
-            RefreshGitFiles();
-            await RefreshGitExtras();
-            StatusMessage = $"Reset ({mode}) successful";
-        }
-        else
-        {
-            StatusMessage = $"Reset failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitAmendCommit()
-    {
-        var message = string.IsNullOrWhiteSpace(CommitMessage) ? null : CommitMessage;
-        var result = await _gitService.AmendCommitAsync(message);
-        if (result.Success)
-        {
-            StatusMessage = $"Amended: {result.CommitHash?[..7]}";
-            CommitMessage = "";
-            RefreshGitFiles();
-            await RefreshGitExtras();
-        }
-        else
-        {
-            StatusMessage = $"Amend failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitRebase(string? ontoBranch)
-    {
-        if (string.IsNullOrWhiteSpace(ontoBranch)) return;
-        var result = await _gitService.RebaseAsync(ontoBranch);
-        if (result.Success)
-        {
-            CurrentBranch = _gitService.CurrentBranch ?? "";
-            RefreshGitFiles();
-            await RefreshGitExtras();
-            StatusMessage = $"Rebased onto {ontoBranch}";
-        }
-        else
-        {
-            StatusMessage = $"Rebase failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitMarkResolved(GitFileStatus? file)
-    {
-        if (file is null) return;
-        var result = await _gitService.MarkResolvedAsync(file.Path);
-        StatusMessage = result.Success
-            ? $"Resolved: {file.Path}"
-            : $"Mark resolved failed: {result.ErrorMessage}";
-    }
-
-    [RelayCommand]
-    private async Task GitStageHunk((string path, int hunkIndex) args)
-    {
-        var result = await _gitService.StageHunkAsync(args.path, args.hunkIndex);
-        if (result.Success)
-        {
-            RefreshGitFiles();
-            StatusMessage = $"Staged hunk {args.hunkIndex} of {args.path}";
-        }
-        else
-        {
-            StatusMessage = $"Stage hunk failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitUnstageHunk((string path, int hunkIndex) args)
-    {
-        var result = await _gitService.UnstageHunkAsync(args.path, args.hunkIndex);
-        if (result.Success)
-        {
-            RefreshGitFiles();
-            StatusMessage = $"Unstaged hunk {args.hunkIndex} of {args.path}";
-        }
-        else
-        {
-            StatusMessage = $"Unstage hunk failed: {result.ErrorMessage}";
-        }
-    }
-
-    [RelayCommand]
-    private async Task GitOpenConflictResolver(GitFileStatus? file)
-    {
-        if (file is null || _workspacePath is null) return;
-
-        var fullPath = Path.Combine(_workspacePath, file.Path);
-        if (!File.Exists(fullPath)) return;
-
-        var content = await File.ReadAllTextAsync(fullPath);
-        ConflictResolver?.LoadFile(fullPath, content);
-        StatusMessage = $"Conflict resolver: {file.Path}";
-    }
-
-    private async Task RefreshGitBranches()
-    {
-        _isRefreshingBranches = true;
-        try
-        {
-            GitBranches.Clear();
-            var branches = await _gitService.GetBranchesAsync();
-            foreach (var b in branches)
-                GitBranches.Add(b);
-
-            _selectedGitBranch = GitBranches.FirstOrDefault(b => b.IsCurrent);
-            OnPropertyChanged(nameof(SelectedGitBranch));
-        }
-        finally
-        {
-            _isRefreshingBranches = false;
-        }
-    }
-
-    private async Task RefreshGitExtras()
-    {
-        GitStashes.Clear();
-        GitTags.Clear();
-        GitRemotes.Clear();
-        GitCommitLog.Clear();
-
-        var stashes = await _gitService.GetStashListAsync();
-        foreach (var s in stashes) GitStashes.Add(s);
-
-        var tags = await _gitService.GetTagsAsync();
-        foreach (var t in tags) GitTags.Add(t);
-
-        var remotes = await _gitService.GetRemotesAsync();
-        foreach (var r in remotes) GitRemotes.Add(r);
-
-        var commits = await _gitService.GetLogAsync(limit: 50);
-        foreach (var c in commits) GitCommitLog.Add(c);
-
-        OnPropertyChanged(nameof(HasGitStashes));
-        OnPropertyChanged(nameof(HasGitTags));
     }
 
     [RelayCommand]
@@ -2563,11 +1104,6 @@ public partial class MainViewModel : INotifyPropertyChanged
         StatusMessage = "Terminal opened";
     }
 
-    private void OnGitStatusChanged(object? sender, Core.Interfaces.RepositoryStatus status)
-    {
-        RefreshGitFiles();
-    }
-
     private void OnEditorDocumentOpened(object? sender, Core.Models.Document e)
     {
         var editorDoc = FindToolInDock<EditorDocumentViewModel>();
@@ -2578,25 +1114,6 @@ public partial class MainViewModel : INotifyPropertyChanged
         var docVm = Editor?.OpenDocuments.LastOrDefault();
         if (docVm is not null)
             WireInlineCompletion(docVm);
-    }
-
-    private void RefreshGitFiles()
-    {
-        GitChangedFiles.Clear();
-        GitStagedFiles.Clear();
-
-        foreach (var file in _gitService.Status.Files)
-        {
-            if (file.IsStaged)
-                GitStagedFiles.Add(file);
-            else
-                GitChangedFiles.Add(file);
-        }
-
-        OnPropertyChanged(nameof(GitIsRepository));
-        OnPropertyChanged(nameof(GitIsNotRepository));
-        OnPropertyChanged(nameof(HasGitStashes));
-        OnPropertyChanged(nameof(HasGitTags));
     }
 
     [RelayCommand]

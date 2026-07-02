@@ -12,25 +12,25 @@
         <StackPanel Margin="8,4" Spacing="4">
 
             <!-- No Repository: Init Button -->
-            <StackPanel IsVisible="{Binding Main.GitIsNotRepository}" Spacing="8" Margin="0,12">
+            <StackPanel IsVisible="{Binding Main.Git.IsNotRepository}" Spacing="8" Margin="0,12">
                 <TextBlock Text="No Git repository detected." Foreground="#999" FontSize="12"
                            HorizontalAlignment="Center" />
                 <Button Content="Initialize Repository"
-                        Command="{Binding Main.GitInitRepositoryCommand}"
+                        Command="{Binding Main.Git.InitRepositoryCommand}"
                         HorizontalAlignment="Center"
                         Background="{DynamicResource AccentBrush}" Foreground="White" Padding="12,6" />
             </StackPanel>
 
             <!-- Repository Content -->
-            <StackPanel IsVisible="{Binding Main.GitIsRepository}" Spacing="4">
+            <StackPanel IsVisible="{Binding Main.Git.IsRepository}" Spacing="4">
 
                 <!-- Branch Picker -->
                 <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="0,2">
                     <TextBlock Grid.Column="0" Text="⎇" FontSize="14" Foreground="{DynamicResource TextForegroundBrush}"
                                VerticalAlignment="Center" Margin="0,0,6,0" />
                     <ComboBox Grid.Column="1"
-                              ItemsSource="{Binding Main.GitBranches}"
-                              SelectedItem="{Binding Main.SelectedGitBranch}"
+                              ItemsSource="{Binding Main.Git.Branches}"
+                              SelectedItem="{Binding Main.Git.SelectedBranch}"
                               FontSize="12" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
                               HorizontalAlignment="Stretch">
                         <ComboBox.ItemTemplate>
@@ -47,19 +47,19 @@
                             ToolTip.Tip="Delete selected branch" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                     <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="2" Margin="4,0,0,0">
                         <Button Content="↓" FontSize="11" Padding="6,3"
-                                Command="{Binding Main.GitPullCommand}"
+                                Command="{Binding Main.Git.PullCommand}"
                                 ToolTip.Tip="Pull" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                         <Button Content="↑" FontSize="11" Padding="6,3"
-                                Command="{Binding Main.GitPushCommand}"
+                                Command="{Binding Main.Git.PushCommand}"
                                 ToolTip.Tip="Push" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                         <Button Content="⟳" FontSize="11" Padding="6,3"
-                                Command="{Binding Main.GitRefreshCommand}"
+                                Command="{Binding Main.Git.RefreshCommand}"
                                 ToolTip.Tip="Refresh" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                     </StackPanel>
                 </Grid>
 
                 <!-- Commit message -->
-                <TextBox Text="{Binding Main.CommitMessage}"
+                <TextBox Text="{Binding Main.Git.CommitMessage}"
                          PlaceholderText="Commit message"
                          AcceptsReturn="True"
                          Height="60"
@@ -70,20 +70,20 @@
                          BorderBrush="#555" />
                 <Grid ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,2">
                     <Button Grid.Column="0" Content="✓ Commit"
-                            Command="{Binding Main.GitCommitCommand}"
+                            Command="{Binding Main.Git.CommitCommand}"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Center"
                             Background="{DynamicResource AccentBrush}" Foreground="White" Padding="8,4" />
                     <Button Grid.Column="1" Content="✎" Margin="4,0,0,0"
-                            Command="{Binding Main.GitAmendCommitCommand}"
+                            Command="{Binding Main.Git.AmendCommitCommand}"
                             ToolTip.Tip="Amend last commit"
                             Background="{DynamicResource InputBackgroundBrush}" Foreground="#D7BA7D" Padding="8,4" />
                     <Button Grid.Column="2" Content="📦" Margin="4,0,0,0"
-                            Command="{Binding Main.GitStashSaveCommand}"
+                            Command="{Binding Main.Git.StashSaveCommand}"
                             ToolTip.Tip="Stash Changes"
                             Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" Padding="8,4" />
                     <Button Grid.Column="3" Content="📦↩" Margin="4,0,0,0"
-                            Command="{Binding Main.GitStashPopCommand}"
+                            Command="{Binding Main.Git.StashPopCommand}"
                             ToolTip.Tip="Pop Stash"
                             Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" Padding="8,4" />
                 </Grid>
@@ -92,7 +92,7 @@
                 <TextBlock Text="STAGED CHANGES"
                            FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextForegroundBrush}"
                            Margin="0,8,0,2" />
-                <ItemsControl ItemsSource="{Binding Main.GitStagedFiles}">
+                <ItemsControl ItemsSource="{Binding Main.Git.StagedFiles}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="core:GitFileStatus">
                             <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1">
@@ -105,7 +105,7 @@
                                            Foreground="#4EC9B0" Width="16" Margin="0,0,4,0" />
                                 <Button Grid.Column="1"
                                         Content="{Binding Path}"
-                                        Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitViewDiffCommand}"
+                                        Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.ViewDiffCommand}"
                                         CommandParameter="{Binding}"
                                         FontSize="12" Foreground="#4EC9B0"
                                         Background="Transparent" BorderThickness="0"
@@ -113,7 +113,7 @@
                                         HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Left" />
                                 <Button Grid.Column="2" Content="−" FontSize="10" Padding="4,0"
-                                        Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitUnstageFileCommand}"
+                                        Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.UnstageFileCommand}"
                                         CommandParameter="{Binding}"
                                         ToolTip.Tip="Unstage"
                                         Background="Transparent" Foreground="#999" />
@@ -127,11 +127,11 @@
                     <TextBlock Text="CHANGES"
                                FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextForegroundBrush}" />
                     <Button Content="+" FontSize="10" Padding="4,0"
-                            Command="{Binding Main.GitStageAllCommand}"
+                            Command="{Binding Main.Git.StageAllCommand}"
                             ToolTip.Tip="Stage All"
                             Background="Transparent" Foreground="{DynamicResource TextForegroundBrush}" />
                 </StackPanel>
-                <ItemsControl ItemsSource="{Binding Main.GitChangedFiles}">
+                <ItemsControl ItemsSource="{Binding Main.Git.ChangedFiles}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="core:GitFileStatus">
                             <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1">
@@ -144,7 +144,7 @@
                                            Foreground="#D7BA7D" Width="16" Margin="0,0,4,0" />
                                 <Button Grid.Column="1"
                                         Content="{Binding Path}"
-                                        Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitViewDiffCommand}"
+                                        Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.ViewDiffCommand}"
                                         CommandParameter="{Binding}"
                                         FontSize="12" Foreground="#D7BA7D"
                                         Background="Transparent" BorderThickness="0"
@@ -152,7 +152,7 @@
                                         HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Left" />
                                 <Button Grid.Column="2" Content="+" FontSize="10" Padding="4,0"
-                                        Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitStageFileCommand}"
+                                        Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.StageFileCommand}"
                                         CommandParameter="{Binding}"
                                         ToolTip.Tip="Stage"
                                         Background="Transparent" Foreground="#999" />
@@ -162,9 +162,9 @@
                 </ItemsControl>
 
                 <!-- Stashes -->
-                <StackPanel IsVisible="{Binding Main.HasGitStashes}" Spacing="2" Margin="0,8,0,0">
+                <StackPanel IsVisible="{Binding Main.Git.HasStashes}" Spacing="2" Margin="0,8,0,0">
                     <TextBlock Text="STASHES" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextForegroundBrush}" />
-                    <ItemsControl ItemsSource="{Binding Main.GitStashes}">
+                    <ItemsControl ItemsSource="{Binding Main.Git.Stashes}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="core:StashEntry">
                                 <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,1">
@@ -172,12 +172,12 @@
                                                FontSize="11" Foreground="#B5CEA8"
                                                TextTrimming="CharacterEllipsis" />
                                     <Button Grid.Column="1" Content="↩" FontSize="10" Padding="4,0"
-                                            Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitStashApplyCommand}"
+                                            Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.StashApplyCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="Apply"
                                             Background="Transparent" Foreground="#999" />
                                     <Button Grid.Column="2" Content="✕" FontSize="10" Padding="4,0"
-                                            Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitStashDropCommand}"
+                                            Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.StashDropCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="Drop"
                                             Background="Transparent" Foreground="#999" />
@@ -188,9 +188,9 @@
                 </StackPanel>
 
                 <!-- Tags -->
-                <StackPanel IsVisible="{Binding Main.HasGitTags}" Spacing="2" Margin="0,8,0,0">
+                <StackPanel IsVisible="{Binding Main.Git.HasTags}" Spacing="2" Margin="0,8,0,0">
                     <TextBlock Text="TAGS" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextForegroundBrush}" />
-                    <ItemsControl ItemsSource="{Binding Main.GitTags}">
+                    <ItemsControl ItemsSource="{Binding Main.Git.Tags}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="core:Tag">
                                 <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1">
@@ -199,7 +199,7 @@
                                                FontSize="11" Foreground="#CE9178"
                                                TextTrimming="CharacterEllipsis" />
                                     <Button Grid.Column="2" Content="✕" FontSize="10" Padding="4,0"
-                                            Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.GitDeleteTagCommand}"
+                                            Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.DeleteTagCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="Delete Tag"
                                             Background="Transparent" Foreground="#999" />
@@ -212,7 +212,7 @@
                 <!-- Recent Commits -->
                 <StackPanel Spacing="2" Margin="0,8,0,0">
                     <TextBlock Text="COMMIT LOG" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextForegroundBrush}" />
-                    <ItemsControl ItemsSource="{Binding Main.GitCommitLog}">
+                    <ItemsControl ItemsSource="{Binding Main.Git.CommitLog}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="core:Commit">
                                 <StackPanel Margin="0,2">
@@ -234,7 +234,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <Button Content="Load more..."
-                            Command="{Binding Main.GitLoadMoreHistoryCommand}"
+                            Command="{Binding Main.Git.LoadMoreHistoryCommand}"
                             FontSize="11" Foreground="#569CD6" Padding="4,2"
                             Background="Transparent"
                             HorizontalAlignment="Left"

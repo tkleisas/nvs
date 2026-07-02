@@ -25,13 +25,13 @@ public partial class GitView : UserControl
 
         var main = GetMain();
         if (main is not null)
-            await main.GitCreateBranchAsync(result.Value.Name, result.Value.IncludeChanges);
+            await main.Git.CreateBranchAsync(result.Value.Name, result.Value.IncludeChanges);
     }
 
     private async void OnDeleteBranchClick(object? sender, RoutedEventArgs e)
     {
         var main = GetMain();
-        var branch = main?.SelectedGitBranch;
+        var branch = main?.Git.SelectedBranch;
         if (main is null || branch is null || branch.IsCurrent) return;
 
         var window = TopLevel.GetTopLevel(this) as Window;
@@ -39,6 +39,6 @@ public partial class GitView : UserControl
 
         var confirmed = await DialogHelper.ConfirmDeleteAsync(window, $"branch '{branch.Name}'");
         if (confirmed)
-            await main.GitDeleteBranchAsync(branch.Name);
+            await main.Git.DeleteBranchAsync(branch.Name);
     }
 }

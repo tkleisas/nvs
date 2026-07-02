@@ -74,15 +74,15 @@ public class MainViewModelGitTerminalTests
     public void CurrentBranch_DefaultsToEmpty()
     {
         var vm = CreateViewModel();
-        vm.CurrentBranch.Should().BeEmpty();
+        vm.Git.CurrentBranch.Should().BeEmpty();
     }
 
     [Fact]
     public void CommitMessage_CanBeSet()
     {
         var vm = CreateViewModel();
-        vm.CommitMessage = "test message";
-        vm.CommitMessage.Should().Be("test message");
+        vm.Git.CommitMessage = "test message";
+        vm.Git.CommitMessage.Should().Be("test message");
     }
 
     [Fact]
@@ -90,9 +90,9 @@ public class MainViewModelGitTerminalTests
     {
         var git = Substitute.For<IGitService>();
         var vm = CreateViewModel(gitService: git);
-        vm.CommitMessage = "";
+        vm.Git.CommitMessage = "";
 
-        await vm.GitCommitCommand.ExecuteAsync(null);
+        await vm.Git.CommitCommand.ExecuteAsync(null);
 
         await git.DidNotReceive().CommitAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
@@ -107,12 +107,12 @@ public class MainViewModelGitTerminalTests
         git.Status.Returns(new RepositoryStatus());
 
         var vm = CreateViewModel(gitService: git);
-        vm.CommitMessage = "feat: add feature";
+        vm.Git.CommitMessage = "feat: add feature";
 
-        await vm.GitCommitCommand.ExecuteAsync(null);
+        await vm.Git.CommitCommand.ExecuteAsync(null);
 
         await git.Received(1).CommitAsync("feat: add feature", Arg.Any<CancellationToken>());
-        vm.CommitMessage.Should().BeEmpty();
+        vm.Git.CommitMessage.Should().BeEmpty();
         vm.StatusMessage.Should().Contain("abc1234");
     }
 
@@ -125,12 +125,12 @@ public class MainViewModelGitTerminalTests
         git.Status.Returns(new RepositoryStatus());
 
         var vm = CreateViewModel(gitService: git);
-        vm.CommitMessage = "attempt";
+        vm.Git.CommitMessage = "attempt";
 
-        await vm.GitCommitCommand.ExecuteAsync(null);
+        await vm.Git.CommitCommand.ExecuteAsync(null);
 
         vm.StatusMessage.Should().Contain("nothing to commit");
-        vm.CommitMessage.Should().Be("attempt"); // not cleared on failure
+        vm.Git.CommitMessage.Should().Be("attempt"); // not cleared on failure
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class MainViewModelGitTerminalTests
         git.Status.Returns(new RepositoryStatus());
         var vm = CreateViewModel(gitService: git);
 
-        await vm.GitStageAllCommand.ExecuteAsync(null);
+        await vm.Git.StageAllCommand.ExecuteAsync(null);
 
         await git.Received(1).StageAllAsync(Arg.Any<CancellationToken>());
     }
@@ -153,7 +153,7 @@ public class MainViewModelGitTerminalTests
         var vm = CreateViewModel(gitService: git);
         var file = new GitFileStatus { Path = "test.cs", Status = FileStatus.Modified };
 
-        await vm.GitStageFileCommand.ExecuteAsync(file);
+        await vm.Git.StageFileCommand.ExecuteAsync(file);
 
         await git.Received(1).StageAsync("test.cs", Arg.Any<CancellationToken>());
     }
@@ -166,7 +166,7 @@ public class MainViewModelGitTerminalTests
         var vm = CreateViewModel(gitService: git);
         var file = new GitFileStatus { Path = "test.cs", Status = FileStatus.Modified, IsStaged = true };
 
-        await vm.GitUnstageFileCommand.ExecuteAsync(file);
+        await vm.Git.UnstageFileCommand.ExecuteAsync(file);
 
         await git.Received(1).UnstageAsync("test.cs", Arg.Any<CancellationToken>());
     }

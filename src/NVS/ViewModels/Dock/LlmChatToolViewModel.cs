@@ -532,11 +532,11 @@ public sealed partial class LlmChatToolViewModel : Tool
             .ToList();
 
         // Git context
-        string? gitBranch = Main.CurrentBranch is { Length: > 0 } b ? b : null;
+        string? gitBranch = Main.Git.CurrentBranch is { Length: > 0 } b ? b : null;
         string? gitStatusSummary = null;
-        if (Main.GitChangedFiles.Count > 0 || Main.GitStagedFiles.Count > 0)
+        if (Main.Git.ChangedFiles.Count > 0 || Main.Git.StagedFiles.Count > 0)
         {
-            gitStatusSummary = $"{Main.GitChangedFiles.Count} changed, {Main.GitStagedFiles.Count} staged";
+            gitStatusSummary = $"{Main.Git.ChangedFiles.Count} changed, {Main.Git.StagedFiles.Count} staged";
         }
 
         // Attached files: read contents
