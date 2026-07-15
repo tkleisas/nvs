@@ -562,6 +562,45 @@ public sealed class LlmServiceTests
         return (service, tool);
     }
 
+    [Fact]
+    public async Task SendAsync_ErrorResponse_SurfacesProviderErrorBody()
+    {
+        var settingsService = CreateSettingsService(new LlmSettings
+        {
+            Endpoint = "http://localhost:9999",
+            Model = "wrong-model",
+            Stream = false
+        });
+
+        var handler = new FakeHttpHandler();
+        handler.NextResponse = new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            ReasonPhrase = "Bad Request",
+            Content = new StringContent(
+                """{"error":{"message":"Model Not Exist","type":"invalid_request_error"}}""",
+                Encoding.UTF8,
+                "application/json")
+        };
+        var service = new LlmService(settingsService, () => handler);
+
+        LlmErrorEventArgs? errorEvent = null;
+        service.ErrorOccurred += (_, e) => errorEvent = e;
+
+        var act = () => service.SendAsync(new ChatCompletionRequest
+        {
+            Model = "wrong-model",
+            Messages = [ChatCompletionMessage.User("hi")],
+            Stream = false
+        });
+
+        var thrown = await act.Should().ThrowAsync<HttpRequestException>();
+        thrown.Which.Message.Should().Contain("Model Not Exist");
+        thrown.Which.Message.Should().Contain("400");
+        thrown.Which.Message.Should().Contain("wrong-model");
+        errorEvent.Should().NotBeNull();
+        errorEvent!.Message.Should().Contain("Model Not Exist");
+    }
+
     private static ChatCompletionRequest CreateRequest() => new()
     {
         Model = "test",
@@ -609,6 +648,9 @@ public sealed class LlmServiceTests
 
         public List<string?> AuthorizationHeaders { get; } = [];
 
+        /// <summary>When set, returned verbatim for the next request instead of a 200.</summary>
+        public HttpResponseMessage? NextResponse { get; set; }
+
         public FakeHttpHandler(params string[] responseBodies)
         {
             _responses = new Queue<string>(responseBodies);
@@ -617,6 +659,13 @@ public sealed class LlmServiceTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             AuthorizationHeaders.Add(request.Headers.Authorization?.ToString());
+
+            if (NextResponse is not null)
+            {
+                var custom = NextResponse;
+                NextResponse = null;
+                return Task.FromResult(custom);
+            }
 
             var body = _responses.Count > 0 ? _responses.Dequeue() : DefaultResponse;
             var response = new HttpResponseMessage(HttpStatusCode.OK)

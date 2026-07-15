@@ -133,7 +133,7 @@ public sealed class LlmService : ILlmService
                     HttpCompletionOption.ResponseHeadersRead,
                     requestCts.Token);
 
-                response.EnsureSuccessStatusCode();
+                await ThrowIfErrorResponseAsync(response, request.Model, requestCts.Token).ConfigureAwait(false);
 
                 result = await StreamParser.ParseStreamAsync(
                     response,
@@ -143,7 +143,7 @@ public sealed class LlmService : ILlmService
             else
             {
                 using var response = await client.SendAsync(httpRequest, requestCts.Token);
-                response.EnsureSuccessStatusCode();
+                await ThrowIfErrorResponseAsync(response, request.Model, requestCts.Token).ConfigureAwait(false);
 
                 var responseJson = await response.Content.ReadAsStringAsync(requestCts.Token);
                 var chatResponse = JsonSerializer.Deserialize<ChatCompletionResponse>(responseJson, JsonOptions);
@@ -362,6 +362,40 @@ public sealed class LlmService : ILlmService
                 cts.Cancel();
             }
         }
+    }
+
+    /// <summary>
+    /// Surfaces the provider's error body instead of a bare status code —
+    /// APIs like DeepSeek explain exactly what was wrong (unknown model,
+    /// unsupported parameter, ...) in the 4xx response body.
+    /// </summary>
+    private static async Task ThrowIfErrorResponseAsync(
+        HttpResponseMessage response,
+        string? model,
+        CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode) return;
+
+        string detail;
+        try
+        {
+            detail = (await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false)).Trim();
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Debug(ex, "Could not read LLM error response body");
+            detail = "";
+        }
+
+        const int maxDetailChars = 2000;
+        if (detail.Length > maxDetailChars)
+            detail = detail[..maxDetailChars] + "… (truncated)";
+
+        var message = string.IsNullOrEmpty(detail)
+            ? $"LLM request for model '{model}' failed: {(int)response.StatusCode} {response.ReasonPhrase}"
+            : $"LLM request for model '{model}' failed: {(int)response.StatusCode} {response.ReasonPhrase} — {detail}";
+
+        throw new HttpRequestException(message, inner: null, response.StatusCode);
     }
 
     private HttpClient GetOrCreateHttpClient()
