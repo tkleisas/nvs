@@ -123,20 +123,20 @@
                             <!-- System bubble -->
                             <Border Classes="system-bubble"
                                     IsVisible="{Binding IsSystem}">
-                                <TextBlock Text="{Binding Content}"
-                                           Foreground="#D19A66"
-                                           FontSize="11"
-                                           FontStyle="Italic"
-                                           TextWrapping="Wrap" />
+                                <SelectableTextBlock Text="{Binding Content}"
+                                                     Foreground="#D19A66"
+                                                     FontSize="11"
+                                                     FontStyle="Italic"
+                                                     TextWrapping="Wrap" />
                             </Border>
                             <!-- Tool call bubble -->
                             <Border Classes="tool-bubble"
                                     IsVisible="{Binding IsTool}">
-                                <TextBlock Text="{Binding Content}"
-                                           Foreground="#98C379"
-                                           FontSize="10"
-                                           FontFamily="Cascadia Code,Consolas,Courier New"
-                                           TextWrapping="Wrap" />
+                                <SelectableTextBlock Text="{Binding Content}"
+                                                     Foreground="#98C379"
+                                                     FontSize="10"
+                                                     FontFamily="Cascadia Code,Consolas,Courier New"
+                                                     TextWrapping="Wrap" />
                             </Border>
                             <!-- Tool approval bubble -->
                             <Border Classes="approval-bubble"
@@ -203,6 +203,7 @@
                     VerticalAlignment="Bottom"
                     ToolTip.Tip="Attach image (vision)" />
             <TextBox Grid.Column="2"
+                     x:Name="InputBox"
                      Text="{Binding UserInput}"
                      PlaceholderText="Ask anything..."
                      Background="{DynamicResource ToolPanelBackgroundBrush}"
@@ -212,8 +213,7 @@
                      Padding="8,6"
                      AcceptsReturn="True"
                      TextWrapping="Wrap"
-                     MaxHeight="120"
-                     KeyDown="OnInputKeyDown" />
+                     MaxHeight="120" />
             <Button Grid.Column="3"
                     Content="➤"
                     Command="{Binding SendMessageCommand}"
@@ -223,7 +223,7 @@
                     Padding="10,6"
                     Margin="4,0,0,0"
                     VerticalAlignment="Bottom"
-                    ToolTip.Tip="Send (Enter)" />
+                    ToolTip.Tip="Send (Enter or Ctrl+Enter)" />
         </Grid>
 
         <!-- Status bar -->

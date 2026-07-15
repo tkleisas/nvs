@@ -10,4 +10,8 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="NVS.Core.Tests" />
+  </ItemGroup>
+
 </Project>
