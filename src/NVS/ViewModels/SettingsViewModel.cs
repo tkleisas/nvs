@@ -80,6 +80,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
 
     public ObservableCollection<string> Sections { get; }
     public ObservableCollection<LanguageServerItemViewModel> LanguageServers { get; } = [];
+    public ObservableCollection<LlmModelViewModel> LlmModels { get; } = [];
 
     // Section navigation
     public int SelectedSectionIndex
@@ -347,6 +348,10 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         LlmRequireToolApproval = settings.Llm.RequireToolApproval;
         LlmActivePromptTemplate = settings.Llm.ActivePromptTemplate;
 
+        LlmModels.Clear();
+        foreach (var m in settings.Llm.Models)
+            LlmModels.Add(LlmModelViewModel.FromConfig(m));
+
         // Terminal
         TerminalFontFamily = settings.Terminal.FontFamily;
         TerminalFontSize = settings.Terminal.FontSize;
@@ -408,6 +413,27 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     }
 
     [RelayCommand]
+    private void AddLlmModel()
+    {
+        var vm = new LlmModelViewModel { DisplayName = "New Model", ModelId = "", Enabled = true, IsEditing = true };
+        LlmModels.Add(vm);
+    }
+
+    [RelayCommand]
+    private void RemoveLlmModel(LlmModelViewModel? item)
+    {
+        if (item is null) return;
+        LlmModels.Remove(item);
+    }
+
+    [RelayCommand]
+    private void ToggleEditLlmModel(LlmModelViewModel? item)
+    {
+        if (item is null) return;
+        item.IsEditing = !item.IsEditing;
+    }
+
+    [RelayCommand]
     private async Task Save()
     {
         var newSettings = _settings with
@@ -446,6 +472,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
                 EnableChat = LlmEnableChat,
                 RequireToolApproval = LlmRequireToolApproval,
                 ActivePromptTemplate = LlmActivePromptTemplate,
+                Models = LlmModels.Select(m => m.ToConfig()).ToList(),
             },
             Terminal = new TerminalSettings
             {

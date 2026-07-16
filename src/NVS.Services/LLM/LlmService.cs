@@ -70,6 +70,50 @@ public sealed class LlmService : ILlmService
         _tools[tool.Name] = tool;
     }
 
+    /// <summary>Returns all enabled <see cref="LlmModelConfig"/> entries from settings.</summary>
+    public IReadOnlyList<LlmModelConfig> GetAvailableModels()
+    {
+        var settings = _settingsService.AppSettings.Llm;
+        return settings.Models.Where(m => m.Enabled).ToList();
+    }
+
+    /// <summary>
+    /// Resolves the model config for a given <paramref name="modelId"/>. Returns null
+    /// when the ID is empty or unknown, meaning the caller should fall back to the
+    /// global <see cref="LlmSettings"/> fields. For the special ID <c>"default"</c>
+    /// the settings <see cref="LlmSettings.DefaultModelId"/> is used.
+    /// </summary>
+    internal LlmModelConfig? ResolveModelConfig(string? modelId)
+    {
+        var settings = _settingsService.AppSettings.Llm;
+        modelId = modelId == "default" ? settings.DefaultModelId : modelId;
+        if (string.IsNullOrWhiteSpace(modelId))
+            return null;
+        return settings.Models.FirstOrDefault(m => m.Enabled && m.ModelId == modelId);
+    }
+
+    /// <summary>
+    /// Applies the per-model overrides on top of the global settings and returns an
+    /// effective configuration tuple. When <paramref name="cfg"/> is null, the raw
+    /// global settings are used unchanged.
+    /// </summary>
+    private static (
+        string Endpoint, string Model, string ApiKey, string AuthScheme, string CompletionsPath,
+        int MaxTokens, double Temperature, int HttpTimeoutSeconds
+    ) GetEffectiveSettings(Core.Models.Settings.LlmSettings global, LlmModelConfig? cfg)
+    {
+        return (
+            Endpoint: !string.IsNullOrWhiteSpace(cfg?.HostUrl) ? cfg!.HostUrl : global.Endpoint,
+            Model: !string.IsNullOrWhiteSpace(cfg?.ModelId) ? cfg!.ModelId : global.Model,
+            ApiKey: !string.IsNullOrWhiteSpace(cfg?.AuthToken) ? cfg!.AuthToken : global.ApiKey,
+            AuthScheme: !string.IsNullOrWhiteSpace(cfg?.AuthScheme) ? cfg!.AuthScheme : global.AuthScheme,
+            CompletionsPath: !string.IsNullOrWhiteSpace(cfg?.CompletionsPath) ? cfg!.CompletionsPath : global.CompletionsPath,
+            MaxTokens: cfg?.MaxOutputTokens > 0 ? cfg.MaxOutputTokens : global.MaxTokens,
+            Temperature: cfg?.Temperature > 0 ? cfg.Temperature : global.Temperature,
+            HttpTimeoutSeconds: cfg?.HttpTimeoutSeconds > 0 ? cfg.HttpTimeoutSeconds : global.HttpTimeoutSeconds
+        );
+    }
+
     /// <summary>Get all registered tools as ToolDefinition list.</summary>
     public IReadOnlyList<ToolDefinition> GetToolDefinitions()
     {
@@ -87,7 +131,8 @@ public sealed class LlmService : ILlmService
     public async Task<LlmResponse> SendAsync(
         ChatCompletionRequest request,
         Action<string>? onToken = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? modelId = null)
     {
         var requestCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         lock (_requestLock)
@@ -100,13 +145,15 @@ public sealed class LlmService : ILlmService
         {
             var client = GetOrCreateHttpClient();
             var settings = _settingsService.AppSettings.Llm;
+            var modelCfg = ResolveModelConfig(modelId);
+            var eff = GetEffectiveSettings(settings, modelCfg);
 
-            // Build the URL
-            var url = BuildCompletionsUrl(settings);
+            // Build the URL using the resolved endpoint + path
+            var url = BuildCompletionsUrl(eff.Endpoint, eff.CompletionsPath);
 
             // Ensure model is set
             if (string.IsNullOrEmpty(request.Model))
-                request.Model = settings.Model;
+                request.Model = eff.Model;
 
             var isStreaming = request.Stream ?? settings.Stream;
 
@@ -116,12 +163,11 @@ public sealed class LlmService : ILlmService
                 Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
             };
 
-            // Auth is applied per request (not on the cached client) so that API key
-            // changes in Settings take effect immediately.
-            if (!string.IsNullOrEmpty(settings.ApiKey) && !string.IsNullOrEmpty(settings.AuthScheme))
+            // Auth from effective settings
+            if (!string.IsNullOrEmpty(eff.ApiKey) && !string.IsNullOrEmpty(eff.AuthScheme))
             {
                 httpRequest.Headers.Authorization =
-                    new AuthenticationHeaderValue(settings.AuthScheme, settings.ApiKey);
+                    new AuthenticationHeaderValue(eff.AuthScheme, eff.ApiKey);
             }
 
             StreamParser.StreamResult result;
@@ -160,7 +206,8 @@ public sealed class LlmService : ILlmService
                 InputTokens = result.Usage?.PromptTokens ?? 0,
                 OutputTokens = result.Usage?.CompletionTokens ?? 0,
                 Model = request.Model,
-                FinishReason = result.FinishReason
+                FinishReason = result.FinishReason,
+                ReasoningContent = result.ReasoningContent
             };
         }
         catch (OperationCanceledException)
@@ -202,9 +249,12 @@ public sealed class LlmService : ILlmService
         Action<AgentToolCallEvent>? onToolCall = null,
         Func<ToolApprovalRequest, Task<bool>>? onApprovalRequired = null,
         int maxIterations = 20,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? modelId = null)
     {
         var settings = _settingsService.AppSettings.Llm;
+        var modelCfg = ResolveModelConfig(modelId);
+        var eff = GetEffectiveSettings(settings, modelCfg);
         var effectiveMaxIterations = maxIterations > 0 ? maxIterations : settings.MaxIterations;
 
         // Use registered tools if none provided
@@ -228,16 +278,16 @@ public sealed class LlmService : ILlmService
 
             var request = new ChatCompletionRequest
             {
-                Model = settings.Model,
+                Model = eff.Model,
                 Messages = workingMessages,
                 Tools = tools?.Count > 0 ? tools.ToList() : null,
                 ToolChoice = tools?.Count > 0 ? "auto" : null,
-                Temperature = settings.Temperature,
-                MaxTokens = settings.MaxTokens,
+                Temperature = eff.Temperature,
+                MaxTokens = eff.MaxTokens,
                 Stream = settings.Stream
             };
 
-            var response = await SendAsync(request, onToken, cancellationToken);
+            var response = await SendAsync(request, onToken, cancellationToken, modelId);
 
             totalInputTokens += response.InputTokens;
             totalOutputTokens += response.OutputTokens;
@@ -245,15 +295,16 @@ public sealed class LlmService : ILlmService
             // If no tool calls, we're done
             if (response.ToolCalls is not { Count: > 0 })
             {
-                return new AgentLoopResult
-                {
-                    Content = response.Content,
-                    Iterations = iteration + 1,
-                    TotalInputTokens = totalInputTokens,
-                    TotalOutputTokens = totalOutputTokens,
-                    HitMaxIterations = false,
-                    ToolCallHistory = toolCallHistory
-                };
+return new AgentLoopResult
+                    {
+                        Content = response.Content,
+                        Iterations = iteration + 1,
+                        TotalInputTokens = totalInputTokens,
+                        TotalOutputTokens = totalOutputTokens,
+                        HitMaxIterations = false,
+                        ToolCallHistory = toolCallHistory,
+                        ReasoningContent = response.ReasoningContent
+                    };
             }
 
             // Add assistant message with tool calls
@@ -261,7 +312,8 @@ public sealed class LlmService : ILlmService
             {
                 Role = "assistant",
                 Content = response.Content,
-                ToolCalls = response.ToolCalls
+                ToolCalls = response.ToolCalls,
+                ReasoningContent = response.ReasoningContent
             });
 
             // Execute each tool call
@@ -415,10 +467,10 @@ public sealed class LlmService : ILlmService
         return _httpClient;
     }
 
-    private static string BuildCompletionsUrl(Core.Models.Settings.LlmSettings settings)
+    private static string BuildCompletionsUrl(string endpoint, string path)
     {
-        var baseUrl = settings.Endpoint.TrimEnd('/');
-        var path = settings.CompletionsPath.TrimStart('/');
-        return $"{baseUrl}/{path}";
+        var baseUrl = endpoint.TrimEnd('/');
+        var p = path.TrimStart('/');
+        return $"{baseUrl}/{p}";
     }
 }

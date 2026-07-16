@@ -33,6 +33,9 @@ public interface IChatSessionService
     /// <summary>Update the title of an existing session.</summary>
     Task UpdateSessionTitleAsync(string sessionId, string title, CancellationToken cancellationToken = default);
 
+    /// <summary>Update the model ID associated with a session (per-session model switching).</summary>
+    Task UpdateSessionModelAsync(string sessionId, string? modelId, CancellationToken cancellationToken = default);
+
     /// <summary>Save a message to a session. Updates the session's UpdatedAt timestamp.</summary>
     Task SaveMessageAsync(string sessionId, string role, string content, CancellationToken cancellationToken = default);
 

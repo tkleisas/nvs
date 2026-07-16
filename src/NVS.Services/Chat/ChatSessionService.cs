@@ -42,7 +42,7 @@ public sealed class ChatSessionService : IChatSessionService, IDisposable
         EnsureOpen();
 
         await using var cmd = _connection!.CreateCommand();
-        cmd.CommandText = "SELECT id, title, task_mode, created_at, updated_at FROM chat_sessions ORDER BY updated_at DESC";
+        cmd.CommandText = "SELECT id, title, task_mode, model_id, created_at, updated_at FROM chat_sessions ORDER BY updated_at DESC";
 
         var sessions = new List<ChatSession>();
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
@@ -58,7 +58,7 @@ public sealed class ChatSessionService : IChatSessionService, IDisposable
         EnsureOpen();
 
         await using var cmd = _connection!.CreateCommand();
-        cmd.CommandText = "SELECT id, title, task_mode, created_at, updated_at FROM chat_sessions WHERE id = @id";
+        cmd.CommandText = "SELECT id, title, task_mode, model_id, created_at, updated_at FROM chat_sessions WHERE id = @id";
         cmd.Parameters.AddWithValue("@id", sessionId);
 
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
@@ -82,12 +82,13 @@ public sealed class ChatSessionService : IChatSessionService, IDisposable
 
         await using var cmd = _connection!.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO chat_sessions (id, title, task_mode, created_at, updated_at)
-            VALUES (@id, @title, @taskMode, @createdAt, @updatedAt)
+            INSERT INTO chat_sessions (id, title, task_mode, model_id, created_at, updated_at)
+            VALUES (@id, @title, @taskMode, @modelId, @createdAt, @updatedAt)
             """;
         cmd.Parameters.AddWithValue("@id", session.Id);
         cmd.Parameters.AddWithValue("@title", session.Title);
         cmd.Parameters.AddWithValue("@taskMode", session.TaskMode);
+        cmd.Parameters.AddWithValue("@modelId", (object?)session.ModelId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@createdAt", session.CreatedAt.ToString("O"));
         cmd.Parameters.AddWithValue("@updatedAt", session.UpdatedAt.ToString("O"));
 
@@ -112,6 +113,17 @@ public sealed class ChatSessionService : IChatSessionService, IDisposable
         await using var cmd = _connection!.CreateCommand();
         cmd.CommandText = "UPDATE chat_sessions SET title = @title, updated_at = @now WHERE id = @id";
         cmd.Parameters.AddWithValue("@title", title);
+        cmd.Parameters.AddWithValue("@now", DateTimeOffset.UtcNow.ToString("O"));
+        cmd.Parameters.AddWithValue("@id", sessionId);
+        await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task UpdateSessionModelAsync(string sessionId, string? modelId, CancellationToken cancellationToken = default)
+    {
+        EnsureOpen();
+        await using var cmd = _connection!.CreateCommand();
+        cmd.CommandText = "UPDATE chat_sessions SET model_id = @modelId, updated_at = @now WHERE id = @id";
+        cmd.Parameters.AddWithValue("@modelId", (object?)modelId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@now", DateTimeOffset.UtcNow.ToString("O"));
         cmd.Parameters.AddWithValue("@id", sessionId);
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
@@ -183,6 +195,7 @@ public sealed class ChatSessionService : IChatSessionService, IDisposable
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
                 task_mode TEXT NOT NULL DEFAULT 'general',
+                model_id TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
@@ -196,6 +209,17 @@ public sealed class ChatSessionService : IChatSessionService, IDisposable
             CREATE INDEX IF NOT EXISTS idx_messages_session ON chat_messages(session_id);
             """;
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+        // Migrate older databases that lack the model_id column.
+        try
+        {
+            using var alterCmd = _connection!.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE chat_sessions ADD COLUMN model_id TEXT";
+            await alterCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (SqliteException) { /* column already exists */ }
+
+        // Likewise ensure existing columns … (future-proof) … nothing else to add currently.
     }
 
     private void EnsureOpen()
@@ -211,8 +235,9 @@ public sealed class ChatSessionService : IChatSessionService, IDisposable
             Id = reader.GetString(0),
             Title = reader.GetString(1),
             TaskMode = reader.GetString(2),
-            CreatedAt = DateTimeOffset.Parse(reader.GetString(3)),
-            UpdatedAt = DateTimeOffset.Parse(reader.GetString(4))
+            ModelId = reader.IsDBNull(3) ? null : reader.GetString(3),
+            CreatedAt = DateTimeOffset.Parse(reader.GetString(4)),
+            UpdatedAt = DateTimeOffset.Parse(reader.GetString(5))
         };
     }
 }

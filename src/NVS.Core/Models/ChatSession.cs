@@ -6,6 +6,9 @@ public sealed record ChatSession
     public required string Id { get; init; }
     public required string Title { get; init; }
     public string TaskMode { get; init; } = "general";
+    /// <summary><see cref="LLM.LlmModelConfig.ModelId"/> of the model active when this session was last used,
+    /// or null to use the global default. Persisted so each session remembers its model.</summary>
+    public string? ModelId { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; init; } = DateTimeOffset.UtcNow;
 }

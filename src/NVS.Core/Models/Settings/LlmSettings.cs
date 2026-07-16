@@ -1,3 +1,5 @@
+using NVS.Core.LLM;
+
 namespace NVS.Core.Models.Settings;
 
 public sealed record LlmSettings
@@ -52,4 +54,11 @@ public sealed record LlmSettings
 
     /// <summary>Active system prompt template name (coding, debugging, testing, general).</summary>
     public string ActivePromptTemplate { get; init; } = "general";
+
+    /// <summary>Configured model profiles. Each can override endpoint/API key/parameters per-model.
+    /// When a field is empty/unset the corresponding global field above is used as fallback.</summary>
+    public IReadOnlyList<LlmModelConfig> Models { get; init; } = [];
+
+    /// <summary>The <see cref="LlmModelConfig.ModelId"/> of the last-used model (per-session overrides this).</summary>
+    public string? DefaultModelId { get; init; }
 }

@@ -11,13 +11,21 @@ public interface ILlmService
     bool IsProcessing { get; }
 
     /// <summary>
+    /// Returns all enabled <see cref="LlmModelConfig"/> entries from settings for UI display.
+    /// </summary>
+    IReadOnlyList<LlmModelConfig> GetAvailableModels();
+
+    /// <summary>
     /// Send a chat completion request with streaming token delivery.
     /// Supports tool calling — if the response contains tool calls, they are returned in the response.
+    /// When <paramref name="modelId"/> is provided, per-model endpoint/auth/parameters are used
+    /// (with global fallback for unset fields).
     /// </summary>
     Task<LlmResponse> SendAsync(
         ChatCompletionRequest request,
         Action<string>? onToken = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        string? modelId = null);
 
     /// <summary>
     /// Run the agent loop: send messages, execute tool calls, repeat until done or max iterations.
@@ -33,7 +41,8 @@ public interface ILlmService
         Action<AgentToolCallEvent>? onToolCall = null,
         Func<ToolApprovalRequest, Task<bool>>? onApprovalRequired = null,
         int maxIterations = 20,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        string? modelId = null);
 
     /// <summary>Cancel any in-progress request.</summary>
     void CancelCurrentRequest();
@@ -52,6 +61,10 @@ public sealed record LlmResponse
     public required string Model { get; init; }
     public string? FinishReason { get; init; }
     public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.UtcNow;
+
+    /// <summary>Reasoning/thinking content from models like DeepSeek-R1. Must be passed
+    /// back to the API on the next request for thinking-mode models.</summary>
+    public string? ReasoningContent { get; init; }
 }
 
 public sealed record AgentLoopResult
@@ -68,6 +81,9 @@ public sealed record AgentLoopResult
 
     /// <summary>Whether the loop stopped due to reaching max iterations.</summary>
     public bool HitMaxIterations { get; init; }
+
+    /// <summary>Reasoning/thinking content from the final assistant response (DeepSeek-R1 etc.).</summary>
+    public string? ReasoningContent { get; init; }
 
     /// <summary>All tool calls made during the agent loop.</summary>
     public List<AgentToolCallEvent> ToolCallHistory { get; init; } = [];

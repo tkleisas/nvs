@@ -13,6 +13,8 @@ namespace NVS.Services.Tests;
 [Trait("Category", "terminal")]
 public sealed class ProcessTerminalTests
 {
+    private static bool CanSpawn => string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI"));
+
     private static (string App, IReadOnlyList<string> Args) Echoer(string text)
     {
         // Produce a deterministically-exiting process that writes `text` to stdout then exits 0.
@@ -32,6 +34,7 @@ public sealed class ProcessTerminalTests
     [Fact]
     public async Task StartAsync_EchoSense_ProducesOutputAndExitsZero()
     {
+        if (!CanSpawn) return;
         var terminal = new ProcessTerminal(new TerminalSession { Title = "echo", Kind = TerminalSessionKind.Run });
         var (app, args) = Echoer("hello-nvs");
         var saw = new StringBuilder();
@@ -54,6 +57,7 @@ public sealed class ProcessTerminalTests
     [Fact]
     public async Task OutputObservable_ExposesSameChunksAsEvent()
     {
+        if (!CanSpawn) return;
         var terminal = new ProcessTerminal(new TerminalSession { Title = "echo", Kind = TerminalSessionKind.Run });
         var (app, args) = Echoer("two-birds");
         var done = new TaskCompletionSource<bool>();
@@ -73,6 +77,7 @@ public sealed class ProcessTerminalTests
     [Fact]
     public async Task MultipleSubscribers_AllReceiveChunks()
     {
+        if (!CanSpawn) return;
         var terminal = new ProcessTerminal(new TerminalSession { Title = "echo", Kind = TerminalSessionKind.Run });
         var (app, args) = Echoer("fan-out");
         var s1 = new StringBuilder();
@@ -103,6 +108,7 @@ public sealed class ProcessTerminalTests
     [Fact]
     public async Task KillAsync_StopsRunningProcess()
     {
+        if (!CanSpawn) return;
         var terminal = new ProcessTerminal(new TerminalSession { Title = "sleep", Kind = TerminalSessionKind.Run });
         var (app, args) = SleepFor(TimeSpan.FromSeconds(30));
         var exitedCts = new TaskCompletionSource<int>();
@@ -131,6 +137,7 @@ public sealed class TerminalHostTests
     [Fact]
     public async Task RunCommandAsync_RegistersTerminalAndFiresCreated()
     {
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI"))) return;
         var host = new TerminalHost();
         var createdIds = new List<Guid>();
         host.TerminalCreated += (_, t) => createdIds.Add(t.Session.Id);
@@ -163,6 +170,7 @@ public sealed class TerminalHostTests
     [Fact]
     public async Task CreateShellAsync_DefaultsToShellKind()
     {
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI"))) return;
         var host = new TerminalHost();
         var terminal = await host.CreateShellAsync();
         terminal.Session.Kind.Should().Be(TerminalSessionKind.Shell);

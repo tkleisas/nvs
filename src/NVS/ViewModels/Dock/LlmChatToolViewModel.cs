@@ -15,6 +15,7 @@ public sealed partial class LlmChatToolViewModel : Tool
 {
     private string _userInput = string.Empty;
     private string _selectedTaskMode = "general";
+    private string? _selectedModelName;
     private bool _isSending;
     private bool _isStreaming;
     private string _statusText = "Ready";
@@ -40,6 +41,11 @@ public sealed partial class LlmChatToolViewModel : Tool
             {
                 _currentSession = value;
                 OnPropertyChanged();
+                // Sync the model dropdown to the session's persisted model
+                _selectedModelName = value?.ModelId;
+                if (!string.IsNullOrEmpty(_selectedModelName) && !AvailableModelNames.Contains(_selectedModelName))
+                    RefreshModelList();
+                OnPropertyChanged(nameof(SelectedModelName));
                 _ = LoadCurrentSessionMessagesAsync();
             }
         }
@@ -61,6 +67,23 @@ public sealed partial class LlmChatToolViewModel : Tool
                 _selectedTaskMode = value;
                 OnPropertyChanged();
             }
+        }
+    }
+
+    /// <summary>Display names of all enabled models from settings, for the toolbar ComboBox.</summary>
+    public ObservableCollection<string> AvailableModelNames { get; } = ["(default)"];
+
+    /// <summary>The model name selected in the toolbar. Null or empty means "use global default".
+    /// Changing this persists the choice on the current chat session.</summary>
+    public string? SelectedModelName
+    {
+        get => _selectedModelName;
+        set
+        {
+            if (_selectedModelName == value) return;
+            _selectedModelName = value;
+            OnPropertyChanged();
+            _ = OnModelChangedAsync();
         }
     }
 
@@ -88,12 +111,13 @@ public sealed partial class LlmChatToolViewModel : Tool
     private CancellationTokenSource? _streamCts;
 
     public LlmChatToolViewModel(MainViewModel main)
-    {
+{
         Main = main;
         Id = "LlmChat";
-        Title = "🤖 Chat";
+        Title = "?? Chat";
         CanClose = true;
         CanPin = true;
+        RefreshModelList();
     }
 
     /// <summary>Load sessions from the workspace database. Called when workspace opens.</summary>
@@ -169,6 +193,8 @@ public sealed partial class LlmChatToolViewModel : Tool
         var session = await sessionService.CreateSessionAsync(title, SelectedTaskMode);
         Sessions.Insert(0, session);
         CurrentSession = session;
+        // Persist the current model selection immediately on the new session
+        _ = OnModelChangedAsync();
     }
 
     private async Task LoadCurrentSessionMessagesAsync()
@@ -270,12 +296,18 @@ public sealed partial class LlmChatToolViewModel : Tool
                 },
                 onApprovalRequired: RequestToolApprovalAsync,
                 maxIterations: Main.SettingsService.AppSettings.Llm.MaxIterations,
-                cancellationToken: _streamCts.Token);
+                cancellationToken: _streamCts.Token,
+                modelId: ResolveModelId(_selectedModelName));
 
             if (string.IsNullOrEmpty(assistantBubble.Content))
                 assistantBubble.SetContent(result.Content);
 
-            _conversationHistory.Add(ChatCompletionMessage.Assistant(result.Content));
+            _conversationHistory.Add(new ChatCompletionMessage
+            {
+                Role = "assistant",
+                Content = result.Content,
+                ReasoningContent = result.ReasoningContent
+            });
 
             // Persist assistant response
             await PersistMessageAsync("assistant", result.Content);
@@ -500,6 +532,52 @@ public sealed partial class LlmChatToolViewModel : Tool
     {
         var title = input.ReplaceLineEndings(" ").Trim();
         return title.Length > 60 ? string.Concat(title.AsSpan(0, 57), "...") : title;
+    }
+
+    private void RefreshModelList()
+    {
+        var service = GetLlmServiceInternal();
+        var models = service?.GetAvailableModels();
+        var settings = Main.SettingsService.AppSettings.Llm;
+
+        AvailableModelNames.Clear();
+        AvailableModelNames.Add("(default)");
+        if (models is not null)
+        {
+            foreach (var m in models)
+                if (!string.IsNullOrWhiteSpace(m.DisplayName) && m.Enabled)
+                    AvailableModelNames.Add(m.DisplayName);
+        }
+    }
+
+    private async Task OnModelChangedAsync()
+    {
+        if (_currentSession is null) return;
+        var service = Main.ChatSessionService;
+        if (service is null || !service.IsOpen) return;
+
+        var settings = Main.SettingsService.AppSettings.Llm;
+        var modelId = ResolveModelId(_selectedModelName);
+        await service.UpdateSessionModelAsync(_currentSession.Id, modelId);
+    }
+
+    /// <summary>Maps a DisplayName back to a ModelId using the configured models list.</summary>
+    internal string? ResolveModelId(string? displayNameOrDefault)
+    {
+        if (string.IsNullOrWhiteSpace(displayNameOrDefault) || displayNameOrDefault == "(default)")
+            return null;
+        var service = GetLlmServiceInternal();
+        var models = service?.GetAvailableModels();
+        return models?.FirstOrDefault(m => m.DisplayName == displayNameOrDefault)?.ModelId;
+    }
+
+    private ILlmService? GetLlmServiceInternal()
+    {
+        try
+        {
+            return App.Current?.Services?.GetService(typeof(ILlmService)) as ILlmService;
+        }
+        catch { return null; }
     }
 
     private ILlmService? GetLlmService()
