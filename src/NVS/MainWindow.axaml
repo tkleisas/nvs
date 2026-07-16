@@ -163,6 +163,15 @@
                           BorderBrush="#555" Padding="6,2"
                           IsVisible="{Binding IsWorkspaceOpen}"
                           ToolTip.Tip="Startup Project" />
+                <!-- Launch profile selector (web apps) -->
+                <ComboBox ItemsSource="{Binding LaunchProfiles}"
+                          SelectedItem="{Binding SelectedLaunchProfile}"
+                          MinWidth="90" MaxWidth="180" Height="26"
+                          VerticalAlignment="Center" Margin="4,0"
+                          FontSize="11" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
+                          BorderBrush="#555" Padding="6,2"
+                          IsVisible="{Binding IsWorkspaceOpen}"
+                          ToolTip.Tip="Launch Profile (web apps)" />
                 <Button Width="28" Height="28" ToolTip.Tip="Run Without Debugging (Ctrl+F5)"
                         Command="{Binding BuildRun.RunProjectCommand}">
                     <PathIcon Width="14" Height="14" Foreground="#4EC9B0"

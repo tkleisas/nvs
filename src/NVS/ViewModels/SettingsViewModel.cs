@@ -13,6 +13,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     private readonly ISettingsService _settingsService;
     private readonly ILanguageServerManager _serverManager;
     private readonly IThemeService? _themeService;
+    private readonly MainViewModel? _main;
     private AppSettings _settings;
 
     private int _selectedSectionIndex;
@@ -57,11 +58,13 @@ public partial class SettingsViewModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public SettingsViewModel(ISettingsService settingsService, ILanguageServerManager serverManager, IThemeService? themeService = null)
+    public SettingsViewModel(ISettingsService settingsService, ILanguageServerManager serverManager, IThemeService? themeService = null,
+        MainViewModel? main = null)
     {
         _settingsService = settingsService;
         _serverManager = serverManager;
         _themeService = themeService;
+        _main = main;
         _settings = settingsService.AppSettings;
 
         Sections =
@@ -70,7 +73,8 @@ public partial class SettingsViewModel : INotifyPropertyChanged
             "Editor",
             "Terminal",
             "Language Servers",
-            "LLM"
+            "LLM",
+            "Web / Launch"
         ];
     }
 
@@ -90,6 +94,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(IsTerminalVisible));
                 OnPropertyChanged(nameof(IsLanguageServersVisible));
                 OnPropertyChanged(nameof(IsLlmVisible));
+                OnPropertyChanged(nameof(IsWebLaunchVisible));
             }
         }
     }
@@ -99,6 +104,11 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     public bool IsTerminalVisible => _selectedSectionIndex == 2;
     public bool IsLanguageServersVisible => _selectedSectionIndex == 3;
     public bool IsLlmVisible => _selectedSectionIndex == 4;
+    public bool IsWebLaunchVisible => _selectedSectionIndex == 5;
+
+    /// <summary>Exposes the shared MainViewModel so the Web / Launch section can bind to
+    /// the same LaunchProfiles/SelectedLaunchProfile that the toolbar dropdown uses.</summary>
+    public MainViewModel? Main => _main;
 
     // General properties
     public bool RestorePreviousSession
@@ -449,6 +459,40 @@ public partial class SettingsViewModel : INotifyPropertyChanged
 
         await _settingsService.SaveAppSettingsAsync(newSettings);
         IsSaved = true;
+
+        await SaveLaunchProfilePreferenceAsync();
+    }
+
+    /// <summary>
+    /// Persists the toolbar's selected launch profile for the startup project into
+    /// the per-workspace settings so the choice survives restarts. Best-effort: any
+    /// failure to save workspace settings is logged but does not fail the Save flow.
+    /// </summary>
+    private async Task SaveLaunchProfilePreferenceAsync()
+    {
+        if (_main is null || string.IsNullOrEmpty(_main.WorkspacePath)) return;
+
+        var startup = _main.SolutionService.GetStartupProject();
+        if (startup is null) return;
+
+        var selected = _main.SelectedLaunchProfile;
+        if (string.IsNullOrEmpty(selected)) return;
+
+        try
+        {
+            var existing = _settingsService.WorkspaceSettings ?? new WorkspaceSettings();
+            var prefs = new Dictionary<string, string>(existing.LaunchProfilePreferences)
+            {
+                [startup.Name] = selected
+            };
+
+            var updated = existing with { LaunchProfilePreferences = prefs };
+            await _settingsService.SaveWorkspaceSettingsAsync(_main.WorkspacePath, updated);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to save launch profile preference: {ex.Message}");
+        }
     }
 
     private Dictionary<string, LanguageServerUserConfig> BuildLanguageServerConfigs()

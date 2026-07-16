@@ -28,6 +28,9 @@ public partial class MainViewModel : ObservableObject
     private readonly ILanguageService? _languageService;
     private readonly IChatSessionService? _chatSessionService;
     private readonly IInlineCompletionService? _inlineCompletionService;
+    private readonly ILaunchSettingsService? _launchSettingsService;
+    private readonly IBrowserLauncher? _browserLauncher;
+    private readonly ITerminalHost? _terminalHost;
 
     private string _title = "NVS - No Vim Substitute";
     private bool _isWorkspaceOpen;
@@ -73,7 +76,10 @@ public partial class MainViewModel : ObservableObject
         IPrerequisiteService? prerequisiteService = null,
         ILanguageService? languageService = null,
         IChatSessionService? chatSessionService = null,
-        IInlineCompletionService? inlineCompletionService = null)
+        IInlineCompletionService? inlineCompletionService = null,
+        ILaunchSettingsService? launchSettingsService = null,
+        IBrowserLauncher? browserLauncher = null,
+        ITerminalHost? terminalHost = null)
     {
         _workspaceService = workspaceService;
         _editorService = editorService;
@@ -90,12 +96,19 @@ public partial class MainViewModel : ObservableObject
         _languageService = languageService;
         _chatSessionService = chatSessionService;
         _inlineCompletionService = inlineCompletionService;
+        _launchSettingsService = launchSettingsService;
+        _browserLauncher = browserLauncher;
+        _terminalHost = terminalHost;
         SettingsService = settingsService;
         Editor = editor;
 
         Git = new GitViewModel(gitService, this);
         BuildRun = new BuildRunViewModel(buildService, solutionService, this);
+        BuildRun.LaunchSettingsService = launchSettingsService;
+        BuildRun.BrowserLauncher = browserLauncher;
         Debug = new DebugViewModel(debugService, breakpointStore, solutionService, buildService, this);
+        Debug.LaunchSettingsService = launchSettingsService;
+        Debug.BrowserLauncher = browserLauncher;
         Search = new SearchViewModel(fileSystemService, this);
         Explorer = new ExplorerViewModel(fileSystemService, this);
         Terminal = new TerminalViewModel(terminalService, this);
@@ -108,6 +121,10 @@ public partial class MainViewModel : ObservableObject
     public ISolutionService SolutionService => _solutionService;
     public IBuildService BuildService => _buildService;
     public IDebugService? DebugService => _debugService;
+    public ITerminalService TerminalService => _terminalService;
+    public ILaunchSettingsService? LaunchSettingsService => _launchSettingsService;
+    public IBrowserLauncher? BrowserLauncher => _browserLauncher;
+    public ITerminalHost? TerminalHost => _terminalHost;
     public IBreakpointStore? BreakpointStore => _breakpointStore;
     public ICodeMetricsService? CodeMetricsService => _codeMetricsService;
     public IChatSessionService? ChatSessionService => _chatSessionService;
@@ -192,6 +209,20 @@ public partial class MainViewModel : ObservableObject
 
     public ObservableCollection<string> ProjectNames { get; } = [];
 
+    /// <summary>Launch profile names available for the current startup project (web apps).</summary>
+    public ObservableCollection<string> LaunchProfiles { get; } = [];
+
+    private string? _selectedLaunchProfile;
+    /// <summary>
+    /// The launch profile to use when running/debugging the startup web project.
+    /// When null, the project's default profile is used (resolved by ILaunchSettingsService).
+    /// </summary>
+    public string? SelectedLaunchProfile
+    {
+        get => _selectedLaunchProfile;
+        set => SetProperty(ref _selectedLaunchProfile, value);
+    }
+
     private string? _selectedStartupProject;
     public string? SelectedStartupProject
     {
@@ -202,6 +233,7 @@ public partial class MainViewModel : ObservableObject
             {
                 _solutionService.SetStartupProject(value);
                 Explorer.RefreshStartupMarker(value);
+                RefreshLaunchProfiles(_solutionService.GetStartupProject());
             }
         }
     }
@@ -215,6 +247,47 @@ public partial class MainViewModel : ObservableObject
         var startup = _solutionService.GetStartupProject();
         _selectedStartupProject = startup?.Name;
         OnPropertyChanged(nameof(SelectedStartupProject));
+
+        RefreshLaunchProfiles(startup);
+    }
+
+    /// <summary>
+    /// Rebuilds <see cref="LaunchProfiles"/> for the given startup project and
+    /// seeds <see cref="SelectedLaunchProfile"/> with the default profile.
+    /// </summary>
+    public void RefreshLaunchModels(ProjectModel? startup)
+        => RefreshLaunchProfiles(startup);
+
+    private void RefreshLaunchProfiles(ProjectModel? startup)
+    {
+        LaunchProfiles.Clear();
+        SelectedLaunchProfile = null;
+
+        if (startup is null || !startup.IsWebProject || _launchSettingsService is null)
+            return;
+
+        LaunchProfile? defaultProfile = null;
+        foreach (var p in _launchSettingsService.GetLaunchProfiles(startup))
+        {
+            LaunchProfiles.Add(p.Name);
+            defaultProfile ??= _launchSettingsService.GetDefaultLaunchProfile(startup);
+        }
+
+        if (LaunchProfiles.Count > 0)
+        {
+            var prefs = SettingsService.WorkspaceSettings?.LaunchProfilePreferences;
+            if (prefs is not null
+                && !string.IsNullOrEmpty(startup.Name)
+                && prefs.TryGetValue(startup.Name, out var prefName)
+                && LaunchProfiles.Contains(prefName))
+            {
+                SelectedLaunchProfile = prefName;
+            }
+            else
+            {
+                SelectedLaunchProfile = defaultProfile?.Name ?? LaunchProfiles[0];
+            }
+        }
     }
 
     [RelayCommand]

@@ -3,11 +3,15 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
-             xmlns:terminal="using:Iciclecreek.Terminal"
+             xmlns:vt="clr-namespace:NVS.Views.Dock"
              mc:Ignorable="d"
              x:Class="NVS.Views.Dock.TerminalView"
              x:DataType="dock:TerminalToolViewModel">
-
-    <terminal:TerminalControl x:Name="Terminal"
-                              BufferSize="{ReflectionBinding TerminalBufferSize}" />
+    <ScrollViewer x:Name="TerminalScroller"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <vt:ProcessTerminalView x:Name="Terminal"
+                                Terminal="{Binding Terminal}"
+                                Focusable="True" />
+    </ScrollViewer>
 </UserControl>

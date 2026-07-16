@@ -202,6 +202,7 @@ public sealed class DebugService : IDebugService, IAsyncDisposable
                         Args = configuration.Args.Count > 0 ? configuration.Args : null,
                         Cwd = configuration.Cwd,
                         Console = configuration.Console,
+                        Env = configuration.Env.Count > 0 ? configuration.Env : null,
                     };
 
                     await _client.LaunchAsync(launchArgs, cancellationToken).ConfigureAwait(false);

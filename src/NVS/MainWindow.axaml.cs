@@ -294,7 +294,8 @@ public partial class MainWindow : Window
         var previousPreferred = new Dictionary<string, string>(settingsService.AppSettings.PreferredLanguageServers);
 
         var vm = new ViewModels.SettingsViewModel(settingsService, serverManager,
-            app.Services.GetService(typeof(NVS.Core.Interfaces.IThemeService)) as NVS.Core.Interfaces.IThemeService);
+            app.Services.GetService(typeof(NVS.Core.Interfaces.IThemeService)) as NVS.Core.Interfaces.IThemeService,
+            DataContext as ViewModels.MainViewModel);
         await vm.InitializeAsync();
 
         var window = new SettingsWindow { DataContext = vm };

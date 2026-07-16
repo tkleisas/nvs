@@ -8,8 +8,8 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 12](https://img.shields.io/badge/AvaloniaUI-12.0-blue)
-![Version](https://img.shields.io/badge/version-0.11.0-green)
-![Tests](https://img.shields.io/badge/tests-1204%20passing-brightgreen)
+![Version](https://img.shields.io/badge/version-0.12.0-green)
+![Tests](https://img.shields.io/badge/tests-1231%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -113,7 +113,8 @@ NVS is a code editor / IDE that:
 - Solution Explorer tree with project structure and file icons
 - **Startup project selection** — toolbar dropdown or right-click → "Set as Startup Project"
 - Build, Rebuild, Clean (Ctrl+Shift+B)
-- Run without debugging (Ctrl+F5) — GUI apps launch as detached windows, console apps run in terminal
+- Run without debugging (Ctrl+F5) — GUI apps launch as detached windows, console apps run in terminal, **web apps run with the selected launch profile** (`dotnet run --launch-profile`) and auto-open a browser
+- **Web application run/debug** — launchSettings.json parsing, launch-profile selector (toolbar dropdown + Settings → Web / Launch), cross-platform browser launch, and live "Now listening on:" URL scraping for the debug browser launch (with a static fallback)
 - Build Output panel with auto-scroll and MSBuild error parsing
 - Problems panel with click-to-navigate diagnostics
 - New project / file-from-template scaffolding via `dotnet new`, Maven, and Composer

@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using NVS.Core.Interfaces;
+using NVS.Services.Launch;
 using NVS.Infrastructure.DependencyInjection;
 using NVS.Services.Build;
 using NVS.Services.Debug;
@@ -144,7 +145,10 @@ public partial class App : Application
         services.AddSingleton<ILanguageServerManager, LanguageServerManager>();
         services.AddSingleton<IGitService, GitService>();
         services.AddSingleton<ITerminalService, TerminalService>();
+        services.AddSingleton<ITerminalHost, NVS.Services.Terminal.TerminalHost>();
         services.AddSingleton<ISolutionService, SolutionService>();
+        services.AddSingleton<ILaunchSettingsService, LaunchSettingsService>();
+        services.AddSingleton<IBrowserLauncher, BrowserLauncher>();
         services.AddSingleton<IBuildService, BuildService>();
         services.AddSingleton<IDebugService, DebugService>();
         services.AddSingleton<IBreakpointStore, BreakpointStore>();

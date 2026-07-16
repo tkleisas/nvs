@@ -237,6 +237,32 @@
                         <CheckBox IsChecked="{Binding LlmRequireToolApproval}" Content="Ask before the agent runs terminal commands or writes files" Foreground="{DynamicResource TextForegroundBrush}" />
                     </StackPanel>
 
+                    <!-- Web / Launch Section -->
+                    <StackPanel IsVisible="{Binding IsWebLaunchVisible}" Spacing="10">
+                        <TextBlock Text="Web / Launch" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
+                        <TextBlock Text="Default launch profile used when running (Ctrl+F5) or debugging (F5) a web application."
+                                   FontSize="12" TextWrapping="Wrap" Foreground="#AAAAAA" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0"
+                                    IsVisible="{Binding Main.IsWorkspaceOpen}">
+                            <TextBlock Text="Launch Profile" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextForegroundBrush}" />
+                            <ComboBox ItemsSource="{Binding Main.LaunchProfiles}"
+                                      SelectedItem="{Binding Main.SelectedLaunchProfile}"
+                                      MinWidth="180" Height="26" VerticalAlignment="Center"
+                                      FontSize="12" Padding="6,2"
+                                      Background="{DynamicResource InputBackgroundBrush}"
+                                      Foreground="{DynamicResource TextForegroundBrush}"
+                                      BorderBrush="#555"
+                                      ToolTip.Tip="Launch profile (from launchSettings.json)" />
+                        </StackPanel>
+
+                        <TextBlock Text="Profiles are defined in each web project's Properties/launchSettings.json."
+                                   FontSize="11" TextWrapping="Wrap" Foreground="#777777" />
+                        <TextBlock Text="No solution loaded." FontSize="12" Foreground="#777777"
+                                   IsVisible="{Binding !Main.IsWorkspaceOpen}" />
+                    </StackPanel>
+
                 </Grid>
             </ScrollViewer>
         </Grid>

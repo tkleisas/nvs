@@ -1,157 +1,161 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Media;
+using Avalonia.Input;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
+using NVS.Core.Interfaces;
 using NVS.ViewModels.Dock;
+using Serilog;
 
 namespace NVS.Views.Dock;
 
 public partial class TerminalView : UserControl
 {
-    private DispatcherTimer? _ptyReadyTimer;
+    private bool _userScrolledUp;
 
     public TerminalView()
     {
         InitializeComponent();
+        Focusable = true;
         DataContextChanged += OnDataContextChanged;
         AttachedToVisualTree += OnAttachedToVisualTree;
     }
 
-    private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
-    {
-        ApplyFontSettings();
-        WireSendCommandDelegate();
+    // ── Keyboard ───────────────────────────────────────────────────
 
-        if (DataContext is TerminalToolViewModel vm)
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (DataContext is TerminalToolViewModel tool && tool.Terminal is { IsRunning: true } t)
         {
-            vm.PropertyChanged += (_, args) =>
+            var text = MapKey(e);
+            if (text is not null)
             {
-                if (args.PropertyName is nameof(TerminalToolViewModel.TerminalFontFamily)
-                    or nameof(TerminalToolViewModel.TerminalFontSize))
-                {
-                    Dispatcher.UIThread.Post(ApplyFontSettings);
-                }
+                _ = t.SendInputAsync(text);
+                e.Handled = true;
+                return;
+            }
+        }
+        base.OnKeyDown(e);
+    }
+
+    protected override void OnTextInput(TextInputEventArgs e)
+    {
+        if (DataContext is TerminalToolViewModel tool && tool.Terminal is { IsRunning: true } t
+            && !string.IsNullOrEmpty(e.Text))
+        {
+            _ = t.SendInputAsync(e.Text);
+            e.Handled = true;
+            return;
+        }
+        base.OnTextInput(e);
+    }
+
+    internal static string? MapKey(KeyEventArgs e)
+    {
+        var mod = e.KeyModifiers;
+        if (mod.HasFlag(KeyModifiers.Control) && !mod.HasFlag(KeyModifiers.Alt))
+        {
+            return e.Key switch
+            {
+                Key.C => "\x03",
+                Key.D => "\x04",
+                Key.Z => "\x1A",
+                Key.L => "\x0C",
+                _ => null,
             };
         }
 
-        // Start a timer to flush pending commands once the PTY is ready.
-        // The Iciclecreek TerminalControl launches its PTY asynchronously
-        // after template application, so we poll briefly.
-        _ptyReadyTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-        _ptyReadyTimer.Tick += OnPtyReadyTimerTick;
-        _ptyReadyTimer.Start();
+        return e.Key switch
+        {
+            Key.Return => "\r",
+            Key.Back => "\x7F",
+            Key.Tab => "\t",
+            Key.Escape => "\x1B",
+            Key.Up => "\x1B[A",
+            Key.Down => "\x1B[B",
+            Key.Right => "\x1B[C",
+            Key.Left => "\x1B[D",
+            Key.Home => "\x1B[H",
+            Key.End => "\x1B[F",
+            Key.Delete => "\x1B[3~",
+            Key.PageUp => "\x1B[5~",
+            Key.PageDown => "\x1B[6~",
+            Key.F1 => "\x1BOP", Key.F2 => "\x1BOQ", Key.F3 => "\x1BOR", Key.F4 => "\x1BOS",
+            Key.F5 => "\x1B[15~", Key.F6 => "\x1B[17~", Key.F7 => "\x1B[18~", Key.F8 => "\x1B[19~",
+            Key.F9 => "\x1B[20~", Key.F10 => "\x1B[21~", Key.F11 => "\x1B[23~", Key.F12 => "\x1B[24~",
+            _ => null,
+        };
     }
 
-    private int _ptyReadyAttempts;
+    // ── Layout / Font / Scroll ─────────────────────────────────────
 
-    private async void OnPtyReadyTimerTick(object? sender, EventArgs e)
+    private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
-        _ptyReadyAttempts++;
+        ApplyFontSettings();
+        WireScrollTracking();
+        Terminal.OutputAppended += OnTerminalOutputAppended;
+        if (DataContext is TerminalToolViewModel vm)
+            vm.PropertyChanged += OnToolPropertyChanged;
+    }
 
-        if (DataContext is TerminalToolViewModel vm && TryGetPtyWriter(out _))
+    private void OnToolPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (DataContext is not TerminalToolViewModel vm) return;
+        if (e.PropertyName is nameof(TerminalToolViewModel.TerminalFontFamily)
+            or nameof(TerminalToolViewModel.TerminalFontSize))
+            Dispatcher.UIThread.Post(ApplyFontSettings);
+    }
+
+    /// <summary>
+    /// Track whether the user has manually scrolled upward to browse scrollback.
+    /// Only PointerWheelChanged is a reliable user-initiated signal here;
+    /// ScrollChanged fires for programmatic extent changes too.
+    /// </summary>
+    private void WireScrollTracking()
+    {
+        TerminalScroller.PointerWheelChanged += (_, e) =>
         {
-            // PTY is ready — wire delegate and flush pending commands
-            WireSendCommandDelegate();
-            await vm.FlushPendingCommandsAsync();
-            _ptyReadyTimer?.Stop();
-            _ptyReadyTimer = null;
-        }
-        else if (_ptyReadyAttempts > 20) // 10 seconds max
-        {
-            _ptyReadyTimer?.Stop();
-            _ptyReadyTimer = null;
-        }
+            if (e.Delta.Y < 0)
+                _userScrolledUp = true;
+            else if (e.Delta.Y > 0 && IsNearBottom())
+                _userScrolledUp = false;
+        };
+    }
+
+    private void OnTerminalOutputAppended(object? s, EventArgs e)
+    {
+        if (_userScrolledUp) return;
+        TerminalScroller.UpdateLayout();
+
+        var screen = Terminal.VisualScreen;
+        if (screen is null) return;
+
+        double viewportH = TerminalScroller.Viewport.Height;
+        double cellH = Terminal.CellMeasuredHeight;
+        double scrollback = screen.ScrollbackCount;
+        double cursorY = 2 + (scrollback + screen.CursorRow + 1) * cellH;
+        double maxOffset = Math.Max(0, TerminalScroller.Extent.Height - viewportH);
+        double target = Math.Clamp(cursorY - viewportH + cellH, 0, maxOffset);
+        TerminalScroller.Offset = new Vector(TerminalScroller.Offset.X, target);
+    }
+
+    private bool IsNearBottom()
+    {
+        if (TerminalScroller.Viewport.Height <= 0) return true;
+        return TerminalScroller.Offset.Y + TerminalScroller.Viewport.Height >= TerminalScroller.Extent.Height - 20;
     }
 
     private void ApplyFontSettings()
     {
-        if (Terminal == null || DataContext is not TerminalToolViewModel vm) return;
-
+        if (Terminal is null || DataContext is not TerminalToolViewModel vm) return;
         if (!string.IsNullOrWhiteSpace(vm.TerminalFontFamily))
-            Terminal.FontFamily = new FontFamily(vm.TerminalFontFamily);
+            Terminal.FontFamilyName = vm.TerminalFontFamily;
         if (vm.TerminalFontSize > 0)
-            Terminal.FontSize = vm.TerminalFontSize;
-    }
-
-    /// <summary>
-    /// Tries to get the PTY writer stream from the inner Iciclecreek TerminalView
-    /// via reflection (the API is private).
-    /// </summary>
-    private bool TryGetPtyWriter(out System.IO.Stream? writerStream)
-    {
-        writerStream = null;
-        try
-        {
-            var innerView = Terminal?.GetVisualDescendants()
-                .OfType<Iciclecreek.Terminal.TerminalView>()
-                .FirstOrDefault();
-
-            if (innerView is null) return false;
-
-            // Access private _ptyConnection field
-            var field = innerView.GetType().GetField(
-                "_ptyConnection",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-            var ptyConnection = field?.GetValue(innerView);
-            if (ptyConnection is null) return false;
-
-            // Get WriterStream property from the IPtyConnection
-            var writerProp = ptyConnection.GetType().GetProperty("WriterStream");
-            writerStream = writerProp?.GetValue(ptyConnection) as System.IO.Stream;
-            return writerStream is not null;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private void WireSendCommandDelegate()
-    {
-        if (DataContext is not TerminalToolViewModel vm || Terminal is null) return;
-
-        vm.SendCommandAsync = async command =>
-        {
-            await Dispatcher.UIThread.InvokeAsync(async () =>
-            {
-                try
-                {
-                    if (TryGetPtyWriter(out var writer) && writer is not null)
-                    {
-                        var bytes = System.Text.Encoding.UTF8.GetBytes(command + "\r");
-                        await writer.WriteAsync(bytes);
-                        await writer.FlushAsync();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Serilog.Log.Warning(ex, "Failed to send command to terminal (not ready yet?)");
-                }
-            });
-        };
+            Terminal.CellFontSize = vm.TerminalFontSize;
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (DataContext is TerminalToolViewModel vm && Terminal != null)
-        {
-            Terminal.Process = vm.ShellPath;
-            var workDir = vm.WorkingDirectory;
-            if (string.IsNullOrEmpty(workDir))
-                workDir = vm.Main.WorkspacePath;
-
-            if (!string.IsNullOrEmpty(workDir))
-            {
-                if (OperatingSystem.IsWindows())
-                    Terminal.Args = ["-NoExit", "-Command", $"Set-Location '{workDir}'"];
-                else
-                    Terminal.Args = ["-c", $"cd \"{workDir}\" && exec $SHELL"];
-            }
-
-            WireSendCommandDelegate();
-            ApplyFontSettings();
-        }
+        ApplyFontSettings();
     }
 }

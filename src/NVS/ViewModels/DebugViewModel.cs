@@ -1,8 +1,10 @@
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Dock.Model.Core;
 using NVS.Core.Interfaces;
 using NVS.Core.Models;
+using NVS.Services.Launch;
 using NVS.ViewModels.Dock;
 
 namespace NVS.ViewModels;
@@ -27,6 +29,13 @@ public sealed partial class DebugViewModel : ObservableObject
     private TerminalToolViewModel? _debugTerminal;
     private System.Diagnostics.Process? _debuggeeProcess;
 
+    // Web launch scraping state — used only while debugging a web project launched
+    // directly via DAP (non-terminal) so a browser can open the real listening URL.
+    private ListeningUrlWatcher? _webLaunchWatcher;
+    private EventHandler<OutputEvent>? _webScrapeHandler;
+    private bool _webBrowserLaunched;
+    private bool _webSessionActive;
+
     public DebugViewModel(
         IDebugService? debugService,
         IBreakpointStore? breakpointStore,
@@ -49,6 +58,12 @@ public sealed partial class DebugViewModel : ObservableObject
             _debugService.OutputReceived += OnDebugOutput;
         }
     }
+
+    /// <summary>Resolves launch profiles for web projects. May be null in test contexts.</summary>
+    public ILaunchSettingsService? LaunchSettingsService { get; set; }
+
+    /// <summary>Used to open a browser when a web app starts. May be null in test contexts.</summary>
+    public IBrowserLauncher? BrowserLauncher { get; set; }
 
     public bool IsDebugging
     {
@@ -160,10 +175,18 @@ public sealed partial class DebugViewModel : ObservableObject
 
             // Console apps: launch inside a debug terminal with a startup hook
             // that pauses for debugger attach. GUI apps: launch via DAP directly.
+            // Web apps: launch via DAP directly (like GUI) with env/args from the
+            // selected launch profile, and scrape "Now listening on:" output to
+            // open a browser to the real bound URL (with a static fallback).
             var isConsoleApp = string.Equals(startup.OutputType, "Exe", StringComparison.OrdinalIgnoreCase)
                             || startup.OutputType is null;
 
-            if (isConsoleApp)
+            if (startup.IsWebProject)
+            {
+                _debugUsesTerminal = false;
+                await StartWebDebuggingAsync(startup, programPath, projectDir);
+            }
+            else if (isConsoleApp)
             {
                 _debugUsesTerminal = true;
 
@@ -211,6 +234,10 @@ public sealed partial class DebugViewModel : ObservableObject
 
                 // Wait for the startup hook to write the PID file
                 int debuggeePid = await WaitForPidFileAsync(pidFile, TimeSpan.FromSeconds(15));
+
+                // Track the debuggee so Stop kills the entire tree
+                try { _debuggeeProcess = System.Diagnostics.Process.GetProcessById(debuggeePid); }
+                catch { /* process may have exited already */ }
 
                 var config = new NVS.Core.Models.Settings.DebugConfiguration
                 {
@@ -281,6 +308,7 @@ public sealed partial class DebugViewModel : ObservableObject
         ClearDebugCurrentLine();
         DestroyDebugTerminal();
         CleanupDebuggeeProcess();
+        CleanupWebLaunchScraping();
     }
 
     [RelayCommand]
@@ -409,6 +437,7 @@ public sealed partial class DebugViewModel : ObservableObject
             ClearDebugEvaluateOnDocuments();
             DestroyDebugTerminal();
             CleanupDebuggeeProcess();
+            CleanupWebLaunchScraping();
 
             // Clear call stack and variables
             _main.FindToolInDock<CallStackToolViewModel>()?.ClearFrames();
@@ -511,6 +540,139 @@ public sealed partial class DebugViewModel : ObservableObject
 
         var isError = evt.Category is OutputCategory.Stderr;
         _main.FindBuildOutputTool()?.AppendOutput(evt.Output, isError);
+    }
+
+    // ── Web App Debugging ─────────────────────────────────────────
+
+    /// <summary>
+    /// Launches a web project directly via DAP (no terminal/hook) with environment
+    /// variables and args sourced from the selected launch profile, then scrapes
+    /// the debuggee's stdout for "Now listening on:" to open a browser. Falls back
+    /// to the static profile URL after a timeout if no listening line is seen.
+    /// </summary>
+    private async Task StartWebDebuggingAsync(ProjectModel startup, string programPath, string projectDir)
+    {
+        if (_debugService is null) return;
+
+        var profile = ResolveWebProfile(startup);
+
+        // Build env: profile vars first; ensure ASPNETCORE_ENVIRONMENT defaults to Development
+        // and ASPNETCORE_URLS is derived from applicationUrl when not explicitly set.
+        var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (profile is not null)
+        {
+            foreach (var kv in profile.EnvironmentVariables)
+                env[kv.Key] = kv.Value;
+        }
+        if (!env.ContainsKey("ASPNETCORE_ENVIRONMENT"))
+            env["ASPNETCORE_ENVIRONMENT"] = "Development";
+        if (!string.IsNullOrWhiteSpace(profile?.ApplicationUrl) && !env.ContainsKey("ASPNETCORE_URLS"))
+            env["ASPNETCORE_URLS"] = profile!.ApplicationUrl;
+
+        // Args: split the profile CommandLineArgs on whitespace (good enough for typical
+        // web app launch args). Pass through empty when none.
+        var args = SplitArgs(profile?.CommandLineArgs);
+
+        var config = new NVS.Core.Models.Settings.DebugConfiguration
+        {
+            Name = startup.Name,
+            Type = "coreclr",
+            Request = "launch",
+            Program = programPath,
+            Cwd = projectDir,
+            Args = args,
+            Env = env,
+        };
+
+        // Set up scraping before launch so we don't miss the early "Now listening on:" line.
+        _webBrowserLaunched = false;
+        _webSessionActive = true;
+        _webLaunchWatcher = new ListeningUrlWatcher();
+        _webLaunchWatcher.UrlDetected += OnWebListeningDetected;
+        _webScrapeHandler = (_, evt) =>
+        {
+            if (!_webSessionActive || _webLaunchWatcher is null) return;
+            _webLaunchWatcher.Append(evt.Output);
+        };
+        _debugService.OutputReceived += _webScrapeHandler;
+
+        await _debugService.StartDebuggingAsync(config);
+
+        // Static-delay fallback browser launch: DAP launch routes stdout via
+        // OutputReceived, so the scrape path usually wins; this fallback covers
+        // cases where Kestrel logs are suppressed or the listening line never arrives.
+        if (profile?.LaunchBrowser == true && BrowserLauncher is not null)
+        {
+            var staticUrl = WebLaunchHelper.ComposeBrowserUrl(profile);
+            if (!string.IsNullOrEmpty(staticUrl))
+                _ = WebBrowserFallbackAsync(staticUrl, TimeSpan.FromSeconds(6));
+        }
+    }
+
+    private void OnWebListeningDetected(string url)
+    {
+        if (_webBrowserLaunched) return;
+        _webBrowserLaunched = true;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => BrowserLauncher?.Launch(url));
+    }
+
+    private async Task WebBrowserFallbackAsync(string staticUrl, TimeSpan delay)
+    {
+        try
+        {
+            await Task.Delay(delay);
+            if (_webBrowserLaunched) return; // scrape already launched the browser
+            _webBrowserLaunched = true;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => BrowserLauncher?.Launch(staticUrl));
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Web browser fallback launch failed for {Url}", staticUrl);
+        }
+    }
+
+    private LaunchProfile? ResolveWebProfile(ProjectModel startup)
+    {
+        if (LaunchSettingsService is null) return null;
+
+        var selected = _main.SelectedLaunchProfile;
+        if (!string.IsNullOrWhiteSpace(selected))
+        {
+            var named = LaunchSettingsService.GetLaunchProfile(startup, selected);
+            if (named is not null) return named;
+        }
+
+        return LaunchSettingsService.GetDefaultLaunchProfile(startup);
+    }
+
+    /// <summary>Naive whitespace splitter that respects double-quoted segments.</summary>
+    private static IReadOnlyList<string> SplitArgs(string? args)
+    {
+        if (string.IsNullOrWhiteSpace(args)) return [];
+        var tokens = new List<string>();
+        var sb = new StringBuilder();
+        bool inQuote = false;
+        foreach (var ch in args)
+        {
+            if (ch == '"') { inQuote = !inQuote; continue; }
+            if (!inQuote && char.IsWhiteSpace(ch))
+            {
+                if (sb.Length > 0) { tokens.Add(sb.ToString()); sb.Clear(); }
+            }
+            else sb.Append(ch);
+        }
+        if (sb.Length > 0) tokens.Add(sb.ToString());
+        return tokens;
+    }
+
+    private void CleanupWebLaunchScraping()
+    {
+        _webSessionActive = false;
+        if (_debugService is not null && _webScrapeHandler is not null)
+            _debugService.OutputReceived -= _webScrapeHandler;
+        _webScrapeHandler = null;
+        _webLaunchWatcher = null;
+        _webBrowserLaunched = false;
     }
 
     private void ClearDebugCurrentLine()

@@ -1,6 +1,9 @@
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NVS.Core.Interfaces;
+using NVS.Core.Models;
+using NVS.Services.Launch;
 
 namespace NVS.ViewModels;
 
@@ -16,6 +19,7 @@ public sealed partial class BuildRunViewModel : ObservableObject
 
     private bool _isBuilding;
     private bool _isRunning;
+    private bool _webAppRunning;
     private CancellationTokenSource? _buildCts;
     private System.Diagnostics.Process? _runningProcess;
 
@@ -25,6 +29,12 @@ public sealed partial class BuildRunViewModel : ObservableObject
         _solutionService = solutionService;
         _main = main;
     }
+
+    /// <summary>Resolves launch profiles for web projects. May be null in test contexts.</summary>
+    public ILaunchSettingsService? LaunchSettingsService { get; set; }
+
+    /// <summary>Used to open a browser when a web app starts. May be null in test contexts.</summary>
+    public IBrowserLauncher? BrowserLauncher { get; set; }
 
     public bool IsBuilding
     {
@@ -192,14 +202,21 @@ public sealed partial class BuildRunViewModel : ObservableObject
                 return;
             }
 
-            // Run — GUI apps (WinExe) launch as detached processes;
+            // Run — web apps run with the selected launch profile in the terminal
+            // and (optionally) launch a browser to the profile's applicationUrl.
+            // GUI apps (WinExe) launch as detached processes;
             // console apps run in the integrated terminal.
             _main.StatusMessage = "Running...";
 
+            var isWebProject = startup is not null && startup.IsWebProject;
             var isGuiApp = startup is not null
                 && string.Equals(startup.OutputType, "WinExe", StringComparison.OrdinalIgnoreCase);
 
-            if (isGuiApp)
+            if (isWebProject)
+            {
+                await RunWebProjectAsync(startup!);
+            }
+            else if (isGuiApp)
             {
                 var projectArg = $" --project \"{startup!.FilePath}\"";
                 var psi = new System.Diagnostics.ProcessStartInfo
@@ -243,12 +260,137 @@ public sealed partial class BuildRunViewModel : ObservableObject
         finally
         {
             IsRunning = false;
+            _webAppRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// Runs a web project in the integrated terminal using <c>dotnet run --launch-profile</c>.
+    /// Subscribes to the terminal's observable output for live "Now listening on:" URL
+    /// scraping (falling back to the profile's static applicationUrl after a delay).
+    /// Pressing Stop sends Ctrl+C to the terminal to kill the running dotnet process tree.
+    /// </summary>
+    private async Task RunWebProjectAsync(ProjectModel startup)
+    {
+        var profile = ResolveWebProfile(startup, out var hasProfiles);
+
+        if (profile is not null && !profile.IsProjectLaunch)
+        {
+            _main.StatusMessage =
+                $"Cannot run profile '{profile.Name}'. Only 'Project' launch profiles are supported. " +
+                $"IIS Express, Docker, and Executable profiles are not implemented yet.";
+            return;
+        }
+
+        var args = new StringBuilder("dotnet run --no-build");
+        args.Append($" --project \"{startup.FilePath}\"");
+        if (profile is not null && !string.IsNullOrWhiteSpace(profile.Name))
+            args.Append($" --launch-profile \"{profile.Name}\"");
+        args.Append(" --nologo");
+        var runCommand = args.ToString();
+
+        _main.Terminal.IsVisible = true;
+
+        var terminalTool = _main.FindTerminalTool();
+        if (terminalTool is null)
+        {
+            _main.StatusMessage = "Terminal not available — open a terminal first";
+            return;
+        }
+
+        // Subscribe the URL watcher to the terminal's observable output (now possible
+        // with the Porta.Pty-backed ProcessTerminal that exposes OutputObservable).
+        var watcher = new NVS.Services.Launch.ListeningUrlWatcher();
+        IDisposable? sub = null;
+        if (terminalTool.Terminal is not null && profile?.LaunchBrowser == true)
+        {
+            sub = terminalTool.Terminal.OutputObservable.Subscribe(
+                new NVS.Services.Terminal.ObserverAdapter<NVS.Core.Interfaces.TerminalOutputChunk>(
+                    chunk => watcher.Append(chunk.Text),
+                    () => { }));
+            watcher.UrlDetected += url => Avalonia.Threading.Dispatcher.UIThread.Post(
+                () => BrowserLauncher?.Launch(url));
+        }
+
+        await terminalTool.SendCommandToTerminalAsync(runCommand);
+        _webAppRunning = true;
+
+        if (profile is not null && profile.LaunchBrowser && BrowserLauncher is not null)
+        {
+            var url = WebLaunchHelper.ComposeBrowserUrl(profile);
+            if (!string.IsNullOrEmpty(url))
+                _ = LaunchBrowserDelayedAsync(url, TimeSpan.FromSeconds(6));
+        }
+
+        _main.StatusMessage = hasProfiles
+            ? $"Web app started (profile: {profile?.Name ?? "default"})" + (profile?.LaunchBrowser == true ? " — opening browser…" : "")
+            : "Web app started (no launch profiles)";
+
+        // Unsubscribe the watcher when this method's fire-and-forget completes
+        _ = Task.Run(async () =>
+        {
+            try { while (_webAppRunning) await Task.Delay(500); } catch { }
+            sub?.Dispose();
+        });
+    }
+
+    /// <summary>Resolves the launch profile selected by the user, or the project default.</summary>
+    private LaunchProfile? ResolveWebProfile(ProjectModel startup, out bool hasProfiles)
+    {
+        hasProfiles = false;
+        if (LaunchSettingsService is null)
+            return null;
+
+        var profiles = LaunchSettingsService.GetLaunchProfiles(startup);
+        if (profiles.Count == 0)
+            return null;
+        hasProfiles = true;
+
+        var selected = _main.SelectedLaunchProfile;
+        if (!string.IsNullOrWhiteSpace(selected))
+        {
+            var named = LaunchSettingsService.GetLaunchProfile(startup, selected);
+            if (named is not null) return named;
+        }
+
+        return LaunchSettingsService.GetDefaultLaunchProfile(startup);
+    }
+
+    /// <summary>
+    /// Fires off a browser launch after a delay without awaiting it, so the UI thread
+    /// is not blocked while the web server comes up.
+    /// </summary>
+    private async Task LaunchBrowserDelayedAsync(string url, TimeSpan delay)
+    {
+        try
+        {
+            await Task.Delay(delay);
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => BrowserLauncher?.Launch(url));
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Delayed browser launch failed for {Url}", url);
         }
     }
 
     [RelayCommand]
     private async Task StopExecution()
     {
+        // Web app running in terminal: send Ctrl+C to gracefully kill the dotnet process tree
+        if (_webAppRunning)
+        {
+            _webAppRunning = false;
+            var terminalTool = _main.FindTerminalTool();
+            if (terminalTool?.Terminal is not null && terminalTool.Terminal.IsRunning)
+            {
+                await terminalTool.Terminal.SendInputAsync("\x03"); // Ctrl+C
+                await Task.Delay(200);
+                await terminalTool.Terminal.KillAsync();
+            }
+            _main.StatusMessage = "Web app stopped";
+            return;
+        }
+
         // Kill a detached GUI process if running
         if (_runningProcess is not null && !_runningProcess.HasExited)
         {
