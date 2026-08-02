@@ -207,6 +207,31 @@ NVS is a code editor / IDE that:
 - Open a file: `nvs path/to/file.cs`
 - CLI argument takes precedence over session restore
 
+### 🤖 UI Automation (embedded TCP server)
+
+For UI testing, screenshots and scripting, NVS can start a loopback-only
+JSON-lines automation server:
+
+```bash
+nvs --automation-port 5050
+# or: set NVS_AUTOMATION_PORT=5050
+```
+
+Commands: `ping`, `state` (workspace/dock state), `tree` (visual-tree dump),
+`screenshot` (whole window or a control by name/automation id),
+`command` (invoke any MainViewModel command by name), `menu` (invoke a menu
+item by header path), `open-solution`, `activate` (open a panel/document).
+
+```bash
+python tools/automation_client.py screenshot --path shot.png --control DatabaseTreeView
+python tools/automation_client.py command --name ShowDatabaseExplorer
+python tools/automation_client.py menu --path "Database/Ask AI..."
+```
+
+The server binds to `127.0.0.1` only and is never started unless requested.
+Protocol: one JSON request per line → one JSON response per line — see
+`tools/automation_client.py` for the shape.
+
 ## Architecture
 
 ```

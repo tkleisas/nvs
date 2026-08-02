@@ -70,7 +70,7 @@ public partial class App : Application
                 RegisterLlmTools(mainViewModel);
 
                 // CLI argument takes precedence over session restore
-                var cliPath = desktop.Args?.FirstOrDefault(a => !a.StartsWith('-'));
+                var cliPath = FirstPositionalArg(desktop.Args);
                 if (cliPath is not null)
                 {
                     _ = OpenFromCliAsync(mainViewModel, cliPath);
@@ -91,9 +91,83 @@ public partial class App : Application
             }
             mainWindow.DataContext = mainViewModel;
             desktop.MainWindow = mainWindow;
+
+            StartAutomationServerIfRequested(desktop, mainWindow, mainViewModel);
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private Automation.AutomationServer? _automationServer;
+
+    /// <summary>
+    /// Starts the embedded UI-automation server when requested via
+    /// <c>--automation-port N</c> (or <c>--automation-port=N</c>) or the
+    /// <c>NVS_AUTOMATION_PORT</c> environment variable. Loopback only, never on by default.
+    /// </summary>
+    private void StartAutomationServerIfRequested(
+        IClassicDesktopStyleApplicationLifetime desktop,
+        MainWindow mainWindow,
+        MainViewModel? mainViewModel)
+    {
+        if (mainViewModel is null) return;
+
+        var port = ParseAutomationPort(desktop.Args);
+        if (port is null) return;
+
+        var host = new Automation.MainWindowAutomationHost(mainWindow, mainViewModel);
+        _automationServer = new Automation.AutomationServer(host, port.Value);
+        _automationServer.Start();
+
+        desktop.Exit += (_, _) => _automationServer?.Dispose();
+    }
+
+    internal static int? ParseAutomationPort(string[]? args)
+    {
+        var raw = Environment.GetEnvironmentVariable("NVS_AUTOMATION_PORT");
+
+        if (args is not null)
+        {
+            for (var i = 0; i < args.Length; i++)
+            {
+                if (args[i].StartsWith("--automation-port=", StringComparison.OrdinalIgnoreCase))
+                {
+                    raw = args[i]["--automation-port=".Length..];
+                }
+                else if (args[i].Equals("--automation-port", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    raw = args[i + 1];
+                }
+            }
+        }
+
+        return int.TryParse(raw, out var port) && port is > 0 and <= 65535 ? port : null;
+    }
+
+    /// <summary>
+    /// Returns the first positional CLI argument (the file/folder/solution to open),
+    /// skipping option flags and their values.
+    /// </summary>
+    internal static string? FirstPositionalArg(string[]? args)
+    {
+        if (args is null) return null;
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            var arg = args[i];
+            if (arg.Equals("--automation-port", StringComparison.OrdinalIgnoreCase))
+            {
+                i++; // skip the port value
+                continue;
+            }
+            if (arg.StartsWith('-'))
+            {
+                continue;
+            }
+            return arg;
+        }
+
+        return null;
     }
 
     private static async Task OpenFromCliAsync(MainViewModel vm, string path)
