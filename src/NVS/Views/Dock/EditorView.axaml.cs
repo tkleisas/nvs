@@ -24,7 +24,7 @@ public partial class EditorView : UserControl
         {
             editor.PropertyChanged += OnEditorPropertyChanged;
             editor.ConfirmCloseDirtyDocument = ConfirmCloseDirtyDocumentAsync;
-            UpdateSplitColumnWidth(editor.IsSplitActive);
+            UpdateSplitLayout(editor.IsSplitActive, editor.IsSplitVertical);
         }
     }
 
@@ -40,19 +40,65 @@ public partial class EditorView : UserControl
 
     private void OnEditorPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(EditorViewModel.IsSplitActive) && sender is EditorViewModel editor)
+        if (e.PropertyName is nameof(EditorViewModel.IsSplitActive) or nameof(EditorViewModel.IsSplitVertical)
+            && sender is EditorViewModel editor)
         {
-            UpdateSplitColumnWidth(editor.IsSplitActive);
+            UpdateSplitLayout(editor.IsSplitActive, editor.IsSplitVertical);
         }
     }
 
-    private void UpdateSplitColumnWidth(bool isSplitActive)
+    private void UpdateSplitLayout(bool isSplitActive, bool isVerticalDivider)
     {
-        if (this.Content is Grid grid && grid.ColumnDefinitions.Count >= 3)
+        if (Content is not Grid grid || grid.ColumnDefinitions.Count < 3 || grid.RowDefinitions.Count < 3)
         {
-            grid.ColumnDefinitions[2].Width = isSplitActive
-                ? new GridLength(1, GridUnitType.Star)
-                : new GridLength(0);
+            return;
+        }
+
+        var splitter = this.FindControl<GridSplitter>("Splitter");
+        var splitPane = this.FindControl<TabControl>("SplitPane");
+        if (splitter is null || splitPane is null)
+        {
+            return;
+        }
+
+        if (!isSplitActive)
+        {
+            grid.ColumnDefinitions[2].Width = new GridLength(0);
+            grid.RowDefinitions[2].Height = new GridLength(0);
+            return;
+        }
+
+        if (isVerticalDivider)
+        {
+            // Split Right: panes side by side, vertical divider line
+            grid.ColumnDefinitions[2].Width = new GridLength(1, GridUnitType.Star);
+            grid.RowDefinitions[2].Height = new GridLength(0);
+
+            Grid.SetColumn(splitPane, 2);
+            Grid.SetRow(splitPane, 0);
+            Grid.SetColumn(splitter, 1);
+            Grid.SetRow(splitter, 0);
+            splitter.Width = 4;
+            splitter.Height = double.NaN;
+            splitter.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
+            splitter.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch;
+            splitter.ResizeDirection = GridResizeDirection.Columns;
+        }
+        else
+        {
+            // Split Down: panes stacked, horizontal divider line
+            grid.ColumnDefinitions[2].Width = new GridLength(0);
+            grid.RowDefinitions[2].Height = new GridLength(1, GridUnitType.Star);
+
+            Grid.SetColumn(splitPane, 0);
+            Grid.SetRow(splitPane, 2);
+            Grid.SetColumn(splitter, 0);
+            Grid.SetRow(splitter, 1);
+            splitter.Width = double.NaN;
+            splitter.Height = 4;
+            splitter.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
+            splitter.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+            splitter.ResizeDirection = GridResizeDirection.Rows;
         }
     }
 

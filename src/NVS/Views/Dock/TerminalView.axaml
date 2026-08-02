@@ -10,6 +10,12 @@
     <ScrollViewer x:Name="TerminalScroller"
                   VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="Copy All" Click="OnCopyAllClick"/>
+                <MenuItem Header="Paste" InputGesture="Ctrl+V" Click="OnPasteClick"/>
+            </ContextMenu>
+        </ScrollViewer.ContextMenu>
         <vt:ProcessTerminalView x:Name="Terminal"
                                 Terminal="{Binding Terminal}"
                                 Focusable="True" />

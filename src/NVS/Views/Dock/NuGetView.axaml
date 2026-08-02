@@ -12,12 +12,12 @@
 
         <!-- Project selector -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="6,4">
-            <TextBlock Grid.Column="0" Text="Project:" Foreground="#808080" FontSize="11"
+            <TextBlock Grid.Column="0" Text="Project:" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="11"
                        VerticalAlignment="Center" Margin="0,0,6,0" />
             <ComboBox Grid.Column="1"
                       ItemsSource="{Binding ProjectPaths}"
                       SelectedItem="{Binding SelectedProjectPath}"
-                      Background="#2D2D2D" Foreground="{DynamicResource TextForegroundBrush}"
+                      Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
                       FontSize="10" Padding="4,2" />
         </Grid>
 
@@ -25,13 +25,13 @@
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="6,2" Spacing="2">
             <StackPanel.Styles>
                 <Style Selector="Button.tabBtn">
-                    <Setter Property="Background" Value="#3C3C3C"/>
-                    <Setter Property="Foreground" Value="#CCCCCC"/>
+                    <Setter Property="Background" Value="{DynamicResource MenuBackgroundBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextForegroundBrush}"/>
                     <Setter Property="FontSize" Value="11"/>
                     <Setter Property="Padding" Value="8,3"/>
                 </Style>
                 <Style Selector="Button.tabBtn.active">
-                    <Setter Property="Background" Value="#264F78"/>
+                    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                 </Style>
             </StackPanel.Styles>
             <Button Classes="tabBtn" Classes.active="{Binding IsBrowseTab}"
@@ -61,7 +61,7 @@
                     Command="{Binding SearchCommand}"
                     Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
             <CheckBox Grid.Column="2" IsChecked="{Binding IncludePrerelease}"
-                      Content="Pre" Foreground="#808080" FontSize="10"
+                      Content="Pre" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="10"
                       Margin="6,0,0,0" VerticalAlignment="Center" />
         </Grid>
 
@@ -69,7 +69,7 @@
         <Panel Grid.Row="3">
 
             <!-- Loading indicator -->
-            <TextBlock Text="Loading..." Foreground="#808080" FontSize="12"
+            <TextBlock Text="Loading..." Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12"
                        IsVisible="{Binding IsLoading}"
                        HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16" />
 
@@ -88,11 +88,11 @@
                     <DataTemplate x:DataType="nuget:NuGetPackageInfo">
                         <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
                             <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="{Binding Id}" FontSize="12" Foreground="#569CD6" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding Version}" FontSize="10" Foreground="#808080" VerticalAlignment="Center" />
-                                <TextBlock Text="✓" FontSize="10" Foreground="#4EC9B0" IsVisible="{Binding IsVerified}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Id}" FontSize="12" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Version}" FontSize="10" Foreground="{DynamicResource TextSecondaryForegroundBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text="✓" FontSize="10" Foreground="{DynamicResource AccentBrush}" IsVisible="{Binding IsVerified}" VerticalAlignment="Center" />
                             </StackPanel>
-                            <TextBlock Grid.Row="0" Grid.Column="1" FontSize="9" Foreground="#606060"
+                            <TextBlock Grid.Row="0" Grid.Column="1" FontSize="9" Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                        VerticalAlignment="Center">
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat="{}{0:N0} downloads">
@@ -101,7 +101,7 @@
                                 </TextBlock.Text>
                             </TextBlock>
                             <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
-                                       Text="{Binding Description}" FontSize="10" Foreground="#808080"
+                                       Text="{Binding Description}" FontSize="10" Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                        TextTrimming="CharacterEllipsis" MaxLines="2" TextWrapping="Wrap" />
                         </Grid>
                     </DataTemplate>
@@ -125,7 +125,7 @@
                                 <TextBlock Grid.Column="0" FontSize="12" Foreground="{DynamicResource TextForegroundBrush}">
                                     <Run Text="{Binding Id}" />
                                     <Run Text=" " />
-                                    <Run Text="{Binding RequestedVersion}" Foreground="#808080" />
+                                    <Run Text="{Binding RequestedVersion}" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
                                 </TextBlock>
                             </Grid>
                         </DataTemplate>
@@ -135,7 +135,7 @@
                     <Button Content="Refresh" Command="{Binding LoadInstalledCommand}"
                             FontSize="10" Padding="8,3" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                     <Button Content="Uninstall" Command="{Binding UninstallPackageCommand}"
-                            FontSize="10" Padding="8,3" Background="#5A1D1D" Foreground="#FF6B68" />
+                            FontSize="10" Padding="8,3" Background="{DynamicResource MenuBackgroundBrush}" Foreground="#FF6B68" />
                 </StackPanel>
             </Grid>
 
@@ -156,9 +156,9 @@
                                 <TextBlock Grid.Column="0" FontSize="12" Foreground="{DynamicResource TextForegroundBrush}">
                                     <Run Text="{Binding Id}" />
                                     <Run Text=" " />
-                                    <Run Text="{Binding ResolvedVersion}" Foreground="#808080" />
-                                    <Run Text=" → " Foreground="#4EC9B0" />
-                                    <Run Text="{Binding LatestVersion}" Foreground="#4EC9B0" />
+                                    <Run Text="{Binding ResolvedVersion}" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
+                                    <Run Text=" → " Foreground="{DynamicResource AccentBrush}" />
+                                    <Run Text="{Binding LatestVersion}" Foreground="{DynamicResource AccentBrush}" />
                                 </TextBlock>
                             </Grid>
                         </DataTemplate>
@@ -168,7 +168,7 @@
                     <Button Content="Check Updates" Command="{Binding LoadOutdatedCommand}"
                             FontSize="10" Padding="8,3" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                     <Button Content="Update Selected" Command="{Binding UpdatePackageCommand}"
-                            FontSize="10" Padding="8,3" Background="#264F78" Foreground="{DynamicResource TextForegroundBrush}" />
+                            FontSize="10" Padding="8,3" Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                 </StackPanel>
             </Grid>
         </Panel>
@@ -176,10 +176,10 @@
         <!-- Status bar + install button -->
         <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Background="{DynamicResource SidebarBackgroundBrush}" Margin="0">
             <TextBlock Grid.Column="0" Text="{Binding StatusText}"
-                       Foreground="#808080" FontSize="10" Padding="6,3" VerticalAlignment="Center" />
+                       Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="10" Padding="6,3" VerticalAlignment="Center" />
             <Button Grid.Column="1" Content="Install" Command="{Binding InstallPackageCommand}"
                     FontSize="10" Padding="10,3" Margin="0,2,4,2"
-                    Background="#264F78" Foreground="#FFFFFF"
+                    Background="{DynamicResource AccentBrush}" Foreground="#FFFFFF"
                     IsVisible="{Binding IsBrowseTab}" />
         </Grid>
     </Grid>

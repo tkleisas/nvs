@@ -11,35 +11,35 @@
 
     <UserControl.Styles>
         <Style Selector="Border.user-bubble">
-            <Setter Property="Background" Value="#264F78" />
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
             <Setter Property="CornerRadius" Value="8,8,2,8" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="Margin" Value="40,2,4,2" />
             <Setter Property="HorizontalAlignment" Value="Right" />
         </Style>
         <Style Selector="Border.assistant-bubble">
-            <Setter Property="Background" Value="#2D2D2D" />
+            <Setter Property="Background" Value="{DynamicResource MenuBackgroundBrush}" />
             <Setter Property="CornerRadius" Value="8,8,8,2" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="Margin" Value="4,2,40,2" />
             <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
         <Style Selector="Border.system-bubble">
-            <Setter Property="Background" Value="#3C2A1A" />
+            <Setter Property="Background" Value="{DynamicResource MenuBackgroundBrush}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="8,4" />
             <Setter Property="Margin" Value="20,2" />
             <Setter Property="HorizontalAlignment" Value="Center" />
         </Style>
         <Style Selector="Border.tool-bubble">
-            <Setter Property="Background" Value="#1A2F1A" />
+            <Setter Property="Background" Value="{DynamicResource MenuBackgroundBrush}" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="6,3" />
             <Setter Property="Margin" Value="20,1" />
             <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
         <Style Selector="Border.approval-bubble">
-            <Setter Property="Background" Value="#3A2E1A" />
+            <Setter Property="Background" Value="{DynamicResource MenuBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="#D19A66" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
@@ -56,7 +56,7 @@
             <ComboBox Grid.Column="0"
                       ItemsSource="{Binding Sessions}"
                       SelectedItem="{Binding CurrentSession}"
-                      Background="#2D2D2D"
+                      Background="{DynamicResource InputBackgroundBrush}"
                       Foreground="{DynamicResource TextForegroundBrush}"
                       FontSize="11"
                       MinWidth="100"
@@ -83,7 +83,7 @@
             <ComboBox Grid.Column="0"
                       ItemsSource="{Binding AvailableModelNames}"
                       SelectedItem="{Binding SelectedModelName}"
-                      Background="#2D2D2D"
+                      Background="{DynamicResource InputBackgroundBrush}"
                       Foreground="{DynamicResource TextForegroundBrush}"
                       FontSize="11"
                       MinWidth="80"
@@ -93,7 +93,7 @@
             <ComboBox Grid.Column="1"
                       ItemsSource="{Binding TaskModes}"
                       SelectedItem="{Binding SelectedTaskMode}"
-                      Background="#2D2D2D"
+                      Background="{DynamicResource InputBackgroundBrush}"
                       Foreground="{DynamicResource TextForegroundBrush}"
                       FontSize="11"
                       MinWidth="100"
@@ -121,7 +121,7 @@
                             <Border Classes="user-bubble"
                                     IsVisible="{Binding IsUser}">
                                 <SelectableTextBlock Text="{Binding Content}"
-                                                     Foreground="#E0E0E0"
+                                                     Foreground="{DynamicResource TextForegroundBrush}"
                                                      FontSize="12"
                                                      TextWrapping="Wrap" />
                             </Border>
@@ -134,7 +134,7 @@
                             <Border Classes="system-bubble"
                                     IsVisible="{Binding IsSystem}">
                                 <SelectableTextBlock Text="{Binding Content}"
-                                                     Foreground="#D19A66"
+                                                     Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                                      FontSize="11"
                                                      FontStyle="Italic"
                                                      TextWrapping="Wrap" />
@@ -143,7 +143,7 @@
                             <Border Classes="tool-bubble"
                                     IsVisible="{Binding IsTool}">
                                 <SelectableTextBlock Text="{Binding Content}"
-                                                     Foreground="#98C379"
+                                                     Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                                      FontSize="10"
                                                      FontFamily="Cascadia Code,Consolas,Courier New"
                                                      TextWrapping="Wrap" />
@@ -153,7 +153,7 @@
                                     IsVisible="{Binding IsApproval}">
                                 <StackPanel Spacing="6">
                                     <SelectableTextBlock Text="{Binding Content}"
-                                                         Foreground="#E5C07B"
+                                                         Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                                          FontSize="11"
                                                          FontFamily="Cascadia Code,Consolas,Courier New"
                                                          TextWrapping="Wrap" />
@@ -182,13 +182,13 @@
                       IsVisible="{Binding AttachedFiles.Count}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="x:String">
-                    <Border Background="#2D3748" CornerRadius="4" Padding="4,2" Margin="0,1">
+                    <Border Background="{DynamicResource MenuBackgroundBrush}" CornerRadius="4" Padding="4,2" Margin="0,1">
                         <Grid ColumnDefinitions="*,Auto">
                             <TextBlock Grid.Column="0" Text="{Binding}"
-                                       Foreground="#90CAF9" FontSize="10"
+                                       Foreground="{DynamicResource AccentBrush}" FontSize="10"
                                        TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             <Button Grid.Column="1" Content="✕" Padding="2,0"
-                                    Background="Transparent" Foreground="#808080" FontSize="9"
+                                    Background="Transparent" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="9"
                                     Command="{Binding $parent[UserControl].((dock:LlmChatToolViewModel)DataContext).RemoveAttachedFileCommand}"
                                     CommandParameter="{Binding}" />
                         </Grid>
@@ -201,13 +201,13 @@
         <Grid Grid.Row="4" ColumnDefinitions="Auto,Auto,*,Auto" Margin="6,2,6,2">
             <Button Grid.Column="0"
                     Content="📎" Padding="6,6"
-                    Background="Transparent" Foreground="#AAAAAA" FontSize="14"
+                    Background="Transparent" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="14"
                     Command="{Binding AttachFileCommand}"
                     VerticalAlignment="Bottom"
                     ToolTip.Tip="Attach file for context" />
             <Button Grid.Column="1"
                     Content="📷" Padding="6,6"
-                    Background="Transparent" Foreground="#AAAAAA" FontSize="14"
+                    Background="Transparent" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="14"
                     Command="{Binding AttachImageCommand}"
                     IsVisible="{Binding SupportsVision}"
                     VerticalAlignment="Bottom"
@@ -227,7 +227,7 @@
             <Button Grid.Column="3"
                     Content="➤"
                     Command="{Binding SendMessageCommand}"
-                    Background="#264F78"
+                    Background="{DynamicResource AccentBrush}"
                     Foreground="#FFFFFF"
                     FontSize="14"
                     Padding="10,6"
@@ -239,7 +239,7 @@
         <!-- Status bar -->
         <Border Grid.Row="5" Background="{DynamicResource SidebarBackgroundBrush}" Padding="6,3">
             <TextBlock Text="{Binding StatusText}"
-                       Foreground="#808080"
+                       Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                        FontSize="10" />
         </Border>
     </Grid>

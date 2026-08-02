@@ -24,6 +24,7 @@
                  ItemsSource="{Binding Problems}"
                  Background="Transparent"
                  Padding="0"
+                 DoubleTapped="OnProblemDoubleTapped"
                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
                  ScrollViewer.VerticalScrollBarVisibility="Auto">
             <ListBox.ItemTemplate>

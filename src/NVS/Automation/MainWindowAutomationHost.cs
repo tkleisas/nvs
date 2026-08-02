@@ -191,6 +191,15 @@ public sealed class MainWindowAutomationHost : IAutomationHost
 
     public async Task<object> ActivateAsync(string id)
     {
+        if (id.Equals("editor", StringComparison.OrdinalIgnoreCase))
+        {
+            return await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                _vm.ActivateEditorDocument();
+                return (object)new Dictionary<string, object?> { ["invoked"] = "editor" };
+            });
+        }
+
         var commandName = id.ToLowerInvariant() switch
         {
             "databaseexplorer" or "database" => "ShowDatabaseExplorer",
@@ -202,7 +211,7 @@ public sealed class MainWindowAutomationHost : IAutomationHost
             "search" => "ShowSearch",
             "git" or "sourcecontrol" => "ShowSourceControl",
             _ => throw new InvalidOperationException(
-                $"unknown panel '{id}' (known: DatabaseExplorer, ApiClient, Welcome, Help, CodeMetrics, Explorer, Search, Git)"),
+                $"unknown panel '{id}' (known: DatabaseExplorer, ApiClient, Welcome, Help, CodeMetrics, Explorer, Search, Git, Editor)"),
         };
 
         return await InvokeCommandAsync(commandName);

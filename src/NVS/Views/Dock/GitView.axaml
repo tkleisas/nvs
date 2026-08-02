@@ -13,7 +13,7 @@
 
             <!-- No Repository: Init Button -->
             <StackPanel IsVisible="{Binding Main.Git.IsNotRepository}" Spacing="8" Margin="0,12">
-                <TextBlock Text="No Git repository detected." Foreground="#999" FontSize="12"
+                <TextBlock Text="No Git repository detected." Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12"
                            HorizontalAlignment="Center" />
                 <Button Content="Initialize Repository"
                         Command="{Binding Main.Git.InitRepositoryCommand}"
@@ -116,7 +116,7 @@
                                         Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.UnstageFileCommand}"
                                         CommandParameter="{Binding}"
                                         ToolTip.Tip="Unstage"
-                                        Background="Transparent" Foreground="#999" />
+                                        Background="Transparent" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -155,7 +155,7 @@
                                         Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.StageFileCommand}"
                                         CommandParameter="{Binding}"
                                         ToolTip.Tip="Stage"
-                                        Background="Transparent" Foreground="#999" />
+                                        Background="Transparent" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -169,18 +169,18 @@
                             <DataTemplate x:DataType="core:StashEntry">
                                 <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,1">
                                     <TextBlock Grid.Column="0" Text="{Binding Message}"
-                                               FontSize="11" Foreground="#B5CEA8"
+                                               FontSize="11" Foreground="{DynamicResource AccentBrush}"
                                                TextTrimming="CharacterEllipsis" />
                                     <Button Grid.Column="1" Content="↩" FontSize="10" Padding="4,0"
                                             Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.StashApplyCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="Apply"
-                                            Background="Transparent" Foreground="#999" />
+                                            Background="Transparent" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
                                     <Button Grid.Column="2" Content="✕" FontSize="10" Padding="4,0"
                                             Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.StashDropCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="Drop"
-                                            Background="Transparent" Foreground="#999" />
+                                            Background="Transparent" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -196,13 +196,13 @@
                                 <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1">
                                     <TextBlock Grid.Column="0" Text="🏷" FontSize="10" Margin="0,0,4,0" />
                                     <TextBlock Grid.Column="1" Text="{Binding Name}"
-                                               FontSize="11" Foreground="#CE9178"
+                                               FontSize="11" Foreground="{DynamicResource TextForegroundBrush}"
                                                TextTrimming="CharacterEllipsis" />
                                     <Button Grid.Column="2" Content="✕" FontSize="10" Padding="4,0"
                                             Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.DeleteTagCommand}"
                                             CommandParameter="{Binding}"
                                             ToolTip.Tip="Delete Tag"
-                                            Background="Transparent" Foreground="#999" />
+                                            Background="Transparent" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -218,7 +218,7 @@
                                 <StackPanel Margin="0,2">
                                     <Grid ColumnDefinitions="Auto,*">
                                         <TextBlock Grid.Column="0" Text="{Binding Hash, Converter={x:Static dock:GitToolViewModel.ShortHashConverter}}"
-                                                   FontSize="10" Foreground="#569CD6" FontFamily="Consolas,monospace"
+                                                   FontSize="10" Foreground="{DynamicResource AccentBrush}" FontFamily="Consolas,monospace"
                                                    Margin="0,0,6,0" />
                                         <TextBlock Grid.Column="1" Text="{Binding Message}"
                                                    FontSize="11" Foreground="{DynamicResource TextForegroundBrush}"
@@ -235,7 +235,7 @@
                     </ItemsControl>
                     <Button Content="Load more..."
                             Command="{Binding Main.Git.LoadMoreHistoryCommand}"
-                            FontSize="11" Foreground="#569CD6" Padding="4,2"
+                            FontSize="11" Foreground="{DynamicResource AccentBrush}" Padding="4,2"
                             Background="Transparent"
                             HorizontalAlignment="Left"
                             Margin="0,4,0,0" />

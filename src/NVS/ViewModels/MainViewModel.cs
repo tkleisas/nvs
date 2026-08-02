@@ -133,6 +133,7 @@ public partial class MainViewModel : ObservableObject
         _terminalHost = terminalHost;
         SettingsService = settingsService;
         Editor = editor;
+        Editor.DiagnosticsReceived = (path, diagnostics) => FindProblemsTool()?.SetLspDiagnostics(path, diagnostics);
 
         Git = new GitViewModel(gitService, this);
         BuildRun = new BuildRunViewModel(buildService, solutionService, this);
@@ -189,7 +190,13 @@ public partial class MainViewModel : ObservableObject
     public bool IsWorkspaceOpen
     {
         get => _isWorkspaceOpen;
-        set => SetProperty(ref _isWorkspaceOpen, value);
+        set
+        {
+            if (SetProperty(ref _isWorkspaceOpen, value))
+            {
+                BuildRun?.NotifyWorkspaceStateChanged();
+            }
+        }
     }
 
     public string? WorkspacePath
@@ -599,6 +606,16 @@ public partial class MainViewModel : ObservableObject
     internal ProblemsToolViewModel? FindProblemsTool()
     {
         return FindToolInDock<ProblemsToolViewModel>();
+    }
+
+    /// <summary>Activates the Editor document tab (used when navigating to a file).</summary>
+    internal void ActivateEditorDocument()
+    {
+        var editor = FindToolInDock<EditorDocumentViewModel>();
+        if (editor is not null)
+        {
+            ActivateToolInDock(editor);
+        }
     }
 
     internal TerminalToolViewModel? FindTerminalTool()

@@ -68,14 +68,39 @@ public sealed partial class DebugViewModel : ObservableObject
     public bool IsDebugging
     {
         get => _isDebugging;
-        set => SetProperty(ref _isDebugging, value);
+        set
+        {
+            if (SetProperty(ref _isDebugging, value))
+            {
+                OnPropertyChanged(nameof(CanStartOrContinue));
+                OnPropertyChanged(nameof(CanPause));
+                OnPropertyChanged(nameof(CanStep));
+            }
+        }
     }
 
     public bool IsDebugPaused
     {
         get => _isDebugPaused;
-        set => SetProperty(ref _isDebugPaused, value);
+        set
+        {
+            if (SetProperty(ref _isDebugPaused, value))
+            {
+                OnPropertyChanged(nameof(CanStartOrContinue));
+                OnPropertyChanged(nameof(CanPause));
+                OnPropertyChanged(nameof(CanStep));
+            }
+        }
     }
+
+    /// <summary>Start Debugging is allowed when idle, and doubles as Continue when paused.</summary>
+    public bool CanStartOrContinue => !IsDebugging || IsDebugPaused;
+
+    /// <summary>Pause is only meaningful while the debuggee is running.</summary>
+    public bool CanPause => IsDebugging && !IsDebugPaused;
+
+    /// <summary>Step commands only work while stopped at a breakpoint/pause.</summary>
+    public bool CanStep => IsDebugging && IsDebugPaused;
 
     [RelayCommand]
     private async Task StartDebugging()

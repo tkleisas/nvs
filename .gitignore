@@ -68,3 +68,6 @@ ehthumbs.db
 
 # Local AI assistant instructions
 .github/copilot-instructions.md
+
+# NVS per-workspace runtime state (chat sessions, reports)
+.nvs/

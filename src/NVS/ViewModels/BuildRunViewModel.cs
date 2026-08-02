@@ -66,6 +66,14 @@ public sealed partial class BuildRunViewModel : ObservableObject
     public bool CanRun => !IsRunning && _main.IsWorkspaceOpen;
     public bool CanStop => IsRunning || IsBuilding;
 
+    /// <summary>Re-evaluates Can* properties when the workspace open state changes.</summary>
+    internal void NotifyWorkspaceStateChanged()
+    {
+        OnPropertyChanged(nameof(CanBuild));
+        OnPropertyChanged(nameof(CanRun));
+        OnPropertyChanged(nameof(CanStop));
+    }
+
     [RelayCommand]
     private async Task BuildSolution()
     {

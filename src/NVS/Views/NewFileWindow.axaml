@@ -17,7 +17,7 @@
         Background="{DynamicResource AppBackgroundBrush}"
         SystemDecorations="BorderOnly">
 
-    <Border BorderBrush="#3F3F46" BorderThickness="1">
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
         <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
 
             <!-- Header -->
@@ -29,19 +29,19 @@
 
             <!-- Template picker -->
             <Grid Grid.Row="1" Margin="20,12,20,0" RowDefinitions="Auto,120">
-                <TextBlock Grid.Row="0" Text="Choose a template:" Foreground="#888888" Margin="0,0,0,6" />
+                <TextBlock Grid.Row="0" Text="Choose a template:" Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="0,0,0,6" />
                 <ListBox Grid.Row="1"
                          ItemsSource="{Binding Templates}"
                          SelectedItem="{Binding SelectedTemplate}"
                          Background="{DynamicResource MenuBackgroundBrush}"
-                         BorderBrush="#3F3F46"
+                         BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="1">
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="m:FileTemplate">
                             <StackPanel Orientation="Horizontal" Margin="4,2" Spacing="8">
                                 <TextBlock Text="{Binding Icon}" FontSize="14" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Extension}" Foreground="#569CD6" FontSize="11" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Extension}" Foreground="{DynamicResource AccentBrush}" FontSize="11" VerticalAlignment="Center" />
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -50,8 +50,8 @@
 
             <!-- Preview -->
             <Grid Grid.Row="2" Margin="20,12,20,0" RowDefinitions="Auto,*">
-                <TextBlock Grid.Row="0" Text="Preview:" Foreground="#888888" Margin="0,0,0,6" />
-                <Border Grid.Row="1" Background="#1A1A1A" BorderBrush="#3F3F46" BorderThickness="1" Padding="8">
+                <TextBlock Grid.Row="0" Text="Preview:" Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="0,0,0,6" />
+                <Border Grid.Row="1" Background="{DynamicResource InputBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="8">
                     <ScrollViewer>
                         <TextBlock Text="{Binding Preview}"
                                    FontFamily="Cascadia Mono,Consolas,Menlo,monospace"
@@ -70,7 +70,7 @@
                 <TextBox Grid.Row="0" Grid.Column="1"
                          Text="{Binding FileName, Mode=TwoWay}"
                          Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
-                         BorderBrush="#3F3F46" Margin="0,0,0,8" />
+                         BorderBrush="{DynamicResource BorderBrush}" Margin="0,0,0,8" />
 
                 <!-- Namespace -->
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Namespace:"
@@ -78,7 +78,7 @@
                 <TextBox Grid.Row="1" Grid.Column="1"
                          Text="{Binding NamespaceName, Mode=TwoWay}"
                          Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
-                         BorderBrush="#3F3F46" Margin="0,0,0,8" />
+                         BorderBrush="{DynamicResource BorderBrush}" Margin="0,0,0,8" />
 
                 <!-- Error Message -->
                 <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
@@ -90,7 +90,7 @@
 
             <!-- Buttons -->
             <Border Grid.Row="4" Background="{DynamicResource SidebarBackgroundBrush}" Padding="20,10"
-                    BorderBrush="#3F3F46" BorderThickness="0,1,0,0">
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                     <Button Content="Create" Command="{Binding CreateFileCommand}"
                             MinWidth="90" HorizontalContentAlignment="Center"

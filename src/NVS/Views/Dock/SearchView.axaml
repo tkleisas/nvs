@@ -29,7 +29,7 @@
         </Grid>
         <Border Grid.Row="1" IsVisible="{Binding Main.Search.IsSearching}"
                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8">
-            <TextBlock Text="Searching..." Foreground="#808080" FontSize="12" />
+            <TextBlock Text="Searching..." Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12" />
         </Border>
         <ListBox Grid.Row="1"
                  ItemsSource="{Binding Main.Search.Results}"
@@ -46,10 +46,10 @@
                 <DataTemplate x:DataType="vm:FileSearchResult">
                     <StackPanel Spacing="0" Margin="0,1">
                         <TextBlock Text="{Binding Display}" FontSize="11"
-                                   Foreground="#569CD6"
+                                   Foreground="{DynamicResource AccentBrush}"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{Binding LineText}" FontSize="11"
-                                   Foreground="#808080"
+                                   Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                    TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                 </DataTemplate>

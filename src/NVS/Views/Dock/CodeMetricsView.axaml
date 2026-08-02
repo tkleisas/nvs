@@ -14,7 +14,7 @@
             <Button Content="📊 Analyze Workspace" Padding="8,4"
                     Command="{Binding AnalyzeProjectCommand}"
                     IsEnabled="{Binding !IsAnalyzing}"
-                    Background="#264F78" Foreground="{DynamicResource EditorForegroundBrush}" FontSize="11" />
+                    Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource EditorForegroundBrush}" FontSize="11" />
             <Button Content="📄 Analyze File" Padding="8,4"
                     Command="{Binding AnalyzeCurrentFileCommand}"
                     IsEnabled="{Binding !IsAnalyzing}"
@@ -41,14 +41,14 @@
                                        VerticalAlignment="Center" />
                         </StackPanel>
                         <TextBlock Grid.Column="1" Text="{Binding Detail}" FontSize="10"
-                                   Foreground="#808080" Margin="12,0,8,0"
+                                   Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="12,0,8,0"
                                    VerticalAlignment="Center" HorizontalAlignment="Right" />
                         <TextBlock Grid.Column="2" Text="{Binding MetricValue}" FontSize="10"
                                    FontWeight="SemiBold" VerticalAlignment="Center"
                                    Margin="0,0,4,0">
                             <TextBlock.Styles>
                                 <Style Selector="TextBlock">
-                                    <Setter Property="Foreground" Value="#808080" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryForegroundBrush}" />
                                 </Style>
                             </TextBlock.Styles>
                         </TextBlock>
@@ -61,7 +61,7 @@
         <Border Grid.Row="2" Background="{DynamicResource SidebarBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0" Padding="8,3">
             <TextBlock Text="{Binding StatusMessage}" FontSize="11"
-                       Foreground="#808080" />
+                       Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
         </Border>
     </Grid>
 </UserControl>

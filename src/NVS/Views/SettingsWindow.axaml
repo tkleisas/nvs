@@ -89,7 +89,7 @@
                     <StackPanel Spacing="12" IsVisible="{Binding IsTerminalVisible}">
                         <TextBlock Text="Terminal" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                         <TextBlock Text="Configure the integrated terminal appearance."
-                                   FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
                         <Separator Background="#3F3F46" />
 
                         <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4">
@@ -108,7 +108,7 @@
                     <StackPanel Spacing="12" IsVisible="{Binding IsLanguageServersVisible}">
                         <TextBlock Text="Language Servers" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                         <TextBlock Text="Configure open-source language servers for IntelliSense, diagnostics, and code navigation."
-                                   FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
                         <Separator Background="#3F3F46" />
 
                         <ItemsControl ItemsSource="{Binding LanguageServers}" Margin="0,0,0,32">
@@ -125,10 +125,10 @@
                                                 <TextBlock Text="{Binding StatusIcon}" FontSize="14" VerticalAlignment="Center"
                                                            Foreground="#4EC9B0" />
                                                 <TextBlock Text="{Binding LanguageDisplay}" FontSize="11"
-                                                           Foreground="#888888" VerticalAlignment="Center" />
+                                                           Foreground="{DynamicResource TextSecondaryForegroundBrush}" VerticalAlignment="Center" />
                                                 <CheckBox Content="Preferred" IsChecked="{Binding IsPreferred}"
                                                           IsVisible="{Binding HasAlternatives}"
-                                                          FontSize="11" Foreground="#DCDCAA"
+                                                          FontSize="11" Foreground="{DynamicResource TextForegroundBrush}"
                                                           VerticalAlignment="Center" Margin="8,0,0,0" />
                                             </StackPanel>
 
@@ -143,19 +143,19 @@
                                             <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                                         Orientation="Horizontal" Spacing="8" Margin="28,2,0,0">
                                                 <TextBlock Text="{Binding Definition.Description}" FontSize="11"
-                                                           Foreground="#888888" />
+                                                           Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
                                                 <TextBlock Text="|" Foreground="#555555" FontSize="11" />
                                                 <TextBlock Text="{Binding Definition.License}" FontSize="11"
-                                                           Foreground="#569CD6" />
+                                                           Foreground="{DynamicResource AccentBrush}" />
                                                 <TextBlock Text="|" Foreground="#555555" FontSize="11" />
                                                 <TextBlock Text="{Binding InstallMethodDisplay}" FontSize="11"
-                                                           Foreground="#888888" />
+                                                           Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
                                             </StackPanel>
 
                                             <!-- Row 2: Status text (during install) -->
                                             <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
                                                        Text="{Binding StatusText}" FontSize="11"
-                                                       Foreground="#DCDCAA" Margin="28,2,0,0"
+                                                       Foreground="{DynamicResource TextForegroundBrush}" Margin="28,2,0,0"
                                                        IsVisible="{Binding IsInstalling}" />
                                         </Grid>
                                     </Border>
@@ -168,7 +168,7 @@
                     <StackPanel Spacing="12" IsVisible="{Binding IsLlmVisible}">
                         <TextBlock Text="LLM / AI Assistance" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
                         <TextBlock Text="Configure a local or remote LLM endpoint for code completion and chat. Works with any OpenAI-compatible API (Ollama, LM Studio, OpenRouter, DeepSeek, llama.cpp, etc.)."
-                                   FontSize="12" Foreground="#888888" TextWrapping="Wrap" />
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
                         <Separator Background="#3F3F46" />
 
                         <!-- Connection -->
@@ -247,7 +247,7 @@
                                     Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
                         </StackPanel>
                         <TextBlock Text="Each model can override the endpoint, API key, and parameters above. Empty fields inherit from the global defaults."
-                                   FontSize="11" Foreground="#888888" TextWrapping="Wrap" />
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
 
                         <ItemsControl ItemsSource="{Binding LlmModels}" Margin="0,4,0,8">
                             <ItemsControl.ItemTemplate>
@@ -270,27 +270,27 @@
                                                           Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center"
                                                           ToolTip.Tip="Edit fields" />
                                                 <TextBlock Grid.Column="4" Text="{Binding ModelId}" FontSize="11"
-                                                           Foreground="#888888" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                                           Foreground="{DynamicResource TextSecondaryForegroundBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
                                             </Grid>
                                             <!-- Inline editing panel -->
                                             <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4,0,0"
                                                   IsVisible="{Binding IsEditing}">
-                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Model ID" FontSize="11" Foreground="#888888"
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Model ID" FontSize="11" Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                                            VerticalAlignment="Center" Margin="0,4,8,0" />
                                                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ModelId}" FontSize="11"
                                                          Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
                                                          Margin="0,4,0,0" />
-                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Host URL" FontSize="11" Foreground="#888888"
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Host URL" FontSize="11" Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                                            VerticalAlignment="Center" Margin="0,4,8,0" />
                                                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding HostUrl}" FontSize="11"
                                                          Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
                                                          Margin="0,4,0,0" ToolTip.Tip="Leave empty to use global Endpoint" />
-                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="API Key" FontSize="11" Foreground="#888888"
+                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="API Key" FontSize="11" Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                                            VerticalAlignment="Center" Margin="0,4,8,0" />
                                                 <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding AuthToken}" FontSize="11"
                                                          Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
                                                          Margin="0,4,0,0" ToolTip.Tip="Leave empty to use global API Key" />
-                                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Max Tokens" FontSize="11" Foreground="#888888"
+                                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Max Tokens" FontSize="11" Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                                            VerticalAlignment="Center" Margin="0,4,8,0" />
                                                 <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding MaxOutputTokens}" FontSize="11"
                                                                Minimum="1" Maximum="200000" Margin="0,4,0,0" />
@@ -324,8 +324,8 @@
                         </StackPanel>
 
                         <TextBlock Text="Profiles are defined in each web project's Properties/launchSettings.json."
-                                   FontSize="11" TextWrapping="Wrap" Foreground="#777777" />
-                        <TextBlock Text="No solution loaded." FontSize="12" Foreground="#777777"
+                                   FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
+                        <TextBlock Text="No solution loaded." FontSize="12" Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                    IsVisible="{Binding !Main.IsWorkspaceOpen}" />
                     </StackPanel>
 

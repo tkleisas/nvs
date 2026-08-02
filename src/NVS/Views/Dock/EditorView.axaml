@@ -19,6 +19,11 @@
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="0"/>
+        </Grid.RowDefinitions>
 
         <TabControl Grid.Column="0"
                     ItemsSource="{Binding Main.Editor.OpenDocuments}"
@@ -109,12 +114,12 @@
         </TabControl>
 
         <!-- Split Splitter -->
-        <GridSplitter Grid.Column="1" Width="4"
+        <GridSplitter x:Name="Splitter" Grid.Column="1" Width="4"
                       Background="{DynamicResource BorderBrush}"
                       IsVisible="{Binding Main.Editor.IsSplitActive}"/>
 
         <!-- Split Editor Pane -->
-        <TabControl Grid.Column="2"
+        <TabControl x:Name="SplitPane" Grid.Column="2"
                     ItemsSource="{Binding Main.Editor.OpenDocuments}"
                     SelectedIndex="{Binding Main.Editor.SplitTabIndex}"
                     Background="{DynamicResource ToolPanelBackgroundBrush}"

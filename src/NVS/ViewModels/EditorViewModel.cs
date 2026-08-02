@@ -249,7 +249,15 @@ public partial class EditorViewModel : INotifyPropertyChanged
             docVm.Diagnostics = diagnostics;
             NotifyDiagnosticCountsChanged();
         }
+
+        DiagnosticsReceived?.Invoke(filePath, diagnostics);
     }
+
+    /// <summary>
+    /// Optional sink notified whenever LSP diagnostics change for a file
+    /// (used to feed the Problems panel, including files that are not open).
+    /// </summary>
+    public Action<string, IReadOnlyList<Diagnostic>>? DiagnosticsReceived { get; set; }
 
     private static string LspUriToFilePath(string uri)
     {

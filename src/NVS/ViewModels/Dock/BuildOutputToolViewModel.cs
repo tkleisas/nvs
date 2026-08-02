@@ -14,11 +14,21 @@ public partial class BuildOutputToolViewModel : Tool
     public BuildOutputToolViewModel(MainViewModel main)
     {
         _main = main;
+        _main.BuildRun.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(BuildRunViewModel.IsBuilding))
+            {
+                OnPropertyChanged(nameof(IsBuilding));
+            }
+        };
         Id = "BuildOutput";
         Title = "🔨 Build";
         CanClose = false;
         CanPin = true;
     }
+
+    /// <summary>Whether a build is currently running (drives the busy indicator).</summary>
+    public bool IsBuilding => _main.BuildRun.IsBuilding;
 
     public void AppendOutput(string text, bool isError)
     {

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using NVS.Core.Interfaces;
 using NVS.ViewModels.Dock;
@@ -25,6 +26,13 @@ public partial class TerminalView : UserControl
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        if (e.Key == Key.V && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            _ = PasteClipboardAsync();
+            e.Handled = true;
+            return;
+        }
+
         if (DataContext is TerminalToolViewModel tool && tool.Terminal is { IsRunning: true } t)
         {
             var text = MapKey(e);
@@ -36,6 +44,41 @@ public partial class TerminalView : UserControl
             }
         }
         base.OnKeyDown(e);
+    }
+
+    private async Task PasteClipboardAsync()
+    {
+        if (DataContext is not TerminalToolViewModel tool || tool.Terminal is not { IsRunning: true } t)
+        {
+            return;
+        }
+
+        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+        var text = clipboard is null ? null : await clipboard.TryGetTextAsync();
+        if (!string.IsNullOrEmpty(text))
+        {
+            await t.SendInputAsync(text);
+        }
+    }
+
+    private async void OnPasteClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await PasteClipboardAsync();
+    }
+
+    private async void OnCopyAllClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var text = Terminal.GetAllText();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+        if (clipboard is not null)
+        {
+            await clipboard.SetTextAsync(text);
+        }
     }
 
     protected override void OnTextInput(TextInputEventArgs e)

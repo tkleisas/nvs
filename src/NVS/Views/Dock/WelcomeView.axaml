@@ -12,8 +12,8 @@
 
             <!-- Title -->
             <StackPanel Spacing="4">
-                <TextBlock Text="NVS" FontSize="36" FontWeight="Bold" Foreground="#569CD6" />
-                <TextBlock Text="No Vim Substitute" FontSize="16" Foreground="#808080" />
+                <TextBlock Text="NVS" FontSize="36" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
+                <TextBlock Text="No Vim Substitute" FontSize="16" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
             </StackPanel>
 
             <!-- Get Started section -->
@@ -22,22 +22,22 @@
                 <StackPanel Spacing="4">
                     <Button Content="📂  Open Folder..."
                             Command="{Binding Main.OpenFolderCommand}"
-                            Background="Transparent" Foreground="#569CD6"
+                            Background="Transparent" Foreground="{DynamicResource AccentBrush}"
                             Padding="4,4" HorizontalAlignment="Left"
                             FontSize="13" Cursor="Hand" />
                     <Button Content="📄  Open File..."
                             Command="{Binding Main.OpenFileCommand}"
-                            Background="Transparent" Foreground="#569CD6"
+                            Background="Transparent" Foreground="{DynamicResource AccentBrush}"
                             Padding="4,4" HorizontalAlignment="Left"
                             FontSize="13" Cursor="Hand" />
                     <Button Content="🗂️  Open Solution..."
                             Command="{Binding Main.OpenSolutionCommand}"
-                            Background="Transparent" Foreground="#569CD6"
+                            Background="Transparent" Foreground="{DynamicResource AccentBrush}"
                             Padding="4,4" HorizontalAlignment="Left"
                             FontSize="13" Cursor="Hand" />
                     <Button Content="✨  New File"
                             Command="{Binding Main.NewFileCommand}"
-                            Background="Transparent" Foreground="#569CD6"
+                            Background="Transparent" Foreground="{DynamicResource AccentBrush}"
                             Padding="4,4" HorizontalAlignment="Left"
                             FontSize="13" Cursor="Hand" />
                 </StackPanel>
@@ -48,22 +48,22 @@
                 <TextBlock Text="Essential Shortcuts" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource EditorForegroundBrush}" />
                 <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
                       Margin="0,4">
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+N" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="0" Grid.Column="1" Text="New file" Foreground="#808080" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+O" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Open file" Foreground="#808080" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Ctrl+S" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Save" Foreground="#808080" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl+Shift+B" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Build solution" Foreground="#808080" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="F5" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Start debugging" Foreground="#808080" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="5" Grid.Column="0" Text="F9" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="5" Grid.Column="1" Text="Toggle breakpoint" Foreground="#808080" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Ctrl+Space" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="6" Grid.Column="1" Text="Autocomplete" Foreground="#808080" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="7" Grid.Column="0" Text="Ctrl+`" Foreground="#CE9178" FontFamily="Consolas" FontSize="12" Padding="0,2" />
-                    <TextBlock Grid.Row="7" Grid.Column="1" Text="Toggle terminal" Foreground="#808080" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+N" Foreground="{DynamicResource TextForegroundBrush}" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="New file" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+O" Foreground="{DynamicResource TextForegroundBrush}" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Open file" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Ctrl+S" Foreground="{DynamicResource TextForegroundBrush}" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Save" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl+Shift+B" Foreground="{DynamicResource TextForegroundBrush}" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Build solution" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="F5" Foreground="{DynamicResource TextForegroundBrush}" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Start debugging" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="F9" Foreground="{DynamicResource TextForegroundBrush}" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="5" Grid.Column="1" Text="Toggle breakpoint" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Ctrl+Space" Foreground="{DynamicResource TextForegroundBrush}" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="6" Grid.Column="1" Text="Autocomplete" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="7" Grid.Column="0" Text="Ctrl+`" Foreground="{DynamicResource TextForegroundBrush}" FontFamily="Consolas" FontSize="12" Padding="0,2" />
+                    <TextBlock Grid.Row="7" Grid.Column="1" Text="Toggle terminal" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12" Padding="0,2" />
                 </Grid>
             </StackPanel>
 
@@ -73,7 +73,7 @@
                 <WrapPanel Orientation="Horizontal" Margin="0,4">
                     <WrapPanel.Styles>
                         <Style Selector="Border.feature">
-                            <Setter Property="Background" Value="#252526"/>
+                            <Setter Property="Background" Value="{DynamicResource MenuBackgroundBrush}"/>
                             <Setter Property="CornerRadius" Value="4"/>
                             <Setter Property="Padding" Value="12,8"/>
                             <Setter Property="Margin" Value="0,0,8,8"/>
@@ -83,58 +83,58 @@
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
                             <TextBlock Text="📝 Multi-language Editor" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
-                            <TextBlock Text="Syntax highlighting, LSP, autocomplete" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                            <TextBlock Text="Syntax highlighting, LSP, autocomplete" FontSize="10" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
                             <TextBlock Text="🔨 Build &amp; Run" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
-                            <TextBlock Text=".NET solutions, MSBuild integration" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                            <TextBlock Text=".NET solutions, MSBuild integration" FontSize="10" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
                             <TextBlock Text="🐛 Debugging" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
-                            <TextBlock Text="DAP protocol, breakpoints, variables" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                            <TextBlock Text="DAP protocol, breakpoints, variables" FontSize="10" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
                             <TextBlock Text="🔀 Git Integration" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
-                            <TextBlock Text="Stage, commit, diff, merge conflicts" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                            <TextBlock Text="Stage, commit, diff, merge conflicts" FontSize="10" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
                             <TextBlock Text="💬 AI Assistant" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
-                            <TextBlock Text="LLM chat, ghost-text completions, vision" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                            <TextBlock Text="LLM chat, ghost-text completions, vision" FontSize="10" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
                             <TextBlock Text="📦 NuGet Manager" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
-                            <TextBlock Text="Search, install, update packages" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                            <TextBlock Text="Search, install, update packages" FontSize="10" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
                             <TextBlock Text="🗄 Database Explorer" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
-                            <TextBlock Text="SQLite, PostgreSQL, SQL Server, Oracle" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                            <TextBlock Text="SQLite, PostgreSQL, SQL Server, Oracle" FontSize="10" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border Classes="feature">
                         <StackPanel Spacing="2">
                             <TextBlock Text="🌐 API Client" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
-                            <TextBlock Text="HTTP requests, collections, scripting" FontSize="10" Foreground="#808080" TextWrapping="Wrap" />
+                            <TextBlock Text="HTTP requests, collections, scripting" FontSize="10" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                 </WrapPanel>
             </StackPanel>
 
             <!-- Tip -->
-            <Border Background="#1A3A5C" CornerRadius="4" Padding="12,8">
+            <Border Background="{DynamicResource MenuBackgroundBrush}" CornerRadius="4" Padding="12,8">
                 <StackPanel Spacing="4">
-                    <TextBlock Text="💡 Tip" FontSize="12" FontWeight="SemiBold" Foreground="#569CD6" />
+                    <TextBlock Text="💡 Tip" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" />
                     <TextBlock Text="Press F1 to open the searchable Help panel with detailed guides for every feature."
                                FontSize="11" Foreground="{DynamicResource TextForegroundBrush}" TextWrapping="Wrap" />
                 </StackPanel>

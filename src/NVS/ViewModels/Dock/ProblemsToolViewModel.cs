@@ -10,6 +10,8 @@ namespace NVS.ViewModels.Dock;
 public partial class ProblemsToolViewModel : Tool
 {
     private readonly MainViewModel _main;
+    private readonly List<ProblemItem> _buildProblems = [];
+    private readonly Dictionary<string, List<ProblemItem>> _lspProblemsByFile = new(StringComparer.OrdinalIgnoreCase);
 
     public ObservableCollection<ProblemItem> Problems { get; } = [];
 
@@ -24,11 +26,11 @@ public partial class ProblemsToolViewModel : Tool
 
     public void SetProblems(IReadOnlyList<BuildError> errors, IReadOnlyList<BuildWarning> warnings)
     {
-        Problems.Clear();
+        _buildProblems.Clear();
 
         foreach (var error in errors)
         {
-            Problems.Add(new ProblemItem
+            _buildProblems.Add(new ProblemItem
             {
                 Severity = "Error",
                 SeverityIcon = "❌",
@@ -41,7 +43,7 @@ public partial class ProblemsToolViewModel : Tool
 
         foreach (var warning in warnings)
         {
-            Problems.Add(new ProblemItem
+            _buildProblems.Add(new ProblemItem
             {
                 Severity = "Warning",
                 SeverityIcon = "⚠️",
@@ -52,6 +54,55 @@ public partial class ProblemsToolViewModel : Tool
             });
         }
 
+        RebuildList();
+    }
+
+    /// <summary>
+    /// Merges live LSP diagnostics for one file into the panel. Entries for the file are
+    /// replaced on each call; an empty list clears them.
+    /// </summary>
+    public void SetLspDiagnostics(string filePath, IReadOnlyList<Diagnostic> diagnostics)
+    {
+        var items = diagnostics
+            .Where(d => d.Severity is DiagnosticSeverity.Error or DiagnosticSeverity.Warning)
+            .Select(d => new ProblemItem
+            {
+                Severity = d.Severity == DiagnosticSeverity.Error ? "Error" : "Warning",
+                SeverityIcon = d.Severity == DiagnosticSeverity.Error ? "❌" : "⚠️",
+                Message = d.Message,
+                FilePath = filePath,
+                Line = d.Range.Start.Line + 1,
+                Column = d.Range.Start.Column + 1
+            })
+            .ToList();
+
+        if (items.Count == 0)
+        {
+            _lspProblemsByFile.Remove(filePath);
+        }
+        else
+        {
+            _lspProblemsByFile[filePath] = items;
+        }
+
+        RebuildList();
+    }
+
+    private void RebuildList()
+    {
+        Problems.Clear();
+        foreach (var problem in _buildProblems)
+        {
+            Problems.Add(problem);
+        }
+        foreach (var fileProblems in _lspProblemsByFile.Values)
+        {
+            foreach (var problem in fileProblems)
+            {
+                Problems.Add(problem);
+            }
+        }
+
         Title = Problems.Count > 0
             ? $"⚠ Problems ({Problems.Count})"
             : "⚠ Problems";
@@ -60,6 +111,8 @@ public partial class ProblemsToolViewModel : Tool
     [RelayCommand]
     private void ClearProblems()
     {
+        _buildProblems.Clear();
+        _lspProblemsByFile.Clear();
         Problems.Clear();
         Title = "⚠ Problems";
     }
@@ -88,13 +141,23 @@ public partial class ProblemsToolViewModel : Tool
 
         try
         {
-            var editorService = _main.EditorService;
-            await editorService.OpenDocumentAsync(problem.FilePath);
+            await _main.EditorService.OpenDocumentAsync(problem.FilePath);
 
+            var editor = _main.Editor;
+            if (editor is null) return;
+
+            var docVm = editor.OpenDocuments.FirstOrDefault(d =>
+                string.Equals(d.Document.FilePath, problem.FilePath, StringComparison.OrdinalIgnoreCase));
+            if (docVm is null) return;
+
+            editor.ActiveDocument = docVm;
             if (problem.Line.HasValue)
             {
-                // EditorViewModel handles cursor positioning via event
+                docVm.CursorLine = problem.Line.Value;
+                docVm.CursorColumn = problem.Column ?? 1;
             }
+
+            _main.ActivateEditorDocument();
         }
         catch (Exception ex)
         {

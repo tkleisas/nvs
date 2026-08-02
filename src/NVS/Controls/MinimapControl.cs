@@ -16,14 +16,34 @@ public sealed class MinimapControl : Control
     private string[] _lines = [];
     private bool _isDragging;
 
-    private static readonly IBrush BackgroundBrush = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E));
-    private static readonly IBrush TextBrush = new SolidColorBrush(Color.FromArgb(120, 0xD4, 0xD4, 0xD4));
-    private static readonly IBrush KeywordBrush = new SolidColorBrush(Color.FromArgb(140, 0x56, 0x9C, 0xD6));
+    private static IBrush BackgroundBrush => ThemeBrush("MenuBackgroundBrush", Color.FromRgb(0x1E, 0x1E, 0x1E));
+    private static IBrush TextBrush => ThemedAlpha("TextForegroundBrush", 120, Color.FromArgb(120, 0xD4, 0xD4, 0xD4));
+    private static IBrush KeywordBrush => ThemedAlpha("AccentBrush", 140, Color.FromArgb(140, 0x56, 0x9C, 0xD6));
     private static readonly IBrush StringBrush = new SolidColorBrush(Color.FromArgb(140, 0xCE, 0x91, 0x78));
     private static readonly IBrush CommentBrush = new SolidColorBrush(Color.FromArgb(100, 0x6A, 0x99, 0x55));
-    private static readonly IBrush ViewportBrush = new SolidColorBrush(Color.FromArgb(30, 0xFF, 0xFF, 0xFF));
-    private static readonly IBrush ViewportBorderBrush = new SolidColorBrush(Color.FromArgb(60, 0xFF, 0xFF, 0xFF));
-    private static readonly IPen ViewportPen = new Pen(ViewportBorderBrush, 1);
+    private static IBrush ViewportBrush => ThemedAlpha("TextForegroundBrush", 30, Color.FromArgb(30, 0xFF, 0xFF, 0xFF));
+    private static IBrush ViewportBorderBrush => ThemedAlpha("TextForegroundBrush", 60, Color.FromArgb(60, 0xFF, 0xFF, 0xFF));
+    private static IPen ViewportPen => new Pen(ViewportBorderBrush, 1);
+
+    private static IBrush ThemeBrush(string key, Color fallback)
+    {
+        if (Avalonia.Application.Current?.Resources.TryGetValue(key, out var value) == true
+            && value is SolidColorBrush brush)
+        {
+            return brush;
+        }
+        return new SolidColorBrush(fallback);
+    }
+
+    private static IBrush ThemedAlpha(string key, byte alpha, Color fallback)
+    {
+        if (Avalonia.Application.Current?.Resources.TryGetValue(key, out var value) == true
+            && value is SolidColorBrush brush)
+        {
+            return new SolidColorBrush(Color.FromArgb(alpha, brush.Color.R, brush.Color.G, brush.Color.B));
+        }
+        return new SolidColorBrush(fallback);
+    }
 
     private const double LineHeight = 2.0;
     private const double CharWidth = 1.2;

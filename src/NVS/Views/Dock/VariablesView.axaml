@@ -28,7 +28,7 @@
                     <Grid ColumnDefinitions="*,*,Auto" Margin="2">
                         <TextBlock Grid.Column="0"
                                    Text="{Binding Name}"
-                                   Foreground="#9CDCFE"
+                                   Foreground="{DynamicResource AccentBrush}"
                                    FontFamily="Consolas,Courier New,monospace"
                                    FontSize="12"/>
                         <TextBlock Grid.Column="1"
@@ -39,7 +39,7 @@
                                    Margin="8,0,0,0"/>
                         <TextBlock Grid.Column="2"
                                    Text="{Binding Type}"
-                                   Foreground="#808080"
+                                   Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                    FontSize="11"
                                    Margin="8,0,0,0"/>
                     </Grid>
@@ -50,7 +50,7 @@
         <!-- Empty State -->
         <TextBlock Grid.Row="1"
                    Text="No variables available"
-                   Foreground="#808080"
+                   Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                    FontSize="12"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"

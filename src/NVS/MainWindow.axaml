@@ -178,17 +178,19 @@
                     <PathIcon Width="14" Height="14" Foreground="{DynamicResource TextForegroundBrush}"
                               Data="M 1,1 L 10,1 L 13,4 L 13,13 L 1,13 Z M 4,1 L 4,5 L 9,5 L 9,1 M 3,8 L 11,8 L 11,12 L 3,12 Z" />
                 </Button>
-                <Border Width="1" Background="#555" Margin="4,2" />
+                <Border Width="1" Background="{DynamicResource BorderBrush}" Margin="4,2" />
                 <Button Width="28" Height="28" ToolTip.Tip="Undo" Command="{Binding Editor.UndoCommand}">
                     <TextBlock Text="&#x21B6;" FontSize="14" Foreground="{DynamicResource TextForegroundBrush}" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Redo" Command="{Binding Editor.RedoCommand}">
                     <TextBlock Text="&#x21B7;" FontSize="14" Foreground="{DynamicResource TextForegroundBrush}" />
                 </Button>
-                <Border Width="1" Background="#555" Margin="4,2" />
+                <Border Width="1" Background="{DynamicResource BorderBrush}" Margin="4,2" />
                 <Button Width="28" Height="28" ToolTip.Tip="Build (Ctrl+Shift+B)"
-                        Command="{Binding BuildRun.BuildSolutionCommand}">
-                    <TextBlock Text="🔨" FontSize="14" />
+                        Command="{Binding BuildRun.BuildSolutionCommand}"
+                        IsEnabled="{Binding BuildRun.CanBuild}">
+                    <PathIcon Width="14" Height="14" Foreground="{DynamicResource TextForegroundBrush}"
+                              Data="M 1,9 L 6,9 L 6,13 L 1,13 Z M 7,5 L 10,5 L 10,13 L 7,13 Z M 11,1 L 14,1 L 14,13 L 11,13 Z" />
                 </Button>
                 <!-- Startup project selector -->
                 <ComboBox ItemsSource="{Binding ProjectNames}"
@@ -196,7 +198,7 @@
                           MinWidth="140" MaxWidth="250" Height="26"
                           VerticalAlignment="Center" Margin="4,0"
                           FontSize="11" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
-                          BorderBrush="#555" Padding="6,2"
+                          BorderBrush="{DynamicResource BorderBrush}" Padding="6,2"
                           IsVisible="{Binding IsWorkspaceOpen}"
                           ToolTip.Tip="Startup Project" />
                 <!-- Launch profile selector (web apps) -->
@@ -205,44 +207,67 @@
                           MinWidth="90" MaxWidth="180" Height="26"
                           VerticalAlignment="Center" Margin="4,0"
                           FontSize="11" Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
-                          BorderBrush="#555" Padding="6,2"
+                          BorderBrush="{DynamicResource BorderBrush}" Padding="6,2"
                           IsVisible="{Binding IsWorkspaceOpen}"
                           ToolTip.Tip="Launch Profile (web apps)" />
                 <Button Width="28" Height="28" ToolTip.Tip="Run Without Debugging (Ctrl+F5)"
-                        Command="{Binding BuildRun.RunProjectCommand}">
+                        Command="{Binding BuildRun.RunProjectCommand}"
+                        IsEnabled="{Binding BuildRun.CanRun}">
                     <PathIcon Width="14" Height="14" Foreground="#4EC9B0"
                               Data="M 3,1 L 13,7 L 3,13 Z" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Stop"
-                        Command="{Binding BuildRun.StopExecutionCommand}">
+                        Command="{Binding BuildRun.StopExecutionCommand}"
+                        IsEnabled="{Binding BuildRun.CanStop}">
                     <PathIcon Width="14" Height="14" Foreground="#F44747"
                               Data="M 2,2 L 12,2 L 12,12 L 2,12 Z" />
                 </Button>
-                <Border Width="1" Background="#555" Margin="4,2" />
-                <Button Width="28" Height="28" ToolTip.Tip="Start Debugging (F5)"
-                        Command="{Binding Debug.StartDebuggingCommand}">
-                    <PathIcon Width="14" Height="14" Foreground="#89D185"
-                              Data="M 3,1 L 13,7 L 3,13 Z" />
+                <Border Width="1" Background="{DynamicResource BorderBrush}" Margin="4,2" />
+                <Button Width="28" Height="28" ToolTip.Tip="Start Debugging / Continue (F5)"
+                        Command="{Binding Debug.StartDebuggingCommand}"
+                        IsEnabled="{Binding Debug.CanStartOrContinue}">
+                    <Grid>
+                        <PathIcon Width="14" Height="14" Foreground="#89D185"
+                                  Data="M 3,1 L 13,7 L 3,13 Z" />
+                        <PathIcon Width="5" Height="5" Foreground="#89D185" Margin="10,10,0,0"
+                                  HorizontalAlignment="Left" VerticalAlignment="Top"
+                                  Data="M 3,3 m -3,0 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0" />
+                    </Grid>
+                </Button>
+                <Button Width="28" Height="28" ToolTip.Tip="Pause"
+                        Command="{Binding Debug.DebugPauseCommand}"
+                        IsEnabled="{Binding Debug.CanPause}">
+                    <PathIcon Width="12" Height="12" Foreground="#75BEFF"
+                              Data="M 3,2 L 6,2 L 6,12 L 3,12 Z M 8,2 L 11,2 L 11,12 L 8,12 Z" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Step Over (F10)"
-                        Command="{Binding Debug.DebugStepOverCommand}">
+                        Command="{Binding Debug.DebugStepOverCommand}"
+                        IsEnabled="{Binding Debug.CanStep}">
                     <PathIcon Width="12" Height="12" Foreground="#75BEFF"
                               Data="M 1,6 L 4,6 L 4,3 L 8,3 L 8,6 L 11,6 L 6,11 Z" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Step Into (F11)"
-                        Command="{Binding Debug.DebugStepIntoCommand}">
+                        Command="{Binding Debug.DebugStepIntoCommand}"
+                        IsEnabled="{Binding Debug.CanStep}">
                     <PathIcon Width="12" Height="12" Foreground="#75BEFF"
                               Data="M 3,1 L 9,1 L 9,4 L 12,4 L 6,10 L 0,4 L 3,4 Z" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Step Out (Shift+F11)"
-                        Command="{Binding Debug.DebugStepOutCommand}">
+                        Command="{Binding Debug.DebugStepOutCommand}"
+                        IsEnabled="{Binding Debug.CanStep}">
                     <PathIcon Width="12" Height="12" Foreground="#75BEFF"
                               Data="M 3,10 L 9,10 L 9,7 L 12,7 L 6,1 L 0,7 L 3,7 Z" />
                 </Button>
                 <Button Width="28" Height="28" ToolTip.Tip="Stop Debugging (Shift+F5)"
-                        Command="{Binding Debug.StopDebuggingCommand}">
-                    <PathIcon Width="14" Height="14" Foreground="#F44747"
-                              Data="M 2,2 L 12,2 L 12,12 L 2,12 Z" />
+                        Command="{Binding Debug.StopDebuggingCommand}"
+                        IsEnabled="{Binding Debug.IsDebugging}">
+                    <Grid>
+                        <PathIcon Width="14" Height="14" Foreground="#F44747"
+                                  Data="M 2,2 L 12,2 L 12,12 L 2,12 Z" />
+                        <PathIcon Width="8" Height="8" Foreground="White"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Data="M 2,2 L 10,10 M 10,2 L 2,10" />
+                    </Grid>
                 </Button>
             </StackPanel>
         </Border>

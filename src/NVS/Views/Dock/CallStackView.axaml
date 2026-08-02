@@ -30,11 +30,11 @@
                                    TextTrimming="CharacterEllipsis"/>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
                             <TextBlock Text="{Binding Source}"
-                                       Foreground="#808080"
+                                       Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                        FontSize="11"
                                        TextTrimming="CharacterEllipsis"
                                        MaxWidth="200"/>
-                            <TextBlock Foreground="#569CD6" FontSize="11">
+                            <TextBlock Foreground="{DynamicResource AccentBrush}" FontSize="11">
                                 <TextBlock.Text>
                                     <MultiBinding StringFormat=":{0}">
                                         <Binding Path="Line"/>
@@ -50,7 +50,7 @@
         <!-- Empty State -->
         <TextBlock Grid.Row="1"
                    Text="No call stack available"
-                   Foreground="#808080"
+                   Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                    FontSize="12"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"

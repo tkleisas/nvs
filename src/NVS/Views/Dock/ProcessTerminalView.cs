@@ -79,6 +79,52 @@ public sealed class ProcessTerminalView : Control
         ClipToBounds = true;
     }
 
+    /// <summary>Returns the entire terminal contents (scrollback + visible grid) as plain text.</summary>
+    public string GetAllText()
+    {
+        var screen = VisualScreen;
+        if (screen is null)
+        {
+            return string.Empty;
+        }
+
+        var sb = new System.Text.StringBuilder();
+
+        foreach (var row in screen.ScrollbackSnapshot(int.MaxValue))
+        {
+            sb.AppendLine(RowToText(row, screen.Columns));
+        }
+
+        var snap = screen.Snapshot();
+        for (var r = 0; r < screen.Rows; r++)
+        {
+            sb.AppendLine(RowToText(new Span<Cell>(snap, r * screen.Columns, screen.Columns), screen.Columns));
+        }
+
+        return sb.ToString().TrimEnd('\r', '\n');
+    }
+
+    private static SolidColorBrush ThemeBrush(string key, Color fallback)
+    {
+        if (Avalonia.Application.Current?.Resources.TryGetValue(key, out var value) == true
+            && value is SolidColorBrush brush)
+        {
+            return brush;
+        }
+        return new SolidColorBrush(fallback);
+    }
+
+    private static string RowToText(ReadOnlySpan<Cell> row, int cols)
+    {
+        Span<char> chars = stackalloc char[cols];
+        for (var c = 0; c < cols; c++)
+        {
+            var ch = row[c].Char;
+            chars[c] = ch == '\0' ? ' ' : ch;
+        }
+        return new string(chars).TrimEnd();
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
@@ -248,9 +294,10 @@ public sealed class ProcessTerminalView : Control
         double pad = 2;
         double y = pad;
 
-        var dimFgBrush = new SolidColorBrush(Color.FromRgb(180, 180, 180));
-        var dimBgBrush = new SolidColorBrush(Color.FromRgb(40, 40, 40));
-        var normalFg = new SolidColorBrush(Color.FromRgb(212, 212, 212));
+        // Brushes follow the active theme (fall back to dark-theme values).
+        var dimFgBrush = ThemeBrush("TextSecondaryForegroundBrush", Color.FromRgb(180, 180, 180));
+        var dimBgBrush = ThemeBrush("MenuBackgroundBrush", Color.FromRgb(40, 40, 40));
+        var normalFg = ThemeBrush("TextForegroundBrush", Color.FromRgb(212, 212, 212));
 
         // Render scrollback lines (dimmed, oldest first)
         var scrollback = screen.ScrollbackSnapshot(int.MaxValue);

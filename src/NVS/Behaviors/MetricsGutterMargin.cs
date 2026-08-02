@@ -18,7 +18,18 @@ public sealed class MetricsGutterMargin : AbstractMargin
     private static readonly IBrush GoodBrush = new SolidColorBrush(Color.FromRgb(0x4E, 0xC9, 0xB0));
     private static readonly IBrush WarningBrush = new SolidColorBrush(Color.FromRgb(0xDC, 0xDC, 0xAA));
     private static readonly IBrush DangerBrush = new SolidColorBrush(Color.FromRgb(0xF4, 0x47, 0x47));
-    private static readonly IBrush BackgroundBrush = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E));
+
+    private static IBrush BackgroundBrush => ThemeBrush("MenuBackgroundBrush", Color.FromRgb(0x1E, 0x1E, 0x1E));
+
+    private static IBrush ThemeBrush(string key, Color fallback)
+    {
+        if (Avalonia.Application.Current?.Resources.TryGetValue(key, out var value) == true
+            && value is SolidColorBrush brush)
+        {
+            return brush;
+        }
+        return new SolidColorBrush(fallback);
+    }
 
     // Map of line number → cyclomatic complexity for method declarations
     private Dictionary<int, int> _methodComplexities = new();

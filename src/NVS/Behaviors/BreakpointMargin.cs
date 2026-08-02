@@ -20,6 +20,16 @@ public sealed class BreakpointMargin : AbstractMargin
     private static readonly IBrush UnverifiedBrush = new SolidColorBrush(Color.FromRgb(0x84, 0x84, 0x84));
     private static readonly IBrush HoverBrush = new SolidColorBrush(Color.FromArgb(0x60, 0xE5, 0x17, 0x00));
 
+    private static IBrush ThemeBrush(string key, Color fallback)
+    {
+        if (Avalonia.Application.Current?.Resources.TryGetValue(key, out var value) == true
+            && value is SolidColorBrush brush)
+        {
+            return brush;
+        }
+        return new SolidColorBrush(fallback);
+    }
+
     private HashSet<int> _breakpointLines = [];
     private HashSet<int> _verifiedLines = [];
     private int _hoverLine = -1;
@@ -54,9 +64,9 @@ public sealed class BreakpointMargin : AbstractMargin
         if (TextView is null || !TextView.VisualLinesValid)
             return;
 
-        // Dark background for gutter
+        // Theme-aware background for gutter (dark fallback)
         drawingContext.FillRectangle(
-            new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E)),
+            ThemeBrush("MenuBackgroundBrush", Color.FromRgb(0x1E, 0x1E, 0x1E)),
             new Rect(0, 0, Bounds.Width, Bounds.Height));
 
         foreach (var visualLine in TextView.VisualLines)

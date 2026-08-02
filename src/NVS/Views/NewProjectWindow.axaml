@@ -29,7 +29,7 @@
 
             <!-- Template List -->
             <Grid Grid.Row="1" Margin="20,12,20,0" RowDefinitions="Auto,*">
-                <TextBlock Grid.Row="0" Text="Choose a template:" Foreground="#888888" Margin="0,0,0,6" />
+                <TextBlock Grid.Row="0" Text="Choose a template:" Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="0,0,0,6" />
                 <ListBox Grid.Row="1"
                          ItemsSource="{Binding Templates}"
                          SelectedItem="{Binding SelectedTemplate}"
@@ -41,9 +41,9 @@
                             <Grid ColumnDefinitions="*,Auto" Margin="4,3">
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextForegroundBrush}" FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding Description}" Foreground="#888888" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Description}" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="11" TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
-                                <TextBlock Grid.Column="1" Text="{Binding DefaultLanguage}" Foreground="#569CD6" FontSize="11"
+                                <TextBlock Grid.Column="1" Text="{Binding DefaultLanguage}" Foreground="{DynamicResource AccentBrush}" FontSize="11"
                                            VerticalAlignment="Center" Margin="8,0,0,0" />
                             </Grid>
                         </DataTemplate>
