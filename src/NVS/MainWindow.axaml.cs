@@ -26,6 +26,15 @@ public partial class MainWindow : Window
         Opened += OnWindowOpened;
     }
 
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (DataContext is ViewModels.MainViewModel vm)
+        {
+            vm.OpenSettingsRequested += OnOpenSettingsRequested;
+        }
+    }
+
     public void ApplyWindowSettings(WindowSettings settings)
     {
         _restoreWidth = settings.Width > 0 ? settings.Width : 1200;
@@ -282,6 +291,16 @@ public partial class MainWindow : Window
     }
 
     private async void OnSettingsClick(object? sender, RoutedEventArgs e)
+    {
+        await ShowSettingsAsync();
+    }
+
+    private async void OnOpenSettingsRequested(object? sender, EventArgs e)
+    {
+        await ShowSettingsAsync();
+    }
+
+    private async Task ShowSettingsAsync()
     {
         var app = App.Current;
         if (app?.Services is null) return;

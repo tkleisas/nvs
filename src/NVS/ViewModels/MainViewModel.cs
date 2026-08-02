@@ -43,6 +43,12 @@ public partial class MainViewModel : ObservableObject
 
     public IStorageProvider? StorageProvider { get; set; }
 
+    /// <summary>Raised when a component requests the Settings window to be opened.</summary>
+    public event EventHandler? OpenSettingsRequested;
+
+    /// <summary>Asks the host window to open the Settings window.</summary>
+    public void RequestOpenSettings() => OpenSettingsRequested?.Invoke(this, EventArgs.Empty);
+
     public IRootDock? DockLayout
     {
         get => _dockLayout;
