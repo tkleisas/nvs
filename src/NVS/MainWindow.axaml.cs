@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Dock.Model.Controls;
 using Dock.Model.Core;
 using NVS.Core.Interfaces;
@@ -32,6 +33,7 @@ public partial class MainWindow : Window
         if (DataContext is ViewModels.MainViewModel vm)
         {
             vm.OpenSettingsRequested += OnOpenSettingsRequested;
+            vm.NewProjectRequested += (_, _) => OnNewProjectClick(this, new RoutedEventArgs());
         }
     }
 
@@ -288,6 +290,36 @@ public partial class MainWindow : Window
     {
         var about = new AboutWindow();
         await about.ShowDialog(this);
+    }
+
+    private void OnEditCut(object? sender, RoutedEventArgs e)
+    {
+        switch (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement())
+        {
+            case AvaloniaEdit.TextEditor editor: editor.Cut(); break;
+            case AvaloniaEdit.Editing.TextArea textArea: textArea.FindAncestorOfType<AvaloniaEdit.TextEditor>()?.Cut(); break;
+            case TextBox textBox: textBox.Cut(); break;
+        }
+    }
+
+    private void OnEditCopy(object? sender, RoutedEventArgs e)
+    {
+        switch (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement())
+        {
+            case AvaloniaEdit.TextEditor editor: editor.Copy(); break;
+            case AvaloniaEdit.Editing.TextArea textArea: textArea.FindAncestorOfType<AvaloniaEdit.TextEditor>()?.Copy(); break;
+            case TextBox textBox: textBox.Copy(); break;
+        }
+    }
+
+    private void OnEditPaste(object? sender, RoutedEventArgs e)
+    {
+        switch (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement())
+        {
+            case AvaloniaEdit.TextEditor editor: editor.Paste(); break;
+            case AvaloniaEdit.Editing.TextArea textArea: textArea.FindAncestorOfType<AvaloniaEdit.TextEditor>()?.Paste(); break;
+            case TextBox textBox: textBox.Paste(); break;
+        }
     }
 
     private async void OnSettingsClick(object? sender, RoutedEventArgs e)

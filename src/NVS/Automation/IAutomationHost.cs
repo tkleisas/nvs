@@ -19,11 +19,17 @@ public interface IAutomationHost
     /// <summary>Renders the main window (or a specific control by automation id/name) to a PNG file.</summary>
     Task<object> ScreenshotAsync(string path, string? controlId);
 
+    /// <summary>Renders a window found by (partial) title match to a PNG file.</summary>
+    Task<object> ScreenshotWindowAsync(string path, string title);
+
     /// <summary>Executes a named ICommand on the main view model (e.g. "ShowDatabaseExplorer").</summary>
     Task<object> InvokeCommandAsync(string name);
 
     /// <summary>Invokes a main-window menu item by header path (e.g. "Database/Ask AI...").</summary>
     Task<object> InvokeMenuAsync(string path);
+
+    /// <summary>Sets the text of a control (TextEditor or TextBox) found by automation id/name.</summary>
+    Task<object> SetTextAsync(string controlId, string text);
 
     /// <summary>Opens a solution file in the IDE.</summary>
     Task<object> OpenSolutionAsync(string path);

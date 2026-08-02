@@ -184,7 +184,7 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
           Ctrl+Shift+E      Explorer panel
           Ctrl+Shift+F      Search panel
           Ctrl+Shift+G      Source Control panel
-          Ctrl+Shift+O      Command palette
+          Ctrl+Shift+O      Open folder
           Ctrl+`            Terminal panel
 
         HELP

@@ -258,14 +258,15 @@
                                             <!-- Header row -->
                                             <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
                                                 <CheckBox Grid.Column="0" IsChecked="{Binding Enabled}" VerticalAlignment="Center" />
-                                                <Button Grid.Column="1" Content="?" Padding="6,2" FontSize="11"
+                                                <Button Grid.Column="1" Content="✕" Padding="6,2" FontSize="11"
                                                         Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
+                                                        ToolTip.Tip="Remove model"
                                                         Command="{Binding $parent[ItemsControl].((vm:SettingsViewModel)DataContext).RemoveLlmModelCommand}"
                                                         CommandParameter="{Binding}" />
                                                 <TextBox Grid.Column="2" Text="{Binding DisplayName}" Margin="8,0"
                                                          Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
                                                          FontSize="12" FontWeight="SemiBold" />
-                                                <CheckBox Grid.Column="3" IsChecked="{Binding IsEditing}" Content="?" FontSize="10"
+                                                <CheckBox Grid.Column="3" IsChecked="{Binding IsEditing}" Content="✎" FontSize="10"
                                                           Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center"
                                                           ToolTip.Tip="Edit fields" />
                                                 <TextBlock Grid.Column="4" Text="{Binding ModelId}" FontSize="11"

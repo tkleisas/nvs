@@ -23,8 +23,19 @@ public partial class EditorView : UserControl
         if (DataContext is EditorDocumentViewModel editorDocVm && editorDocVm.Main.Editor is { } editor)
         {
             editor.PropertyChanged += OnEditorPropertyChanged;
+            editor.ConfirmCloseDirtyDocument = ConfirmCloseDirtyDocumentAsync;
             UpdateSplitColumnWidth(editor.IsSplitActive);
         }
+    }
+
+    private async Task<DirtyCloseChoice> ConfirmCloseDirtyDocumentAsync(DocumentViewModel docVm)
+    {
+        if (TopLevel.GetTopLevel(this) is not Window owner)
+        {
+            return DirtyCloseChoice.Cancel;
+        }
+
+        return await UnsavedChangesDialog.ShowAsync(owner, docVm.Document.Name);
     }
 
     private void OnEditorPropertyChanged(object? sender, PropertyChangedEventArgs e)

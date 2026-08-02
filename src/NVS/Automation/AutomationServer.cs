@@ -139,13 +139,20 @@ public sealed class AutomationServer : IDisposable
             case "screenshot":
                 var path = GetString(args, "path") ?? throw new InvalidOperationException("screenshot requires args.path");
                 var control = GetString(args, "control");
-                return await _host.ScreenshotAsync(path, control).ConfigureAwait(false);
+                var windowTitle = GetString(args, "window");
+                return windowTitle is not null
+                    ? await _host.ScreenshotWindowAsync(path, windowTitle).ConfigureAwait(false)
+                    : await _host.ScreenshotAsync(path, control).ConfigureAwait(false);
             case "command":
                 var name = GetString(args, "name") ?? throw new InvalidOperationException("command requires args.name");
                 return await _host.InvokeCommandAsync(name).ConfigureAwait(false);
             case "menu":
                 var menuPath = GetString(args, "path") ?? throw new InvalidOperationException("menu requires args.path");
                 return await _host.InvokeMenuAsync(menuPath).ConfigureAwait(false);
+            case "set-text":
+                var controlId = GetString(args, "control") ?? throw new InvalidOperationException("set-text requires args.control");
+                var text = GetString(args, "text") ?? throw new InvalidOperationException("set-text requires args.text");
+                return await _host.SetTextAsync(controlId, text).ConfigureAwait(false);
             case "open-solution":
                 var slnPath = GetString(args, "path") ?? throw new InvalidOperationException("open-solution requires args.path");
                 return await _host.OpenSolutionAsync(slnPath).ConfigureAwait(false);
@@ -154,7 +161,7 @@ public sealed class AutomationServer : IDisposable
                 return await _host.ActivateAsync(id).ConfigureAwait(false);
             default:
                 throw new InvalidOperationException(
-                    $"unknown cmd '{cmd}' (expected: ping, state, tree, screenshot, command, menu, open-solution, activate)");
+                    $"unknown cmd '{cmd}' (expected: ping, state, tree, screenshot, command, menu, open-solution, activate, set-text)");
         }
     }
 

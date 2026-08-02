@@ -210,7 +210,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
     public void CloseFile()
     {
         if (ActiveDocument == null) return;
-        CloseDocument(ActiveDocument);
+        _ = CloseTabAsync(ActiveDocument);
     }
 
     [RelayCommand]
@@ -230,6 +230,9 @@ public partial class EditorViewModel : INotifyPropertyChanged
 
     [RelayCommand]
     public void Find() => ActiveDocument?.OpenSearchCommand?.Execute(null);
+
+    [RelayCommand]
+    public void Replace() => ActiveDocument?.OpenReplaceCommand?.Execute(null);
 
     /// <summary>
     /// Updates diagnostics for the document matching the given URI.
@@ -300,11 +303,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
     private void OnDocumentOpened(object? sender, Document document)
     {
         var docVm = new DocumentViewModel(document);
-        docVm.CloseTabCommand = new RelayCommand(() =>
-        {
-            CloseDocument(docVm);
-            _ = _editorService.CloseDocumentAsync(docVm.Document);
-        });
+        docVm.CloseTabCommand = new RelayCommand(() => _ = CloseTabAsync(docVm));
         WireLspCommands(docVm);
         WireBreakpointCommand(docVm);
         OpenDocuments.Add(docVm);
@@ -316,6 +315,32 @@ public partial class EditorViewModel : INotifyPropertyChanged
 
         // Analyze code metrics for C# files
         _ = AnalyzeFileMetricsAsync(docVm);
+    }
+
+    /// <summary>
+    /// Host-provided confirmation shown before closing a dirty document tab.
+    /// When null (tests, headless), dirty tabs close without asking.
+    /// </summary>
+    public Func<DocumentViewModel, Task<DirtyCloseChoice>>? ConfirmCloseDirtyDocument { get; set; }
+
+    private async Task CloseTabAsync(DocumentViewModel docVm)
+    {
+        if (docVm.IsDirty && ConfirmCloseDirtyDocument is not null)
+        {
+            var choice = await ConfirmCloseDirtyDocument(docVm);
+            if (choice == DirtyCloseChoice.Cancel)
+            {
+                return;
+            }
+
+            if (choice == DirtyCloseChoice.Save)
+            {
+                await SaveDocumentAsync(docVm);
+            }
+        }
+
+        CloseDocument(docVm);
+        _ = _editorService.CloseDocumentAsync(docVm.Document);
     }
 
     private void OnDocumentClosed(object? sender, Document document)
@@ -602,6 +627,14 @@ public partial class EditorViewModel : INotifyPropertyChanged
     }
 }
 
+/// <summary>User choice when asked about closing a dirty document tab.</summary>
+public enum DirtyCloseChoice
+{
+    Save,
+    Discard,
+    Cancel,
+}
+
 public class DocumentViewModel : INotifyPropertyChanged
 {
     public Document Document { get; }
@@ -613,6 +646,7 @@ public class DocumentViewModel : INotifyPropertyChanged
     private ICommand? _undoCommand;
     private ICommand? _redoCommand;
     private ICommand? _openSearchCommand;
+    private ICommand? _openReplaceCommand;
     private ICommand? _goToDefinitionCommand;
     private ICommand? _requestCompletionCommand;
     private IReadOnlyList<Diagnostic> _diagnostics = [];
@@ -748,6 +782,16 @@ public class DocumentViewModel : INotifyPropertyChanged
         set
         {
             _openSearchCommand = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public ICommand? OpenReplaceCommand
+    {
+        get => _openReplaceCommand;
+        set
+        {
+            _openReplaceCommand = value;
             OnPropertyChanged();
         }
     }

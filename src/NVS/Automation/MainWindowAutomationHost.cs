@@ -91,30 +91,46 @@ public sealed class MainWindowAutomationHost : IAutomationHost
                 target = found;
             }
 
-            var width = (int)Math.Ceiling(target.Bounds.Width);
-            var height = (int)Math.Ceiling(target.Bounds.Height);
-            if (width <= 0 || height <= 0)
-            {
-                throw new InvalidOperationException($"target has empty bounds ({width}x{height}) — is it visible?");
-            }
-
-            var directory = Path.GetDirectoryName(Path.GetFullPath(path));
-            if (!string.IsNullOrEmpty(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-
-            var bitmap = new RenderTargetBitmap(new PixelSize(width, height));
-            bitmap.Render(target);
-            bitmap.Save(path);
-
-            return (object)new Dictionary<string, object?>
-            {
-                ["path"] = Path.GetFullPath(path),
-                ["width"] = width,
-                ["height"] = height,
-            };
+            return RenderToPng(target, path);
         });
+
+    public async Task<object> ScreenshotWindowAsync(string path, string title) =>
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var target = GetWindows().FirstOrDefault(w =>
+                    w.Title?.Contains(title, StringComparison.OrdinalIgnoreCase) == true)
+                ?? throw new InvalidOperationException(
+                    $"no window with title containing '{title}' (open: {string.Join(", ", GetWindows().Select(w => w.Title))})");
+
+            return RenderToPng(target, path);
+        });
+
+    private static object RenderToPng(Visual target, string path)
+    {
+        var width = (int)Math.Ceiling(target.Bounds.Width);
+        var height = (int)Math.Ceiling(target.Bounds.Height);
+        if (width <= 0 || height <= 0)
+        {
+            throw new InvalidOperationException($"target has empty bounds ({width}x{height}) — is it visible?");
+        }
+
+        var directory = Path.GetDirectoryName(Path.GetFullPath(path));
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var bitmap = new RenderTargetBitmap(new PixelSize(width, height));
+        bitmap.Render(target);
+        bitmap.Save(path);
+
+        return new Dictionary<string, object?>
+        {
+            ["path"] = Path.GetFullPath(path),
+            ["width"] = width,
+            ["height"] = height,
+        };
+    }
 
     public async Task<object> InvokeCommandAsync(string name) =>
         await Dispatcher.UIThread.InvokeAsync(() =>
@@ -138,6 +154,28 @@ public sealed class MainWindowAutomationHost : IAutomationHost
             // Raising Click drives both Command-bound and Click-handler menu items.
             item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent, item));
             return (object)new Dictionary<string, object?> { ["invoked"] = path };
+        });
+
+    public async Task<object> SetTextAsync(string controlId, string text) =>
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var control = FindControl(controlId)
+                ?? throw new InvalidOperationException($"no control with automation id or name '{controlId}'");
+
+            switch (control)
+            {
+                case AvaloniaEdit.TextEditor editor:
+                    editor.Document.Text = text;
+                    break;
+                case TextBox textBox:
+                    textBox.Text = text;
+                    break;
+                default:
+                    throw new InvalidOperationException(
+                        $"control '{controlId}' is a {control.GetType().Name}; expected a TextEditor or TextBox");
+            }
+
+            return (object)new Dictionary<string, object?> { ["control"] = controlId, ["length"] = text.Length };
         });
 
     public async Task<object> OpenSolutionAsync(string path) =>

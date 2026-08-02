@@ -8,32 +8,63 @@ internal static class CommandInvoker
 {
     /// <summary>
     /// Invokes the ICommand stored in property <paramref name="name"/> (or
-    /// <c>{name}Command</c>) on <paramref name="target"/>. Returns false with a
-    /// reason when the property does not exist or CanExecute is false.
+    /// <c>{name}Command</c>) on <paramref name="target"/>. Supports dotted paths
+    /// (e.g. "Editor.CloseFileCommand") by walking intermediate properties.
+    /// Returns false with a reason when the path does not resolve or CanExecute is false.
     /// </summary>
     public static bool TryInvoke(object target, string name, out string message)
     {
         ArgumentNullException.ThrowIfNull(target);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        var type = target.GetType();
-        var property = type.GetProperty(name) ?? type.GetProperty(name + "Command");
+        var segments = name.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var current = target;
 
-        if (property?.GetValue(target) is not ICommand command)
+        for (var i = 0; i < segments.Length; i++)
         {
-            message = $"no command property '{name}' or '{name}Command' on {type.Name}";
-            return false;
+            var type = current.GetType();
+            var isLast = i == segments.Length - 1;
+            var property = type.GetProperty(segments[i])
+                ?? (isLast ? type.GetProperty(segments[i] + "Command") : null);
+
+            if (property is null)
+            {
+                message = $"no property '{segments[i]}'" + (isLast ? $" or '{segments[i]}Command'" : "") + $" on {type.Name}";
+                return false;
+            }
+
+            var value = property.GetValue(current);
+
+            if (!isLast)
+            {
+                if (value is null)
+                {
+                    message = $"property '{segments[i]}' on {type.Name} is null";
+                    return false;
+                }
+                current = value;
+                continue;
+            }
+
+            if (value is not ICommand command)
+            {
+                message = $"property '{segments[i]}' on {type.Name} is not an ICommand";
+                return false;
+            }
+
+            if (!command.CanExecute(null))
+            {
+                message = $"{property.Name}.CanExecute returned false";
+                return false;
+            }
+
+            command.Execute(null);
+            message = $"executed {property.Name}";
+            return true;
         }
 
-        if (!command.CanExecute(null))
-        {
-            message = $"{property.Name}.CanExecute returned false";
-            return false;
-        }
-
-        command.Execute(null);
-        message = $"executed {property.Name}";
-        return true;
+        message = "empty command path";
+        return false;
     }
 }
 

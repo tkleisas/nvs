@@ -67,6 +67,9 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     public static readonly StyledProperty<ICommand?> OpenSearchCommandProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, ICommand?>(nameof(OpenSearchCommand));
 
+    public static readonly StyledProperty<ICommand?> OpenReplaceCommandProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, ICommand?>(nameof(OpenReplaceCommand));
+
     public static readonly StyledProperty<IReadOnlyList<Diagnostic>?> DiagnosticsProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, IReadOnlyList<Diagnostic>?>(nameof(Diagnostics));
 
@@ -137,6 +140,12 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     {
         get => GetValue(OpenSearchCommandProperty);
         set => SetValue(OpenSearchCommandProperty, value);
+    }
+
+    public ICommand? OpenReplaceCommand
+    {
+        get => GetValue(OpenReplaceCommandProperty);
+        set => SetValue(OpenReplaceCommandProperty, value);
     }
 
     public IReadOnlyList<Diagnostic>? Diagnostics
@@ -294,6 +303,14 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
                 () => _textEditor?.Document.UndoStack.CanRedo ?? false);
             OpenSearchCommand = new RelayCommand(
                 () => _searchPanel?.Open());
+            OpenReplaceCommand = new RelayCommand(() =>
+            {
+                if (_searchPanel != null)
+                {
+                    _searchPanel.IsReplaceMode = true;
+                    _searchPanel.Open();
+                }
+            });
         }
     }
 

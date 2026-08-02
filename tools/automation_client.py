@@ -55,6 +55,8 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=5050, help="automation port (default 5050)")
     parser.add_argument("--path", help="file path (screenshot output, solution path, or menu path)")
     parser.add_argument("--control", help="automation id or control name for --cmd screenshot")
+    parser.add_argument("--window", help="window title (substring) to screenshot instead of the main window")
+    parser.add_argument("--text", help="text for --cmd set-text")
     parser.add_argument("--name", help="command name for --cmd command")
     parser.add_argument("--id", help="panel id for --cmd activate")
     parser.add_argument("--max-depth", type=int, help="tree max depth")
@@ -62,7 +64,7 @@ def main() -> int:
     ns = parser.parse_args()
 
     args: dict = {}
-    for key in ("path", "control", "name", "id"):
+    for key in ("path", "control", "window", "text", "name", "id"):
         value = getattr(ns, key)
         if value is not None:
             args[key] = value

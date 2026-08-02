@@ -49,6 +49,13 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Asks the host window to open the Settings window.</summary>
     public void RequestOpenSettings() => OpenSettingsRequested?.Invoke(this, EventArgs.Empty);
 
+    /// <summary>Raised when a component requests the New Project dialog to be opened.</summary>
+    public event EventHandler? NewProjectRequested;
+
+    /// <summary>Asks the host window to open the New Project dialog.</summary>
+    [RelayCommand]
+    private void NewProject() => NewProjectRequested?.Invoke(this, EventArgs.Empty);
+
     public IRootDock? DockLayout
     {
         get => _dockLayout;

@@ -46,6 +46,7 @@
                 <DataTemplate DataType="vm:DocumentViewModel">
                     <Grid ColumnDefinitions="*,Auto">
                     <AvaloniaEdit:TextEditor
+                        Name="CodeEditor"
                         Grid.Column="0"
                         behaviors:TextEditorSyntaxHighlighting.Language="{Binding Language}"
                         ShowLineNumbers="True"
@@ -86,6 +87,7 @@
                                 UndoCommand="{Binding UndoCommand, Mode=OneWayToSource}"
                                 RedoCommand="{Binding RedoCommand, Mode=OneWayToSource}"
                                 OpenSearchCommand="{Binding OpenSearchCommand, Mode=OneWayToSource}"
+                                OpenReplaceCommand="{Binding OpenReplaceCommand, Mode=OneWayToSource}"
                                 Diagnostics="{Binding Diagnostics}"
                                 GoToDefinitionCommand="{Binding GoToDefinitionCommand}"
                                 RequestCompletionCommand="{Binding RequestCompletionCommand}"
@@ -129,6 +131,7 @@
                 <DataTemplate DataType="vm:DocumentViewModel">
                     <Grid ColumnDefinitions="*,Auto">
                     <AvaloniaEdit:TextEditor
+                        Name="CodeEditorSplit"
                         Grid.Column="0"
                         behaviors:TextEditorSyntaxHighlighting.Language="{Binding Language}"
                         ShowLineNumbers="True"

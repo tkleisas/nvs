@@ -114,7 +114,7 @@ public sealed partial class LlmChatToolViewModel : Tool
 {
         Main = main;
         Id = "LlmChat";
-        Title = "?? Chat";
+        Title = "💬 Chat";
         CanClose = true;
         CanPin = true;
         RefreshModelList();
