@@ -107,6 +107,17 @@ public sealed class RoslynCompletionService : IRoslynCompletionService
 
         foreach (var projectPath in projectPaths)
         {
+            // Projects referenced by other solution projects are already in the
+            // workspace (MSBuildWorkspace loads ProjectReferences transitively);
+            // opening them again would fail with "already part of the workspace".
+            if (_workspace!.CurrentSolution.Projects.Any(p =>
+                    string.Equals(p.FilePath, projectPath, StringComparison.OrdinalIgnoreCase)))
+            {
+                _solution = _workspace.CurrentSolution;
+                Logger.Debug("[Roslyn] Already loaded (transitively): {Path}", projectPath);
+                continue;
+            }
+
             try
             {
                 var project = await _workspace!.OpenProjectAsync(projectPath, cancellationToken: cancellationToken)

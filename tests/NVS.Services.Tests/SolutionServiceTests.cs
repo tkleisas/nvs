@@ -109,6 +109,32 @@ public sealed class SolutionServiceTests : IDisposable
         result.Projects.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task ParseSlnxAsync_WithFolderNesting_ShouldReturnAllProjects()
+    {
+        // dotnet sln organizes projects into <Folder> elements; the parser must
+        // find projects nested inside them, not just direct <Solution> children.
+        var slnxContent = """
+            <Solution>
+              <Folder Name="/src/">
+                <Project Path="src/MyApp/MyApp.csproj" />
+                <Project Path="src/MyApp.Core/MyApp.Core.csproj" />
+              </Folder>
+              <Folder Name="/tests/">
+                <Project Path="tests/MyApp.Tests/MyApp.Tests.csproj" />
+              </Folder>
+            </Solution>
+            """;
+        var slnxPath = Path.Combine(_tempDir, "Folders.slnx");
+        await File.WriteAllTextAsync(slnxPath, slnxContent);
+
+        var result = await SolutionService.ParseSlnxAsync(slnxPath);
+
+        result.Projects.Should().HaveCount(3);
+        result.Projects.Select(p => p.Name).Should()
+            .Equal("MyApp", "MyApp.Core", "MyApp.Tests");
+    }
+
     #endregion
 
     #region ParseSln

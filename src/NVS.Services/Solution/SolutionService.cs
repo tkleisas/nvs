@@ -203,7 +203,7 @@ public sealed partial class SolutionService : ISolutionService
         var root = doc.Root ?? throw new InvalidDataException("Invalid .slnx file: no root element.");
 
         var projects = new List<ProjectReference>();
-        foreach (var projElement in root.Elements("Project"))
+        foreach (var projElement in root.Descendants("Project"))
         {
             var pathAttr = projElement.Attribute("Path")?.Value;
             if (string.IsNullOrWhiteSpace(pathAttr))
