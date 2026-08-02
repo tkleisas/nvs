@@ -300,6 +300,22 @@ public partial class MainWindow : Window
         await ShowSettingsAsync();
     }
 
+    private async void OnApiClientEnvironments(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not ViewModels.MainViewModel vm || vm.ApiClient is null) return;
+
+        vm.ShowApiClientCommand.Execute(null);
+
+        var workspace = vm.ApiClient.ApiClientViewModel;
+        var dialog = new ApiClient.UI.Views.EnvironmentsWindow(workspace.Environments);
+        await dialog.ShowDialog(this);
+
+        if (dialog.Saved)
+        {
+            workspace.SaveEnvironments(dialog.ViewModel.ToEnvironments());
+        }
+    }
+
     private async Task ShowSettingsAsync()
     {
         var app = App.Current;

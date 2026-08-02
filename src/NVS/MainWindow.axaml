@@ -82,6 +82,38 @@
                 <MenuItem Header="Split Editor _Down" Command="{Binding SplitEditorDownCommand}" />
                 <MenuItem Header="Close _Split" Command="{Binding CloseEditorSplitCommand}" />
             </MenuItem>
+            <MenuItem Header="_Database">
+                <MenuItem Header="_Show Database Explorer" Command="{Binding ShowDatabaseExplorerCommand}" />
+                <Separator />
+                <MenuItem Header="_New Query Tab" Command="{Binding DbNewQueryTabCommand}" />
+                <MenuItem Header="_Refresh Tree" Command="{Binding DbRefreshTreeCommand}" />
+                <Separator />
+                <MenuItem Header="New S_QLite Database..." Command="{Binding DbNewSqliteDatabaseCommand}" />
+                <MenuItem Header="_Open SQLite Database..." Command="{Binding DbOpenSqliteDatabaseCommand}" />
+                <MenuItem Header="Open _PostgreSQL Database..." Command="{Binding DbOpenPostgresDatabaseCommand}" />
+                <MenuItem Header="Open SQL _Server Database..." Command="{Binding DbOpenSqlServerDatabaseCommand}" />
+                <MenuItem Header="Open _Oracle Database..." Command="{Binding DbOpenOracleDatabaseCommand}" />
+                <Separator />
+                <MenuItem Header="_Ask AI..." Command="{Binding DbAskAiCommand}" />
+                <MenuItem Header="AI _Complete at Cursor" Command="{Binding DbAiCompleteCommand}" />
+                <MenuItem Header="_Explain Query" Command="{Binding DbExplainQueryCommand}" />
+                <MenuItem Header="_Optimize Query" Command="{Binding DbOptimizeQueryCommand}" />
+                <MenuItem Header="Analyze _Results" Command="{Binding DbAnalyzeResultsCommand}" />
+                <MenuItem Header="AI _Settings..." Command="{Binding DbAiSettingsCommand}" />
+                <Separator />
+                <MenuItem Header="_Reports..." Command="{Binding DbReportsCommand}" />
+                <MenuItem Header="New Report (_Wizard)..." Command="{Binding DbNewReportCommand}" />
+            </MenuItem>
+            <MenuItem Header="A_PI Client">
+                <MenuItem Header="_Show API Client" Command="{Binding ShowApiClientCommand}" />
+                <Separator />
+                <MenuItem Header="_Open Collection..." Command="{Binding ApiOpenCollectionCommand}" />
+                <MenuItem Header="_Import Bruno Collection..." Command="{Binding ApiImportBrunoCommand}" />
+                <MenuItem Header="_Save Request" Command="{Binding ApiSaveRequestCommand}" />
+                <Separator />
+                <MenuItem Header="_Environments..." Click="OnApiClientEnvironments" />
+                <MenuItem Header="_History" ToggleType="CheckBox" IsChecked="{Binding ApiClient.ApiClientViewModel.ShowHistory}" />
+            </MenuItem>
             <MenuItem Header="_Build">
                 <MenuItem Header="_Build Solution" InputGesture="Ctrl+Shift+B" Command="{Binding BuildRun.BuildSolutionCommand}" />
                 <MenuItem Header="_Rebuild Solution" Command="{Binding BuildRun.RebuildSolutionCommand}" />

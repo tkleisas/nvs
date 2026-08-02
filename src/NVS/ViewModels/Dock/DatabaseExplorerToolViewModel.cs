@@ -4,7 +4,7 @@ using SQLiteExplorer.Lib.ViewModels;
 
 namespace NVS.ViewModels.Dock;
 
-public class DatabaseExplorerToolViewModel : Tool
+public class DatabaseExplorerToolViewModel : Document
 {
     public MainViewModel Main { get; }
     public MainWindowViewModel DatabaseViewModel { get; }
@@ -15,10 +15,22 @@ public class DatabaseExplorerToolViewModel : Tool
         Id = "DatabaseExplorer";
         Title = "🗄 Database";
         CanClose = true;
-        CanPin = true;
+        CanPin = false;
 
-        DatabaseViewModel = new MainWindowViewModel();
+        DatabaseViewModel = new MainWindowViewModel
+        {
+            IsMenuVisible = false, // NVS surfaces the explorer commands in its own menus
+        };
         WireLlmIntegration();
+        UpdateReportStoreDirectory();
+
+        Main.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(MainViewModel.WorkspacePath) or nameof(MainViewModel.IsWorkspaceOpen))
+            {
+                UpdateReportStoreDirectory();
+            }
+        };
     }
 
     /// <summary>
@@ -40,6 +52,14 @@ public class DatabaseExplorerToolViewModel : Tool
         {
             Serilog.Log.Debug(ex, "LLM integration for Database Explorer unavailable");
         }
+    }
+
+    /// <summary>Stores report definitions per workspace when one is open (else AppData).</summary>
+    private void UpdateReportStoreDirectory()
+    {
+        DatabaseViewModel.ReportStoreDirectory = Main.IsWorkspaceOpen && Main.WorkspacePath is not null
+            ? Path.Combine(Main.WorkspacePath, ".nvs")
+            : null;
     }
 
     /// <summary>

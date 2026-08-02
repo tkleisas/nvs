@@ -19,6 +19,8 @@ public sealed class NvsDockFactory : Factory
     public DiffViewerToolViewModel? DiffViewer { get; private set; }
     public ConflictResolverToolViewModel? ConflictResolver { get; private set; }
     public LlmChatToolViewModel? LlmChat { get; private set; }
+    public DatabaseExplorerToolViewModel? DatabaseExplorer { get; private set; }
+    public ApiClientToolViewModel? ApiClient { get; private set; }
     public NvsDockFactory(MainViewModel main, NVS.Core.Models.Settings.DockLayoutSettings? dockSettings = null)
     {
         _main = main;
@@ -37,6 +39,8 @@ public sealed class NvsDockFactory : Factory
         var variables = new VariablesToolViewModel(_main);
         var dbExplorer = new DatabaseExplorerToolViewModel(_main);
         var apiClient = new ApiClientToolViewModel(_main);
+        DatabaseExplorer = dbExplorer;
+        ApiClient = apiClient;
         var llmChat = new LlmChatToolViewModel(_main);
         var nuget = new NuGetToolViewModel(_main);
         var help = new HelpToolViewModel();
@@ -70,7 +74,7 @@ public sealed class NvsDockFactory : Factory
                 new ToolDock
                 {
                     ActiveDockable = terminal,
-                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, dbExplorer, apiClient, nuget, codeMetrics, help, conflictResolver),
+                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, nuget, codeMetrics, help, conflictResolver),
                     Alignment = Alignment.Bottom,
                     GripMode = GripMode.Visible,
                 }
@@ -172,6 +176,41 @@ public sealed class NvsDockFactory : Factory
             _documentDock.ActiveDockable = diffViewer;
 
         return diffViewer;
+    }
+
+    /// <summary>
+    /// Opens the Database Explorer as a document tab (creating the tab on first use,
+    /// reactivating it afterwards — including after it was closed).
+    /// </summary>
+    public DatabaseExplorerToolViewModel OpenDatabaseExplorerDocument()
+    {
+        System.Diagnostics.Debug.Assert(DatabaseExplorer is not null, "DatabaseExplorer is created in CreateLayout");
+        return OpenDocument(DatabaseExplorer!);
+    }
+
+    /// <summary>
+    /// Opens the API Client as a document tab (creating the tab on first use,
+    /// reactivating it afterwards — including after it was closed).
+    /// </summary>
+    public ApiClientToolViewModel OpenApiClientDocument()
+    {
+        System.Diagnostics.Debug.Assert(ApiClient is not null, "ApiClient is created in CreateLayout");
+        return OpenDocument(ApiClient!);
+    }
+
+    private T OpenDocument<T>(T document) where T : global::Dock.Model.Core.IDockable
+    {
+        if (_documentDock?.VisibleDockables?.Contains(document) != true)
+        {
+            _documentDock?.VisibleDockables?.Add(document);
+        }
+
+        if (_documentDock is not null)
+        {
+            _documentDock.ActiveDockable = document;
+        }
+
+        return document;
     }
 
     public override IDockWindow? CreateWindowFrom(IDockable dockable)

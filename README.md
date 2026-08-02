@@ -155,20 +155,23 @@ NVS is a code editor / IDE that:
 - Project selector for multi-project solutions
 
 ### 🗄️ Database Explorer
-- Embeds the [SQLiteExplorer](https://github.com/tkleisas/SQLiteExplorer) component as a dockable panel (View → Database Explorer)
+- Embeds the [SQLiteExplorer](https://github.com/tkleisas/SQLiteExplorer) component as a **document tab** (View → Database Explorer, or the **Database** menu) — it lives next to your code, not in a cramped bottom panel
 - Multi-engine: **SQLite** (.db/.sqlite/.sqlite3 files), **PostgreSQL**, **SQL Server**, and **Oracle** via connection dialogs
 - Browse tables, views, and schemas in the object tree
 - Run SQL in query tabs; results render in a high-performance virtualized data grid
-- Multiple simultaneous connections and a built-in SQL cheatsheet
+- **AI integration**: ask questions in natural language, SQL completion at the caret, explain/optimize queries, analyze results — all powered by the NVS LLM settings (no separate configuration)
+- **Excel reports**: build report queries in a wizard (by hand or AI-generated), save them per-workspace (`.nvs/reports.json`), and regenerate formatted `.xlsx` output anytime (ClosedXML)
+- The **Database** top menu surfaces all explorer commands natively (connections, query tabs, AI, reports)
 - Caused a docking crash that took longer to fix than the entire feature took to build. Classic.
 
 ### 🌐 API Client
-- Embeds the [ApiClient](https://github.com/tkleisas/ApiClient) component as a dockable panel (View → API Client) — a Postman/Bruno-style HTTP client, fully offline, no account required
+- Embeds the [ApiClient](https://github.com/tkleisas/ApiClient) component as a **document tab** (View → API Client, or the **API Client** menu) — a Postman/Bruno-style HTTP client, fully offline, no account required
 - File-based collections (one plain-text file per request, git-friendly); imports Bruno collections
 - Full request editor (method, URL, params, headers, body, auth) with status/timing/size on the response
 - Response viewer with syntax highlighting and a virtualized tabular view for large JSON arrays; request history with replay
 - Environments and `{{variable}}` substitution, keeping secrets out of version control
 - Code generation (C#-first: HttpClient, Refit, RestSharp; JSON → records) and pre/post-request JavaScript scripting (Jint) with `req`/`res`/`bru`/`crypto` and `test`/`expect`
+- **AI integration**: build requests from natural-language descriptions, analyze responses, and generate post-response test scripts — powered by the NVS LLM settings
 
 ### ❓ Help System
 - Welcome tab with getting started links and feature overview

@@ -63,6 +63,25 @@ public partial class MainViewModel : ObservableObject
         _dockFactory.InitLayout(layout);
         DockLayout = layout as IRootDock;
         ConflictResolver = _dockFactory.ConflictResolver;
+        DatabaseExplorer = _dockFactory.DatabaseExplorer;
+        ApiClient = _dockFactory.ApiClient;
+    }
+
+    private DatabaseExplorerToolViewModel? _databaseExplorer;
+    private ApiClientToolViewModel? _apiClient;
+
+    /// <summary>The Database Explorer document (created eagerly; its tab opens on demand).</summary>
+    public DatabaseExplorerToolViewModel? DatabaseExplorer
+    {
+        get => _databaseExplorer;
+        private set => SetProperty(ref _databaseExplorer, value);
+    }
+
+    /// <summary>The API Client document (created eagerly; its tab opens on demand).</summary>
+    public ApiClientToolViewModel? ApiClient
+    {
+        get => _apiClient;
+        private set => SetProperty(ref _apiClient, value);
     }
 
     public MainViewModel(
@@ -760,20 +779,112 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ShowDatabaseExplorer()
     {
-        var dbTool = FindToolInDock<DatabaseExplorerToolViewModel>();
-        if (dbTool is not null)
-        {
-            // Find the parent ToolDock so we can set it as the active dockable
-            ActivateToolInDock(dbTool);
-        }
+        _dockFactory?.OpenDatabaseExplorerDocument();
     }
 
     [RelayCommand]
     private void ShowApiClient()
     {
-        var apiTool = FindToolInDock<ApiClientToolViewModel>();
-        if (apiTool is not null)
-            ActivateToolInDock(apiTool);
+        _dockFactory?.OpenApiClientDocument();
+    }
+
+    // --- Database Explorer menu commands (open the document, then run the component command) ---
+
+    private void WithDatabaseExplorer(Action<SQLiteExplorer.Lib.ViewModels.MainWindowViewModel> action)
+    {
+        var doc = _dockFactory?.OpenDatabaseExplorerDocument();
+        if (doc is not null)
+        {
+            action(doc.DatabaseViewModel);
+        }
+    }
+
+    [RelayCommand]
+    private void DbNewQueryTab() => WithDatabaseExplorer(vm => vm.AddNewQueryTabCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbRefreshTree() => WithDatabaseExplorer(vm => vm.RefreshDatabaseTreeCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbNewSqliteDatabase() => WithDatabaseExplorer(vm => vm.NewSqliteDatabaseCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbOpenSqliteDatabase() => WithDatabaseExplorer(vm => vm.OpenSqliteDatabaseCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbOpenPostgresDatabase() => WithDatabaseExplorer(vm => vm.OpenPostgresDatabaseCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbOpenSqlServerDatabase() => WithDatabaseExplorer(vm => vm.OpenSqlServerDatabaseCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbOpenOracleDatabase() => WithDatabaseExplorer(vm => vm.OpenOracleDatabaseCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbAskAi() => WithDatabaseExplorer(vm => vm.ShowAiAssistantCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbAiComplete() => WithDatabaseExplorer(vm => vm.AiCompleteCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbExplainQuery() => WithDatabaseExplorer(vm => vm.ExplainQueryCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbOptimizeQuery() => WithDatabaseExplorer(vm => vm.OptimizeQueryCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbAnalyzeResults() => WithDatabaseExplorer(vm => vm.AnalyzeResultsCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbAiSettings() => WithDatabaseExplorer(vm => vm.OpenLlmSettingsCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbReports() => WithDatabaseExplorer(vm => vm.OpenReportsCommand.Execute(null));
+
+    [RelayCommand]
+    private void DbNewReport() => WithDatabaseExplorer(vm => vm.NewReportCommand.Execute(null));
+
+    // --- API Client menu commands (open the document, then act on the workspace) ---
+
+    private async Task<string?> PickFolderAsync(string title)
+    {
+        if (StorageProvider is null) return null;
+
+        var folders = await StorageProvider.OpenFolderPickerAsync(new Avalonia.Platform.Storage.FolderPickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+        });
+
+        var path = folders.FirstOrDefault()?.TryGetLocalPath();
+        return string.IsNullOrEmpty(path) ? null : path;
+    }
+
+    [RelayCommand]
+    private async Task ApiOpenCollection()
+    {
+        var doc = _dockFactory?.OpenApiClientDocument();
+        if (doc is not null && await PickFolderAsync("Open collection folder") is { } path)
+        {
+            doc.ApiClientViewModel.LoadCollection(path);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ApiImportBruno()
+    {
+        var doc = _dockFactory?.OpenApiClientDocument();
+        if (doc is not null && await PickFolderAsync("Import Bruno collection folder") is { } path)
+        {
+            doc.ApiClientViewModel.ImportBrunoCollection(path);
+        }
+    }
+
+    [RelayCommand]
+    private void ApiSaveRequest()
+    {
+        var doc = _dockFactory?.OpenApiClientDocument();
+        doc?.ApiClientViewModel.SaveSelectedRequestCommand.Execute(null);
     }
 
     [RelayCommand]
@@ -814,11 +925,10 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public async Task OpenDatabaseFile(string filePath)
     {
-        var dbTool = FindToolInDock<DatabaseExplorerToolViewModel>();
+        var dbTool = _dockFactory?.OpenDatabaseExplorerDocument();
         if (dbTool is not null)
         {
             await dbTool.OpenDatabase(filePath);
-            ActivateToolInDock(dbTool);
             StatusMessage = $"Opened database: {Path.GetFileName(filePath)}";
         }
     }
@@ -828,7 +938,7 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public async Task ExecuteSqlInDatabaseExplorer(string sql)
     {
-        var dbTool = FindToolInDock<DatabaseExplorerToolViewModel>();
+        var dbTool = _dockFactory?.OpenDatabaseExplorerDocument();
         if (dbTool is null) return;
 
         if (!dbTool.IsConnected)
@@ -838,7 +948,6 @@ public partial class MainViewModel : ObservableObject
         }
 
         await dbTool.ExecuteSql(sql);
-        ActivateToolInDock(dbTool);
         StatusMessage = "SQL executed in Database Explorer";
     }
 
