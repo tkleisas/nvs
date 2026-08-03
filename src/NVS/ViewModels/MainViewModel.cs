@@ -862,6 +862,12 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void ShowSymbols()
+    {
+        _dockFactory?.ShowToolInLeftDock(_dockFactory.SymbolsTool);
+    }
+
+    [RelayCommand]
     private void ShowDatabaseExplorer()
     {
         _dockFactory?.OpenDatabaseExplorerDocument();

@@ -18,7 +18,9 @@ public sealed class NvsDockFactory : Factory
     private ProportionalDock? _mainLayout;
     private ProportionalDock? _rightDock;
     private ProportionalDockSplitter? _rightSplitter;
+    private ToolDock? _leftToolDock;
     private ToolDock? _bottomToolDock;
+    private SymbolsToolViewModel? _symbolsTool;
     private TerminalToolViewModel? _terminalTool;
     private NuGetToolViewModel? _nugetTool;
     private ContainersToolViewModel? _containersTool;
@@ -35,6 +37,7 @@ public sealed class NvsDockFactory : Factory
     public ContainersToolViewModel? ContainersTool => _containersTool;
     public HelpToolViewModel? HelpTool => _helpTool;
     public CodeMetricsToolViewModel? CodeMetricsTool => _codeMetricsTool;
+    public SymbolsToolViewModel? SymbolsTool => _symbolsTool;
     public NvsDockFactory(MainViewModel main, NVS.Core.Models.Settings.DockLayoutSettings? dockSettings = null)
     {
         _main = main;
@@ -46,6 +49,7 @@ public sealed class NvsDockFactory : Factory
         var explorer = new ExplorerToolViewModel(_main);
         var search = new SearchToolViewModel(_main);
         var git = new GitToolViewModel(_main);
+        var symbols = new SymbolsToolViewModel(_main, _main.Editor?.LspSessionManager);
         var terminal = new TerminalToolViewModel(_main);
         var buildOutput = new BuildOutputToolViewModel(_main);
         var problems = new ProblemsToolViewModel(_main);
@@ -73,12 +77,14 @@ public sealed class NvsDockFactory : Factory
                 new ToolDock
                 {
                     ActiveDockable = explorer,
-                    VisibleDockables = CreateList<IDockable>(explorer, search, git),
+                    VisibleDockables = CreateList<IDockable>(explorer, search, git, symbols),
                     Alignment = Alignment.Left,
                     GripMode = GripMode.Visible,
                 }
             ),
         };
+        _leftToolDock = (ToolDock)leftDock.VisibleDockables![0];
+        _symbolsTool = symbols;
 
         var bottomToolDock = new ToolDock
         {
@@ -310,6 +316,22 @@ public sealed class NvsDockFactory : Factory
         _bottomToolDock.ActiveDockable = tool;
     }
 
+    /// <summary>Shows a left-dock tool, re-adding it first if the user previously closed it.</summary>
+    public void ShowToolInLeftDock(IDockable? tool)
+    {
+        if (tool is null || _leftToolDock?.VisibleDockables is null)
+        {
+            return;
+        }
+
+        if (!_leftToolDock.VisibleDockables.Contains(tool))
+        {
+            _leftToolDock.VisibleDockables.Add(tool);
+        }
+
+        _leftToolDock.ActiveDockable = tool;
+    }
+
     public override IDockWindow? CreateWindowFrom(IDockable dockable)
     {
         var window = base.CreateWindowFrom(dockable);
@@ -327,6 +349,7 @@ public sealed class NvsDockFactory : Factory
             ["Explorer"] = () => _main,
             ["Search"] = () => _main,
             ["Git"] = () => _main,
+            ["Symbols"] = () => _main,
             ["Terminal"] = () => _main,
             ["BuildOutput"] = () => _main,
             ["Problems"] = () => _main,

@@ -237,6 +237,76 @@ public sealed class RoslynCompletionService : IRoslynCompletionService
         };
     }
 
+    // ─── Rename Symbol ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Renames the symbol at the position using Roslyn's Renamer, keeping the workspace
+    /// solution in sync. Returns the textual changes to apply to files on disk.
+    /// </summary>
+    public async Task<NVS.Core.Interfaces.WorkspaceEdit?> RenameAsync(
+        string filePath, int line, int column, string newName, CancellationToken cancellationToken = default)
+    {
+        if (_solution is null || string.IsNullOrWhiteSpace(newName)) return null;
+
+        var document = FindDocument(filePath);
+        if (document is null) return null;
+
+        var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
+        var position = GetOffset(text, line, column);
+        if (position < 0 || position > text.Length) return null;
+
+        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        if (root is null || semanticModel is null) return null;
+
+        var symbolInfo = semanticModel.GetSymbolInfo(root.FindToken(position).Parent!, cancellationToken);
+        var symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault();
+        if (symbol is null) return null;
+
+        var currentSolution = _solution;
+        var newSolution = await Microsoft.CodeAnalysis.Rename.Renamer.RenameSymbolAsync(
+            currentSolution, symbol, new Microsoft.CodeAnalysis.Rename.SymbolRenameOptions(), newName, cancellationToken).ConfigureAwait(false);
+
+        var changes = new Dictionary<string, IReadOnlyList<NVS.Core.Models.TextEdit>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var projectChanges in newSolution.GetChanges(currentSolution).GetProjectChanges())
+        {
+            foreach (var documentId in projectChanges.GetChangedDocuments())
+            {
+                var changedDoc = newSolution.GetDocument(documentId);
+                var oldDoc = currentSolution.GetDocument(documentId);
+                if (changedDoc?.FilePath is null || oldDoc is null) continue;
+
+                var newText = await changedDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
+                var oldText = await oldDoc.GetTextAsync(cancellationToken).ConfigureAwait(false);
+
+                var edits = new List<NVS.Core.Models.TextEdit>();
+                foreach (var change in newText.GetTextChanges(oldText))
+                {
+                    var span = oldText.Lines.GetLinePositionSpan(change.Span);
+                    edits.Add(new NVS.Core.Models.TextEdit
+                    {
+                        Range = new NvsRange
+                        {
+                            Start = new Position { Line = span.Start.Line, Column = span.Start.Character },
+                            End = new Position { Line = span.End.Line, Column = span.End.Character },
+                        },
+                        NewText = change.NewText ?? string.Empty,
+                    });
+                }
+
+                if (edits.Count > 0)
+                {
+                    changes[changedDoc.FilePath] = edits;
+                }
+            }
+        }
+
+        // Keep the workspace in sync with the renamed code.
+        _solution = newSolution;
+
+        return new NVS.Core.Interfaces.WorkspaceEdit { Changes = changes };
+    }
+
     // ─── Go to Definition ───────────────────────────────────────────────────
 
     public async Task<NvsLocation?> GetDefinitionAsync(

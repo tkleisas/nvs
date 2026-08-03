@@ -11,6 +11,12 @@ namespace NVS.Core.Interfaces;
 public interface ILspSessionManager : IAsyncDisposable
 {
     /// <summary>
+    /// Whether the Roslyn C# workspace has finished loading. While false, C#
+    /// language features may return empty results and callers should retry later.
+    /// </summary>
+    bool IsCSharpWorkspaceLoaded { get; }
+
+    /// <summary>
     /// Gets an LSP client for the given document's language.
     /// Creates and initializes one if not already active.
     /// Returns null if no language server is configured.
@@ -22,6 +28,9 @@ public interface ILspSessionManager : IAsyncDisposable
     Task<Location?> GetDefinitionAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Location>> GetReferencesAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<HoverInfo?> GetHoverAsync(Document document, Position position, CancellationToken cancellationToken = default);
+
+    /// <summary>Renames the symbol at the position (Roslyn for C#, LSP for other languages).</summary>
+    Task<WorkspaceEdit?> RenameAsync(Document document, Position position, string newName, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<TextEdit>> FormatDocumentAsync(Document document, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DocumentSymbol>> GetDocumentSymbolsAsync(Document document, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(Document document, CancellationToken cancellationToken = default);

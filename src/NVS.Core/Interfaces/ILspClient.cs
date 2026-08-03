@@ -19,6 +19,9 @@ public interface ILspClient
     Task<IReadOnlyList<Location>> GetReferencesAsync(Document document, Position position, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DocumentSymbol>> GetDocumentSymbolsAsync(Document document, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<TextEdit>> GetFormattingEditsAsync(Document document, CancellationToken cancellationToken = default);
+
+    /// <summary>Renames the symbol at the position, returning the workspace edit to apply.</summary>
+    Task<WorkspaceEdit?> RenameAsync(Document document, Position position, string newName, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(Document document, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CodeAction>> GetCodeActionsAsync(Document document, Range range, IReadOnlyList<Diagnostic> diagnostics, CancellationToken cancellationToken = default);
     Task ApplyWorkspaceEditAsync(WorkspaceEdit edit, CancellationToken cancellationToken = default);

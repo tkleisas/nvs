@@ -91,6 +91,9 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     public static readonly StyledProperty<ICommand?> ToggleBreakpointCommandProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, ICommand?>(nameof(ToggleBreakpointCommand));
 
+    public static readonly StyledProperty<ICommand?> RenameSymbolCommandProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, ICommand?>(nameof(RenameSymbolCommand));
+
     public static readonly StyledProperty<int?> DebugCurrentLineProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, int?>(nameof(DebugCurrentLine));
 
@@ -105,6 +108,9 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
     public static readonly StyledProperty<Func<string, CancellationToken, Task<string?>>?> DebugEvaluateFuncProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, Func<string, CancellationToken, Task<string?>>?>(nameof(DebugEvaluateFunc));
+
+    public static readonly StyledProperty<Func<int, int, CancellationToken, Task<string?>>?> HoverFuncProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, Func<int, int, CancellationToken, Task<string?>>?>(nameof(HoverFunc));
 
     public static readonly StyledProperty<Func<int, int, string, string, CancellationToken, Task<string?>>?> InlineCompletionFuncProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, Func<int, int, string, string, CancellationToken, Task<string?>>?>(nameof(InlineCompletionFunc));
@@ -194,6 +200,13 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         set => SetValue(ToggleBreakpointCommandProperty, value);
     }
 
+    /// <summary>Command executed on F2 (rename symbol).</summary>
+    public ICommand? RenameSymbolCommand
+    {
+        get => GetValue(RenameSymbolCommandProperty);
+        set => SetValue(RenameSymbolCommandProperty, value);
+    }
+
     public int? DebugCurrentLine
     {
         get => GetValue(DebugCurrentLineProperty);
@@ -228,6 +241,16 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     /// Function for inline ghost-text completions.
     /// Parameters: line, column, prefix, suffix, cancellationToken → completion text.
     /// </summary>
+    /// <summary>
+    /// Requests symbol documentation on hover: (line, column, ct) → markdown/text content or null.
+    /// Used when not debugging (debug sessions use <see cref="DebugEvaluateFunc"/> instead).
+    /// </summary>
+    public Func<int, int, CancellationToken, Task<string?>>? HoverFunc
+    {
+        get => GetValue(HoverFuncProperty);
+        set => SetValue(HoverFuncProperty, value);
+    }
+
     public Func<int, int, string, string, CancellationToken, Task<string?>>? InlineCompletionFunc
     {
         get => GetValue(InlineCompletionFuncProperty);
@@ -486,6 +509,12 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         {
             e.Handled = true;
             GoToDefinitionCommand?.Execute(null);
+        }
+        // F2 → rename symbol
+        else if (e.Key == Key.F2 && e.KeyModifiers == KeyModifiers.None)
+        {
+            e.Handled = true;
+            RenameSymbolCommand?.Execute(null);
         }
         // F9 → toggle breakpoint at current line
         else if (e.Key == Key.F9 && e.KeyModifiers == KeyModifiers.None)
@@ -869,7 +898,8 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     private async void OnTextViewPointerHover(object? sender, PointerEventArgs e)
     {
         var evaluateFunc = DebugEvaluateFunc;
-        if (evaluateFunc is null || _textEditor?.Document is null)
+        var hoverFunc = HoverFunc;
+        if ((evaluateFunc is null && hoverFunc is null) || _textEditor?.Document is null)
             return;
 
         var pos = _textEditor.TextArea.TextView.GetPositionFloor(e.GetPosition(_textEditor.TextArea.TextView));
@@ -892,11 +922,25 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
         try
         {
-            var result = await evaluateFunc(word, cts.Token);
-            if (cts.Token.IsCancellationRequested || string.IsNullOrEmpty(result))
-                return;
+            if (evaluateFunc is not null)
+            {
+                // Debug session: evaluate the expression in the paused debuggee.
+                var result = await evaluateFunc(word, cts.Token);
+                if (cts.Token.IsCancellationRequested || string.IsNullOrEmpty(result))
+                    return;
 
-            ShowDebugHoverPopup(word, result);
+                ShowDebugHoverPopup(word, result);
+            }
+            else
+            {
+                // Normal editing: LSP hover documentation for the symbol.
+                var location = pos.Value.Location;
+                var content = await hoverFunc!(location.Line, location.Column, cts.Token);
+                if (cts.Token.IsCancellationRequested || string.IsNullOrEmpty(content))
+                    return;
+
+                ShowDebugHoverPopup(null, content);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -904,7 +948,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         }
         catch (Exception ex)
         {
-            Serilog.Log.Warning(ex, "[Hover] Evaluate failed for '{Word}'", word);
+            Serilog.Log.Debug(ex, "[Hover] Hover request failed for '{Word}'", word);
         }
     }
 
@@ -915,7 +959,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         CloseDebugHoverPopup();
     }
 
-    private void ShowDebugHoverPopup(string expression, string value)
+    private void ShowDebugHoverPopup(string? expression, string value)
     {
         CloseDebugHoverPopup();
 
@@ -924,9 +968,11 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
 
         var content = new Avalonia.Controls.TextBlock
         {
-            Text = $"{expression} = {value}",
+            Text = expression is null ? value : $"{expression} = {value}",
             FontFamily = new Avalonia.Media.FontFamily("Cascadia Code, Consolas, Courier New, monospace"),
             FontSize = 13,
+            MaxWidth = 600,
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
         };
 
         Avalonia.Controls.ToolTip.SetTip(textView, content);

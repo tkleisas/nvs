@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.SymbolsView"
+             x:DataType="dock:SymbolsToolViewModel">
+
+    <Grid x:Name="SymbolsPanel" RowDefinitions="Auto,*">
+        <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}" Padding="6,4">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="Document Outline" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <ProgressBar Width="60" Height="4" VerticalAlignment="Center"
+                                 IsIndeterminate="True" IsVisible="{Binding IsLoading}" />
+                    <Button Content="↻" Padding="6,1" FontSize="11"
+                            ToolTip.Tip="Refresh" Command="{Binding RefreshCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" RowDefinitions="*,Auto">
+            <TreeView Grid.Row="0" ItemsSource="{Binding Symbols}"
+                      SelectedItem="{Binding SelectedSymbol}"
+                      Background="Transparent" Padding="4">
+                <TreeView.Styles>
+                    <Style Selector="TreeViewItem">
+                        <Setter Property="IsExpanded" Value="True" />
+                    </Style>
+                </TreeView.Styles>
+                <TreeView.ItemTemplate>
+                    <TreeDataTemplate x:DataType="dock:SymbolNodeViewModel" ItemsSource="{Binding Children}">
+                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,1"
+                                    DoubleTapped="OnSymbolDoubleTapped">
+                            <TextBlock Text="{Binding Icon}" FontSize="11"
+                                       Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Name}" FontSize="12"
+                                       Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Line, StringFormat=':{0}'}" FontSize="10"
+                                       Foreground="{DynamicResource TextSecondaryForegroundBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </TreeDataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
+
+            <TextBlock Grid.Row="1" Text="{Binding StatusText}" FontSize="10"
+                       Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="6,2" />
+        </Grid>
+    </Grid>
+</UserControl>

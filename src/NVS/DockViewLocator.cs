@@ -31,6 +31,7 @@ public class DockViewLocator : IDataTemplate
         [typeof(DiffViewerToolViewModel)] = () => new DiffViewerView(),
         [typeof(ConflictResolverToolViewModel)] = () => new ConflictResolverView(),
         [typeof(ContainersToolViewModel)] = () => new ContainersView(),
+        [typeof(SymbolsToolViewModel)] = () => new SymbolsView(),
     };
 
     public Control? Build(object? data)

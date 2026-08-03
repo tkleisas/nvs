@@ -30,6 +30,7 @@ public class AutomationServerTests
         public Task<object> InvokeMenuAsync(string path) => Task.FromResult<object>(new Dictionary<string, object?> { ["invoked"] = path });
         public Task<object> SetTextAsync(string controlId, string text) => Task.FromResult<object>(new Dictionary<string, object?> { ["control"] = controlId });
         public Task<object> OpenSolutionAsync(string path) => Task.FromResult<object>(new Dictionary<string, object?> { ["opened"] = path });
+        public Task<object> OpenFileAsync(string path) => Task.FromResult<object>(new Dictionary<string, object?> { ["opened"] = path });
         public Task<object> ActivateAsync(string id) => Task.FromResult<object>(new Dictionary<string, object?> { ["activated"] = id });
     }
 

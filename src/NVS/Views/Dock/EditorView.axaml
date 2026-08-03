@@ -76,6 +76,7 @@
                                 <Separator/>
                                 <MenuItem Header="Find" InputGesture="Ctrl+F" Command="{Binding OpenSearchCommand}"/>
                                 <MenuItem Header="Go to Definition" InputGesture="F12" Command="{Binding GoToDefinitionCommand}"/>
+                                <MenuItem Header="Rename Symbol" InputGesture="F2" Command="{Binding RenameSymbolCommand}"/>
                                 <MenuItem Header="Quick Fix..." InputGesture="Ctrl+OemPeriod" Tag="QuickFix" Click="OnQuickFixClick"/>
                                 <Separator Tag="SqlSeparator" IsVisible="False"/>
                                 <MenuItem Tag="ExecuteSql" Header="Execute SQL in Database Explorer" Click="OnExecuteInDatabaseExplorerClick" IsVisible="False"/>
@@ -95,6 +96,8 @@
                                 OpenSearchCommand="{Binding OpenSearchCommand, Mode=OneWayToSource}"
                                 OpenReplaceCommand="{Binding OpenReplaceCommand, Mode=OneWayToSource}"
                                 SelectionAdapter="{Binding Selection, Mode=OneWayToSource}"
+                                HoverFunc="{Binding HoverFunc}"
+                                RenameSymbolCommand="{Binding RenameSymbolCommand}"
                                 Diagnostics="{Binding Diagnostics}"
                                 GoToDefinitionCommand="{Binding GoToDefinitionCommand}"
                                 RequestCompletionCommand="{Binding RequestCompletionCommand}"

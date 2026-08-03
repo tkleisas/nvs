@@ -324,6 +324,21 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
         return result?.Select(LspModelMapper.FromLspTextEdit).ToList() ?? [];
     }
 
+    public async Task<WorkspaceEdit?> RenameAsync(Document document, Position position, string newName, CancellationToken cancellationToken = default)
+    {
+        var param = new RenameParams
+        {
+            TextDocument = LspModelMapper.ToTextDocumentIdentifier(document),
+            Position = LspModelMapper.ToLspPosition(position),
+            NewName = newName,
+        };
+
+        var result = await SendRequestAsync<LspWorkspaceEdit>("textDocument/rename", param, cancellationToken)
+            .ConfigureAwait(false);
+
+        return result is not null ? LspModelMapper.FromLspWorkspaceEdit(result) : null;
+    }
+
     public async Task<IReadOnlyList<Diagnostic>> GetDiagnosticsAsync(Document document, CancellationToken cancellationToken = default)
     {
         // LSP diagnostics are pushed via notifications, not pulled.

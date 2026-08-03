@@ -84,6 +84,26 @@ public sealed class LspClientFactoryTests
         def.RequiresSolutionArg.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task CreateClientAsync_WhenServerBinaryMissing_ReturnsNullInsteadOfThrowing()
+    {
+        // Regression: a missing server binary must not surface as a process-start
+        // exception on every hover/completion/symbols request.
+        var settingsService = Substitute.For<ISettingsService>();
+        var appSettings = new AppSettings();
+        appSettings.LanguageServers["csharp-ls"] = new LanguageServerUserConfig
+        {
+            CustomCommand = "nvs-nonexistent-server-binary-9f8e7d6c",
+        };
+        settingsService.AppSettings.Returns(appSettings);
+
+        var factory = CreateFactory(settingsService);
+
+        var client = await factory.CreateClientAsync(Language.CSharp, Path.GetTempPath());
+
+        client.Should().BeNull();
+    }
+
     private static LspClientFactory CreateFactory(ISettingsService settingsService)
     {
         var languageService = Substitute.For<ILanguageService>();

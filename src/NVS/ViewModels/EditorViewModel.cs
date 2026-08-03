@@ -15,6 +15,9 @@ public partial class EditorViewModel : INotifyPropertyChanged
     private readonly IEditorService _editorService;
     private readonly IFileSystemService _fileSystemService;
     private readonly ILspSessionManager? _lspSessionManager;
+
+    /// <summary>The LSP session manager (used by panels like the document outline).</summary>
+    public ILspSessionManager? LspSessionManager => _lspSessionManager;
     private readonly IBreakpointStore? _breakpointStore;
     private readonly ICodeMetricsService? _codeMetricsService;
     private CancellationTokenSource? _didChangeCts;
@@ -540,10 +543,101 @@ public partial class EditorViewModel : INotifyPropertyChanged
         UpdateDiagnostics(args.DocumentUri, args.Diagnostics);
     }
 
+    /// <summary>Set by the view: prompts for a new name for the identifier, returns the new name or null to cancel.</summary>
+    public Func<string, Task<string?>>? RequestRenameSymbol { get; set; }
+
+    private static string? GetWordAtCaret(DocumentViewModel docVm)
+    {
+        var text = docVm.Text;
+        if (string.IsNullOrEmpty(text)) return null;
+
+        // Compute offset from 1-based line/column
+        var line = 1;
+        var offset = 0;
+        while (line < docVm.CursorLine && offset < text.Length)
+        {
+            if (text[offset] == '\n') line++;
+            offset++;
+        }
+        offset += Math.Max(0, docVm.CursorColumn - 1);
+        if (offset >= text.Length) offset = text.Length - 1;
+        if (offset < 0) return null;
+
+        static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
+        var start = offset;
+        while (start > 0 && IsIdentifierChar(text[start - 1])) start--;
+        var end = offset;
+        while (end < text.Length && IsIdentifierChar(text[end])) end++;
+
+        return start == end ? null : text[start..end];
+    }
+
     private void WireLspCommands(DocumentViewModel docVm)
     {
         if (_lspSessionManager is null)
             return;
+
+        docVm.HoverFunc = async (line, column, ct) =>
+        {
+            try
+            {
+                var pos = new Position { Line = line - 1, Column = column - 1 };
+                var hover = await _lspSessionManager.GetHoverAsync(docVm.Document, pos, ct);
+                return hover?.Content;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                Serilog.Log.Debug(ex, "Hover failed");
+                return null;
+            }
+        };
+
+        docVm.RenameSymbolCommand = new AsyncRelayCommand(async () =>
+        {
+            try
+            {
+                var word = GetWordAtCaret(docVm);
+                if (string.IsNullOrWhiteSpace(word) || RequestRenameSymbol is null)
+                {
+                    return;
+                }
+
+                var newName = await RequestRenameSymbol(word);
+                if (string.IsNullOrWhiteSpace(newName) || newName == word)
+                {
+                    return;
+                }
+
+                var pos = new Position { Line = docVm.CursorLine - 1, Column = docVm.CursorColumn - 1 };
+                var edit = await _lspSessionManager.RenameAsync(docVm.Document, pos, newName.Trim());
+                if (edit is null || edit.Changes.Count == 0)
+                {
+                    return;
+                }
+
+                await _lspSessionManager.ApplyWorkspaceEditAsync(docVm.Document, edit);
+
+                // Reload affected open documents from disk without dirtying them
+                foreach (var filePath in edit.Changes.Keys)
+                {
+                    var affected = OpenDocuments.FirstOrDefault(d =>
+                        string.Equals(d.Document.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+                    if (affected is not null)
+                    {
+                        var content = await _fileSystemService.ReadAllTextAsync(filePath);
+                        affected.ReplaceTextSilently(content);
+                    }
+                }
+
+                Serilog.Log.Information("Renamed symbol {Old} to {New} in {Count} file(s)", word, newName, edit.Changes.Count);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Debug(ex, "Rename symbol failed");
+            }
+        });
 
         docVm.GoToDefinitionCommand = new AsyncRelayCommand(async () =>
         {
@@ -878,6 +972,22 @@ public class DocumentViewModel : INotifyPropertyChanged
 
     /// <summary>Selection/caret adapter set by the editor behavior (used by inline AI edit).</summary>
     public Behaviors.IEditorSelection? Selection { get; set; }
+
+    /// <summary>LSP hover provider: (line, column, ct) → documentation text or null.</summary>
+    public Func<int, int, CancellationToken, Task<string?>>? HoverFunc { get; set; }
+
+    /// <summary>Rename symbol at caret (F2).</summary>
+    public ICommand? RenameSymbolCommand { get; set; }
+
+    /// <summary>Replaces the document text without marking it dirty (used after external edits like rename).</summary>
+    public void ReplaceTextSilently(string text)
+    {
+        _text = text;
+        Document.Content = text;
+        Document.Version++;
+        IsDirty = false;
+        OnPropertyChanged(nameof(Text));
+    }
 
     public ICommand? GoToDefinitionCommand
     {

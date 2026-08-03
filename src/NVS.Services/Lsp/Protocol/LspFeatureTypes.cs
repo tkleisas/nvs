@@ -234,6 +234,14 @@ public sealed record LspWorkspaceEdit
     public Dictionary<string, IReadOnlyList<LspTextEdit>>? Changes { get; init; }
 }
 
+/// <summary>textDocument/rename request params.</summary>
+public sealed record RenameParams
+{
+    public required TextDocumentIdentifier TextDocument { get; init; }
+    public required LspPosition Position { get; init; }
+    public required string NewName { get; init; }
+}
+
 // ─── Resolve Code Action ────────────────────────────────────────────────────
 
 public sealed record CodeActionResolveRequest

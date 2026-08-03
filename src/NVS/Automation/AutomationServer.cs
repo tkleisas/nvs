@@ -19,6 +19,7 @@ public sealed class AutomationServer : IDisposable
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        MaxDepth = 256,
     };
 
     private readonly IAutomationHost _host;
@@ -156,12 +157,15 @@ public sealed class AutomationServer : IDisposable
             case "open-solution":
                 var slnPath = GetString(args, "path") ?? throw new InvalidOperationException("open-solution requires args.path");
                 return await _host.OpenSolutionAsync(slnPath).ConfigureAwait(false);
+            case "open-file":
+                var filePath = GetString(args, "path") ?? throw new InvalidOperationException("open-file requires args.path");
+                return await _host.OpenFileAsync(filePath).ConfigureAwait(false);
             case "activate":
                 var id = GetString(args, "id") ?? throw new InvalidOperationException("activate requires args.id");
                 return await _host.ActivateAsync(id).ConfigureAwait(false);
             default:
                 throw new InvalidOperationException(
-                    $"unknown cmd '{cmd}' (expected: ping, state, tree, screenshot, command, menu, open-solution, activate, set-text)");
+                    $"unknown cmd '{cmd}' (expected: ping, state, tree, screenshot, command, menu, open-solution, open-file, activate, set-text)");
         }
     }
 

@@ -34,6 +34,9 @@ public interface IAutomationHost
     /// <summary>Opens a solution file in the IDE.</summary>
     Task<object> OpenSolutionAsync(string path);
 
+    /// <summary>Opens a single file in the editor.</summary>
+    Task<object> OpenFileAsync(string path);
+
     /// <summary>Activates a dock panel/document by id (e.g. "DatabaseExplorer").</summary>
     Task<object> ActivateAsync(string id);
 }

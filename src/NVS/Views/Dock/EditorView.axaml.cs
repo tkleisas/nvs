@@ -24,8 +24,19 @@ public partial class EditorView : UserControl
         {
             editor.PropertyChanged += OnEditorPropertyChanged;
             editor.ConfirmCloseDirtyDocument = ConfirmCloseDirtyDocumentAsync;
+            editor.RequestRenameSymbol = PromptRenameSymbolAsync;
             UpdateSplitLayout(editor.IsSplitActive, editor.IsSplitVertical);
         }
+    }
+
+    private async Task<string?> PromptRenameSymbolAsync(string currentName)
+    {
+        if (TopLevel.GetTopLevel(this) is not Window owner)
+        {
+            return null;
+        }
+
+        return await DialogHelper.PromptForNameAsync(owner, "Rename Symbol", $"Rename \"{currentName}\" to:", currentName);
     }
 
     private async Task<DirtyCloseChoice> ConfirmCloseDirtyDocumentAsync(DocumentViewModel docVm)

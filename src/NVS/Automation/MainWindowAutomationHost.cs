@@ -189,6 +189,17 @@ public sealed class MainWindowAutomationHost : IAutomationHost
             };
         });
 
+    public async Task<object> OpenFileAsync(string path) =>
+        await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            await _vm.OpenFileAsync(path);
+            return (object)new Dictionary<string, object?>
+            {
+                ["opened"] = path,
+                ["statusMessage"] = _vm.StatusMessage,
+            };
+        });
+
     public async Task<object> ActivateAsync(string id)
     {
         if (id.Equals("editor", StringComparison.OrdinalIgnoreCase))
@@ -294,6 +305,7 @@ public sealed class MainWindowAutomationHost : IAutomationHost
             ["automationId"] = visual is Control c2 ? AutomationProperties.GetAutomationId(c2) : null,
             ["isVisible"] = visual is Control c3 ? c3.IsVisible : null,
             ["bounds"] = $"{visual.Bounds.Width:F0}x{visual.Bounds.Height:F0}",
+            ["text"] = GetNodeText(visual),
         };
         if (isWindow && visual is Window window)
         {
@@ -303,7 +315,7 @@ public sealed class MainWindowAutomationHost : IAutomationHost
         if (depth < maxDepth && !budget.Exhausted)
         {
             var children = new List<Dictionary<string, object?>>();
-            foreach (var child in visual.GetVisualChildren())
+            foreach (var child in EnumerateChildren(visual))
             {
                 children.Add(DescribeVisual(child, depth + 1, maxDepth, budget));
                 if (budget.Exhausted) break;
@@ -315,6 +327,39 @@ public sealed class MainWindowAutomationHost : IAutomationHost
         }
 
         return node;
+    }
+
+    private static string? GetNodeText(Visual visual) => visual switch
+    {
+        TextBlock textBlock => textBlock.Text,
+        Button button => button.Content?.ToString(),
+        MenuItem menuItem => menuItem.Header?.ToString(),
+        TabItem tabItem => tabItem.Header?.ToString(),
+        _ => null,
+    };
+
+    private static IEnumerable<Visual> EnumerateChildren(Visual visual)
+    {
+        var seen = new HashSet<Visual>();
+        foreach (var child in visual.GetVisualChildren())
+        {
+            if (seen.Add(child))
+            {
+                yield return child;
+            }
+        }
+
+        // Content presenters expose their content through the logical tree.
+        if (visual is global::Avalonia.LogicalTree.ILogical logical)
+        {
+            foreach (var child in logical.LogicalChildren.OfType<Visual>())
+            {
+                if (seen.Add(child))
+                {
+                    yield return child;
+                }
+            }
+        }
     }
 
     private sealed class NodeBudget

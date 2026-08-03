@@ -19,6 +19,9 @@ public interface IRoslynCompletionService : IAsyncDisposable
 
     Task<HoverInfo?> GetHoverAsync(string filePath, int line, int column, CancellationToken cancellationToken = default);
 
+    /// <summary>Renames the symbol at the position via Roslyn's Renamer.</summary>
+    Task<WorkspaceEdit?> RenameAsync(string filePath, int line, int column, string newName, CancellationToken cancellationToken = default);
+
     Task<Location?> GetDefinitionAsync(string filePath, int line, int column, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Location>> GetReferencesAsync(string filePath, int line, int column, CancellationToken cancellationToken = default);

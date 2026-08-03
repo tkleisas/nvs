@@ -24,6 +24,9 @@ public sealed class LspSessionManager : ILspSessionManager
 
     public event EventHandler<DocumentDiagnosticsEventArgs>? DiagnosticsChanged;
 
+    /// <inheritdoc />
+    public bool IsCSharpWorkspaceLoaded => _roslynCompletionService?.IsWorkspaceLoaded == true;
+
     public LspSessionManager(ILspClientFactory factory, IRoslynCompletionService? roslynCompletionService = null)
     {
         _factory = factory ?? throw new ArgumentNullException(nameof(factory));
@@ -256,6 +259,32 @@ public sealed class LspSessionManager : ILspSessionManager
             return null;
 
         return await client.GetHoverAsync(document, position, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<WorkspaceEdit?> RenameAsync(Document document, Position position, string newName, CancellationToken cancellationToken = default)
+    {
+        if (document.Language == Language.CSharp
+            && _roslynCompletionService is { IsWorkspaceLoaded: true }
+            && document.FilePath is not null)
+        {
+            try
+            {
+                var result = await _roslynCompletionService.RenameAsync(
+                    document.FilePath, position.Line, position.Column, newName, cancellationToken).ConfigureAwait(false);
+                if (result is not null)
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "Roslyn rename failed, falling back to LSP");
+            }
+        }
+
+        var client = await GetClientAsync(document, cancellationToken).ConfigureAwait(false);
+        if (client is null)
+            return null;
+
+        return await client.RenameAsync(document, position, newName, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<TextEdit>> FormatDocumentAsync(Document document, CancellationToken cancellationToken = default)

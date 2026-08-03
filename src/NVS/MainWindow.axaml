@@ -99,6 +99,7 @@
                 <MenuItem Header="_Explorer" InputGesture="Ctrl+Shift+E" Command="{Binding ShowExplorerCommand}" />
                 <MenuItem Header="_Search" InputGesture="Ctrl+Shift+F" Command="{Binding ShowSearchCommand}" />
                 <MenuItem Header="_Source Control" InputGesture="Ctrl+Shift+G" Command="{Binding ShowSourceControlCommand}" />
+                <MenuItem Header="S_ymbols" Command="{Binding ShowSymbolsCommand}" />
                 <MenuItem Header="_Database Explorer" Command="{Binding ShowDatabaseExplorerCommand}" />
                 <MenuItem Header="_API Client" Command="{Binding ShowApiClientCommand}" />
                 <MenuItem Header="_Code Metrics" Command="{Binding ShowCodeMetricsCommand}" />

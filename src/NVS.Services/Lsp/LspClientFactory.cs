@@ -44,6 +44,13 @@ public sealed class LspClientFactory : ILspClientFactory
         }
 
         var config = BuildConfig(definition, userConfig, rootPath);
+        if (config is null)
+        {
+            // The server binary is not installed; skip silently (logged in BuildConfig)
+            // instead of failing with a process-start error on every request.
+            return null;
+        }
+
         Logger.Information("Starting LSP server: {Command} {Args}",
             config.Command, string.Join(" ", config.Args));
 
@@ -69,7 +76,7 @@ public sealed class LspClientFactory : ILspClientFactory
         return LanguageServerRegistry.GetForLanguage(language);
     }
 
-    private static LanguageServerConfig BuildConfig(
+    private static LanguageServerConfig? BuildConfig(
         LanguageServerDefinition definition,
         LanguageServerUserConfig? userConfig,
         string rootPath)
@@ -93,7 +100,15 @@ public sealed class LspClientFactory : ILspClientFactory
         // are found even when those directories aren't in $PATH.
         var resolvedCommand = LanguageServerManager.FindBinaryOnPath(command)
             ?? FindInNvsTools(definition.Id, command)
-            ?? command;
+            ?? (File.Exists(command) ? Path.GetFullPath(command) : null);
+
+        if (resolvedCommand is null)
+        {
+            Logger.Information(
+                "LSP server {ServerId} binary '{Command}' not found on PATH or in NVS tools; server disabled for this session",
+                definition.Id, command);
+            return null;
+        }
 
         Logger.Information("Resolved LSP command for {ServerId}: {Command}", definition.Id, resolvedCommand);
 
