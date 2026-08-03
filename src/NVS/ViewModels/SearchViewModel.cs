@@ -37,6 +37,9 @@ public sealed partial class SearchViewModel : ObservableObject
     private bool _useRegex;
 
     [ObservableProperty]
+    private string _replaceText = string.Empty;
+
+    [ObservableProperty]
     private bool _isSearching;
 
     public ObservableCollection<FileSearchResult> Results { get; } = [];
@@ -163,6 +166,95 @@ public sealed partial class SearchViewModel : ObservableObject
         {
             doc.CursorLine = result.LineNumber;
         }
+    }
+
+    /// <summary>
+    /// Confirmation callback for bulk replace: (matchCount, fileCount) → proceed?
+    /// Set by the view; when null, replacement proceeds without asking.
+    /// </summary>
+    public Func<int, int, Task<bool>>? ConfirmReplaceAll { get; set; }
+
+    [RelayCommand]
+    private async Task ReplaceAll()
+    {
+        if (string.IsNullOrWhiteSpace(Query) || _main.WorkspacePath is not { } workspacePath || Results.Count == 0)
+            return;
+
+        Regex pattern;
+        try
+        {
+            pattern = BuildReplacePattern(Query, MatchCase, WholeWord, UseRegex);
+        }
+        catch (ArgumentException ex)
+        {
+            _main.StatusMessage = $"Replace: invalid regular expression ({ex.Message})";
+            return;
+        }
+
+        var fileGroups = Results.GroupBy(r => r.FilePath).ToList();
+        var matchCount = Results.Count;
+
+        if (ConfirmReplaceAll is not null && !await ConfirmReplaceAll(matchCount, fileGroups.Count))
+            return;
+
+        IsSearching = true;
+        var replacedFiles = 0;
+
+        try
+        {
+            foreach (var fileGroup in fileGroups)
+            {
+                try
+                {
+                    var content = await _fileSystemService.ReadAllTextAsync(fileGroup.Key);
+
+                    // Regex mode keeps $ substitution semantics; literal modes use a
+                    // match evaluator so the replacement text is always verbatim.
+                    var updated = UseRegex
+                        ? pattern.Replace(content, ReplaceText)
+                        : pattern.Replace(content, _ => ReplaceText);
+
+                    if (!string.Equals(content, updated, StringComparison.Ordinal))
+                    {
+                        await File.WriteAllTextAsync(fileGroup.Key, updated);
+                        replacedFiles++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Warning(ex, "Replace-in-files failed for {Path}", fileGroup.Key);
+                }
+            }
+
+            _main.StatusMessage = $"Replace: {matchCount} occurrence(s) replaced in {replacedFiles} file(s)";
+            await SearchFiles();
+        }
+        finally
+        {
+            IsSearching = false;
+        }
+    }
+
+    /// <summary>
+    /// Builds the regex used for bulk replacement: the raw pattern in regex mode,
+    /// otherwise an escaped literal, optionally \b-anchored for whole-word.
+    /// </summary>
+    internal static Regex BuildReplacePattern(string query, bool matchCase, bool wholeWord, bool useRegex)
+    {
+        var options = matchCase ? RegexOptions.None : RegexOptions.IgnoreCase;
+        var timeout = TimeSpan.FromMilliseconds(500);
+
+        if (useRegex)
+        {
+            return new Regex(query, options, timeout);
+        }
+
+        var literal = Regex.Escape(query);
+        if (wholeWord)
+        {
+            literal = @"\b" + literal + @"\b";
+        }
+        return new Regex(literal, options, timeout);
     }
 
     /// <summary>

@@ -49,6 +49,20 @@ internal static class ThemeResourceApplier
         SetBrush(app, "InfoBarWarningBackgroundBrush", c.InfoBarWarningBackground);
         SetBrush(app, "InfoBarErrorBackgroundBrush", c.InfoBarErrorBackground);
         SetBrush(app, "InfoBarForegroundBrush", c.InfoBarForeground);
+
+        // Fluent system keys used by the embedded components (SQLiteExplorer,
+        // ApiClient) and stock Avalonia dialogs — map them onto the same palette
+        // so hosted panels don't clash with the NVS theme.
+        SetBrush(app, "SystemControlBackgroundChromeMediumBrush", c.MenuBackground);
+        SetBrush(app, "SystemControlBackgroundChromeMediumLowBrush", c.MenuBackground);
+        SetBrush(app, "SystemControlBackgroundChromeLowBrush", c.ToolPanelBackground);
+        SetBrush(app, "SystemControlBackgroundBaseLowBrush", c.InputBackground);
+        SetBrush(app, "SystemControlBackgroundBaseMediumLowBrush", c.InputBackground);
+        SetBrush(app, "SystemControlForegroundBaseHighBrush", c.SidebarForeground);
+        SetBrush(app, "SystemControlForegroundBaseMediumBrush", c.SidebarForeground);
+        SetBrush(app, "SystemControlForegroundBaseMediumLowBrush", c.BorderColor);
+        SetBrush(app, "SystemControlForegroundBaseLowBrush", c.TabInactiveForeground);
+        SetColor(app, "SystemAccentColor", c.AccentColor);
     }
 
     public static void WireThemeService(IThemeService themeService)
@@ -62,6 +76,14 @@ internal static class ThemeResourceApplier
         if (Color.TryParse(hexColor, out var color))
         {
             app.Resources[key] = new SolidColorBrush(color);
+        }
+    }
+
+    private static void SetColor(Application app, string key, string hexColor)
+    {
+        if (Color.TryParse(hexColor, out var color))
+        {
+            app.Resources[key] = color;
         }
     }
 }

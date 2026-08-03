@@ -10,6 +10,29 @@ public partial class SearchView : UserControl
     public SearchView()
     {
         InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
+    }
+
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is SearchToolViewModel tool)
+        {
+            tool.Main.Search.ConfirmReplaceAll = ConfirmReplaceAllAsync;
+        }
+    }
+
+    private async Task<bool> ConfirmReplaceAllAsync(int matchCount, int fileCount)
+    {
+        if (TopLevel.GetTopLevel(this) is not Window owner)
+        {
+            return false;
+        }
+
+        return await DialogHelper.ConfirmAsync(
+            owner,
+            "Replace in Files",
+            $"Replace {matchCount} occurrence(s) in {fileCount} file(s)? This modifies the files on disk.",
+            "Replace All");
     }
 
     private void OnSearchQueryKeyDown(object? sender, KeyEventArgs e)

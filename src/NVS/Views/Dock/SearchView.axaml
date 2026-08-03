@@ -8,7 +8,7 @@
              x:Class="NVS.Views.Dock.SearchView"
              x:DataType="dock:SearchToolViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,*" Margin="8,4">
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="8,4">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
             <TextBox Grid.Column="0"
                      Text="{Binding Main.Search.Query}"
@@ -38,11 +38,26 @@
                           IsChecked="{Binding Main.Search.UseRegex}"
                           ToolTip.Tip="Use Regular Expression" />
         </StackPanel>
-        <Border Grid.Row="2" IsVisible="{Binding Main.Search.IsSearching}"
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+            <TextBox Grid.Column="0"
+                     Text="{Binding Main.Search.ReplaceText}"
+                     PlaceholderText="Replace with... (regex mode supports $1 groups)"
+                     Background="{DynamicResource InputBackgroundBrush}"
+                     Foreground="{DynamicResource TextForegroundBrush}"
+                     BorderBrush="#555"
+                     FontSize="12"
+                     Padding="6,4" />
+            <Button Grid.Column="1" Content="Replace All" Padding="10,4" Margin="4,0,0,0"
+                    Command="{Binding Main.Search.ReplaceAllCommand}"
+                    IsEnabled="{Binding !Main.Search.IsSearching}"
+                    Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
+                    ToolTip.Tip="Replace every match in the result list, after confirmation" />
+        </Grid>
+        <Border Grid.Row="3" IsVisible="{Binding Main.Search.IsSearching}"
                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8">
             <TextBlock Text="Searching..." Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12" />
         </Border>
-        <ListBox Grid.Row="2"
+        <ListBox Grid.Row="3"
                  ItemsSource="{Binding Main.Search.Results}"
                  Background="Transparent"
                  BorderThickness="0"

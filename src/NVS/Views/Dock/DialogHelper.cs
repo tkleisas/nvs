@@ -102,10 +102,16 @@ internal static class DialogHelper
 
     public static async Task<bool> ConfirmDeleteAsync(Window owner, string name)
     {
+        return await ConfirmAsync(owner, "Confirm Delete", $"Delete \"{name}\"?", "Delete", danger: true);
+    }
+
+    /// <summary>Generic OK/Cancel confirmation dialog.</summary>
+    public static async Task<bool> ConfirmAsync(Window owner, string title, string message, string confirmText, bool danger = false)
+    {
         var dialog = new Window
         {
-            Title = "Confirm Delete",
-            Width = 380, Height = 130,
+            Title = title,
+            Width = 420, Height = 140,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Background = Avalonia.Media.Brush.Parse("#2D2D30"),
             CanResize = false,
@@ -115,16 +121,23 @@ internal static class DialogHelper
         var panel = new StackPanel { Margin = new Avalonia.Thickness(16), Spacing = 10 };
         panel.Children.Add(new TextBlock
         {
-            Text = $"Delete \"{name}\"?",
+            Text = message,
             Foreground = Avalonia.Media.Brush.Parse("#CCCCCC"),
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
         });
 
         var buttons = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right };
-        var delBtn = new Button { Content = "Delete", Background = Avalonia.Media.Brush.Parse("#F44747"), Foreground = Avalonia.Media.Brush.Parse("White"), Padding = new Avalonia.Thickness(16, 6) };
+        var confirmBtn = new Button
+        {
+            Content = confirmText,
+            Background = danger ? Avalonia.Media.Brush.Parse("#F44747") : Avalonia.Media.Brush.Parse("#007ACC"),
+            Foreground = Avalonia.Media.Brush.Parse("White"),
+            Padding = new Avalonia.Thickness(16, 6)
+        };
         var cancelBtn = new Button { Content = "Cancel", Padding = new Avalonia.Thickness(16, 6) };
-        delBtn.Click += (_, _) => { confirmed = true; dialog.Close(); };
+        confirmBtn.Click += (_, _) => { confirmed = true; dialog.Close(); };
         cancelBtn.Click += (_, _) => { dialog.Close(); };
-        buttons.Children.Add(delBtn);
+        buttons.Children.Add(confirmBtn);
         buttons.Children.Add(cancelBtn);
         panel.Children.Add(buttons);
         dialog.Content = panel;
