@@ -502,7 +502,21 @@ public sealed partial class DebugViewModel : ObservableObject
                 if (frames.Count > 0)
                 {
                     var topFrame = frames[0];
-                    var vars = await _debugService.GetVariablesAsync(topFrame.Id, cts.Token);
+
+                    // Variables are best-effort: some adapters reject the request for
+                    // frames whose scopes aren't available (e.g. top-level async
+                    // handlers, netcoredbg 0x80004005). Never let it take down the
+                    // rest of the pause flow (call stack, navigation, hover-evaluate).
+                    IReadOnlyList<Core.Interfaces.Variable> vars = [];
+                    try
+                    {
+                        vars = await _debugService.GetVariablesAsync(topFrame.Id, cts.Token);
+                    }
+                    catch (OperationCanceledException) { throw; }
+                    catch (Exception ex)
+                    {
+                        Serilog.Log.Debug(ex, "Variables unavailable for frame {FrameId}", topFrame.Id);
+                    }
                     if (cts.Token.IsCancellationRequested) return;
 
                     await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
