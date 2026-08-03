@@ -17,9 +17,23 @@ public class TerminalToolViewModel : Tool
     public string WorkingDirectory { get; set; } = "";
 
     /// <summary>The new Porta.Pty-backed terminal session, created on-demand via ITerminalHost.</summary>
-    public IProcessTerminal? Terminal { get; set; }
+    public IProcessTerminal? Terminal
+    {
+        get => _terminal;
+        set
+        {
+            _terminal = value;
+            if (value is not null)
+            {
+                // Commands enqueued before the PTY existed can go out now.
+                _ = FlushPendingCommandsAsync();
+            }
+        }
+    }
 
+    private IProcessTerminal? _terminal;
     private readonly Queue<string> _pendingCommands = new();
+    private readonly SemaphoreSlim _flushLock = new(1, 1);
 
     /// <summary>
     /// Callback set by the old Iciclecreek view to send a command to the PTY terminal.
@@ -50,14 +64,35 @@ public class TerminalToolViewModel : Tool
     }
 
     /// <summary>
-    /// Called by the old Iciclecreek view when its PTY is ready. Flushes pending commands.
+    /// Flushes commands enqueued before the terminal was ready. Uses whichever
+    /// channel is available: the Porta.Pty session first, the legacy callback second.
     /// </summary>
     public async Task FlushPendingCommandsAsync()
     {
-        if (SendCommandAsync is null) return;
-        while (_pendingCommands.TryDequeue(out var command))
+        await _flushLock.WaitAsync();
+        try
         {
-            await SendCommandAsync(command);
+            while (_pendingCommands.TryDequeue(out var command))
+            {
+                if (Terminal is not null && Terminal.IsRunning)
+                {
+                    await Terminal.SendInputAsync(command + "\r");
+                }
+                else if (SendCommandAsync is not null)
+                {
+                    await SendCommandAsync(command);
+                }
+                else
+                {
+                    // No channel yet — put it back and wait for the next flush opportunity.
+                    _pendingCommands.Enqueue(command);
+                    return;
+                }
+            }
+        }
+        finally
+        {
+            _flushLock.Release();
         }
     }
 

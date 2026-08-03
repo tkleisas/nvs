@@ -797,19 +797,27 @@ public sealed partial class DebugViewModel : ObservableObject
     private static async Task<int> WaitForPidFileAsync(string pidFile, TimeSpan timeout)
     {
         using var cts = new CancellationTokenSource(timeout);
-        while (!cts.Token.IsCancellationRequested)
+        try
         {
-            if (System.IO.File.Exists(pidFile))
+            while (true)
             {
-                var content = await System.IO.File.ReadAllTextAsync(pidFile, cts.Token);
-                if (int.TryParse(content.Trim(), out var pid))
+                if (System.IO.File.Exists(pidFile))
                 {
-                    try { System.IO.File.Delete(pidFile); } catch { }
-                    return pid;
+                    var content = await System.IO.File.ReadAllTextAsync(pidFile, cts.Token);
+                    if (int.TryParse(content.Trim(), out var pid))
+                    {
+                        try { System.IO.File.Delete(pidFile); } catch { }
+                        return pid;
+                    }
                 }
+                await Task.Delay(100, cts.Token);
             }
-            await Task.Delay(100, cts.Token);
         }
-        throw new TimeoutException("Debuggee process did not start within the timeout period.");
+        catch (OperationCanceledException)
+        {
+            // Surface an honest, diagnosable error instead of "A task was canceled".
+            throw new TimeoutException(
+                $"Debuggee process did not start within {timeout.TotalSeconds:F0}s (no pid file at {pidFile}).");
+        }
     }
 }
