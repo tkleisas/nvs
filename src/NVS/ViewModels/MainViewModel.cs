@@ -97,10 +97,19 @@ public partial class MainViewModel : ObservableObject
     /// <summary>The command palette (Ctrl+Shift+P) view model.</summary>
     public CommandPaletteViewModel CommandPalette { get; private set; } = null!;
 
+    /// <summary>The inline AI edit popup (Ctrl+I) view model.</summary>
+    public InlineChatViewModel InlineChat { get; private set; } = null!;
+
     [RelayCommand]
     private void OpenCommandPalette()
     {
         CommandPalette.Open();
+    }
+
+    [RelayCommand]
+    private void OpenInlineChat()
+    {
+        InlineChat.Open();
     }
 
     private void RecordRecentWorkspace(string path)
@@ -182,6 +191,7 @@ public partial class MainViewModel : ObservableObject
         Editor = editor;
         Editor.DiagnosticsReceived = (path, diagnostics) => FindProblemsTool()?.SetLspDiagnostics(path, diagnostics);
         CommandPalette = new CommandPaletteViewModel(this);
+        InlineChat = new InlineChatViewModel(this);
 
         Git = new GitViewModel(gitService, this);
         BuildRun = new BuildRunViewModel(buildService, solutionService, this);

@@ -67,6 +67,9 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     public static readonly StyledProperty<ICommand?> OpenSearchCommandProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, ICommand?>(nameof(OpenSearchCommand));
 
+    public static readonly StyledProperty<EditorSelectionAdapter?> SelectionAdapterProperty =
+        AvaloniaProperty.Register<DocumentTextBindingBehavior, EditorSelectionAdapter?>(nameof(SelectionAdapter));
+
     public static readonly StyledProperty<ICommand?> OpenReplaceCommandProperty =
         AvaloniaProperty.Register<DocumentTextBindingBehavior, ICommand?>(nameof(OpenReplaceCommand));
 
@@ -140,6 +143,13 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
     {
         get => GetValue(OpenSearchCommandProperty);
         set => SetValue(OpenSearchCommandProperty, value);
+    }
+
+    /// <summary>Set by the behavior when attached; exposes selection/caret to the view model.</summary>
+    public EditorSelectionAdapter? SelectionAdapter
+    {
+        get => GetValue(SelectionAdapterProperty);
+        set => SetValue(SelectionAdapterProperty, value);
     }
 
     public ICommand? OpenReplaceCommand
@@ -230,6 +240,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         if (AssociatedObject is TextEditor textEditor)
         {
             _textEditor = textEditor;
+            SelectionAdapter = new EditorSelectionAdapter(textEditor);
             _textEditor.TextChanged += OnEditorTextChanged;
             _textEditor.TextArea.Caret.PositionChanged += OnCaretPositionChanged;
             _textEditor.TextArea.TextEntered += OnTextEntered;
@@ -319,6 +330,7 @@ public class DocumentTextBindingBehavior : Behavior<TextEditor>
         base.OnDetaching();
         if (_textEditor != null)
         {
+            SelectionAdapter = null;
             _textEditor.TextChanged -= OnEditorTextChanged;
             _textEditor.TextArea.Caret.PositionChanged -= OnCaretPositionChanged;
             _textEditor.TextArea.TextEntered -= OnTextEntered;

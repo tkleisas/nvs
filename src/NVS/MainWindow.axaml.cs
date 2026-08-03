@@ -80,6 +80,38 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnInlineChatKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not ViewModels.MainViewModel vm) return;
+
+        if (e.Key == Key.Enter)
+        {
+            vm.InlineChat.SubmitCommand.Execute(null);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            vm.InlineChat.Close();
+            e.Handled = true;
+        }
+    }
+
+    private void OnInlineChatBackdropPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is ViewModels.MainViewModel vm)
+        {
+            vm.InlineChat.Close();
+        }
+    }
+
+    private void OnInlineChatCancelClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is ViewModels.MainViewModel vm)
+        {
+            vm.InlineChat.Close();
+        }
+    }
+
     public void ApplyWindowSettings(WindowSettings settings)
     {
         _restoreWidth = settings.Width > 0 ? settings.Width : 1200;

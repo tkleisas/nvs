@@ -5,6 +5,7 @@
         xmlns:vm="clr-namespace:NVS.ViewModels"
         xmlns:dc="using:Dock.Avalonia.Controls"
         xmlns:conv="using:Avalonia.Data.Converters"
+        xmlns:cc="clr-namespace:NVS.Services.LLM;assembly=NVS.Services"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="NVS.MainWindow"
         x:DataType="vm:MainViewModel"
@@ -14,7 +15,8 @@
         Background="{DynamicResource AppBackgroundBrush}">
 
     <Window.KeyBindings>
-        <KeyBinding Gesture="Ctrl+Shift+P" Command="{Binding OpenCommandPaletteCommand}" />        <KeyBinding Gesture="Ctrl+N" Command="{Binding NewFileCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+P" Command="{Binding OpenCommandPaletteCommand}" />
+        <KeyBinding Gesture="Ctrl+I" Command="{Binding OpenInlineChatCommand}" />        <KeyBinding Gesture="Ctrl+N" Command="{Binding NewFileCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding NewProjectCommand}" />
         <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding OpenFolderCommand}" />
@@ -50,6 +52,12 @@
         </Style>
         <Style Selector="Border.error">
             <Setter Property="Background" Value="{DynamicResource InfoBarErrorBackgroundBrush}"/>
+        </Style>
+        <Style Selector="Border.deleted">
+            <Setter Property="Background" Value="#40F44747"/>
+        </Style>
+        <Style Selector="Border.added">
+            <Setter Property="Background" Value="#404EC9B0"/>
         </Style>
     </Window.Styles>
 
@@ -363,6 +371,52 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </Grid>
+            </Border>
+        </Grid>
+        <!-- Inline AI Edit (Ctrl+I) -->
+        <Grid Grid.Row="0" Grid.RowSpan="5" IsVisible="{Binding InlineChat.IsOpen}">
+            <Border Background="#80000000" PointerPressed="OnInlineChatBackdropPressed" />
+            <Border VerticalAlignment="Top" HorizontalAlignment="Center" Width="640" Margin="0,80,0,0"
+                    Background="{DynamicResource MenuBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Padding="10">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding InlineChat.ContextSummary}" FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
+                    <TextBox x:Name="InlineChatInput"
+                             Text="{Binding InlineChat.Instruction}"
+                             PlaceholderText="What should the AI do with this code? (Enter to submit)"
+                             KeyDown="OnInlineChatKeyDown"
+                             Background="{DynamicResource InputBackgroundBrush}"
+                             Foreground="{DynamicResource TextForegroundBrush}" />
+                    <ProgressBar Height="4" IsIndeterminate="True"
+                                 IsVisible="{Binding InlineChat.IsBusy}" />
+                    <ScrollViewer MaxHeight="320" IsVisible="{Binding InlineChat.HasPreview}">
+                        <ItemsControl ItemsSource="{Binding InlineChat.PreviewRows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="cc:DiffRow">
+                                    <Border Padding="4,0"
+                                            Classes.deleted="{Binding IsDeleted}"
+                                            Classes.added="{Binding IsAdded}">
+                                        <TextBlock FontFamily="Consolas,Courier New,monospace" FontSize="12"
+                                                   Foreground="{DynamicResource TextForegroundBrush}">
+                                            <Run Text="{Binding Prefix}" Foreground="{DynamicResource TextSecondaryForegroundBrush}" /><Run Text="{Binding Text}" />
+                                        </TextBlock>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <Grid ColumnDefinitions="*,Auto,Auto" IsVisible="{Binding InlineChat.HasPreview}">
+                        <TextBlock Grid.Column="0" Text="Apply this change?" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryForegroundBrush}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="Apply" Padding="14,4" Margin="4,0,0,0"
+                                Command="{Binding InlineChat.ApplyCommand}"
+                                Background="{DynamicResource AccentBrush}" Foreground="White" />
+                        <Button Grid.Column="2" Content="Cancel" Padding="14,4" Margin="4,0,0,0"
+                                Click="OnInlineChatCancelClick" />
+                    </Grid>
+                </StackPanel>
             </Border>
         </Grid>
     </Grid>

@@ -36,6 +36,68 @@ public sealed partial class GitViewModel : ObservableObject
     public bool HasStashes => Stashes.Count > 0;
     public bool HasTags => Tags.Count > 0;
 
+    /// <summary>Optional LLM factory for tests; defaults to the app's ILlmService from DI.</summary>
+    public Func<ILlmService?>? LlmServiceProvider { get; set; }
+
+    private ILlmService? ResolveLlm() =>
+        LlmServiceProvider?.Invoke()
+        ?? App.Current?.Services?.GetService(typeof(ILlmService)) as ILlmService;
+
+    [ObservableProperty]
+    private bool _isGeneratingMessage;
+
+    [RelayCommand]
+    private async Task GenerateCommitMessage()
+    {
+        var llm = ResolveLlm();
+        if (llm is null || !llm.IsConfigured)
+        {
+            _main.StatusMessage = "LLM is not configured — set it up in Settings → LLM";
+            return;
+        }
+
+        var patch = await _gitService.GetStagedPatchTextAsync();
+        if (string.IsNullOrWhiteSpace(patch))
+        {
+            _main.StatusMessage = "Nothing staged — stage changes to generate a message";
+            return;
+        }
+
+        IsGeneratingMessage = true;
+        try
+        {
+            var (system, user) = NVS.Services.LLM.CommitMessagePrompts.Build(patch, StagedFiles.Select(f => f.Path));
+            var response = await llm.SendAsync(new NVS.Core.LLM.ChatCompletionRequest
+            {
+                Model = string.Empty,
+                Messages =
+                [
+                    NVS.Core.LLM.ChatCompletionMessage.System(system),
+                    NVS.Core.LLM.ChatCompletionMessage.User(user)
+                ],
+                Stream = false,
+            });
+            var cleaned = NVS.Services.LLM.CommitMessagePrompts.Clean(response.Content);
+
+            if (string.IsNullOrWhiteSpace(cleaned))
+            {
+                _main.StatusMessage = "AI returned an empty commit message";
+            }
+            else
+            {
+                CommitMessage = cleaned;
+            }
+        }
+        catch (Exception ex)
+        {
+            _main.StatusMessage = $"AI commit message failed: {ex.Message}";
+        }
+        finally
+        {
+            IsGeneratingMessage = false;
+        }
+    }
+
     public ObservableCollection<GitFileStatus> ChangedFiles { get; } = [];
     public ObservableCollection<GitFileStatus> StagedFiles { get; } = [];
     public ObservableCollection<Branch> Branches { get; } = [];

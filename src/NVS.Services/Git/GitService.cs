@@ -631,6 +631,23 @@ public sealed class GitService : IGitService, IDisposable
         return Task.FromResult<IReadOnlyList<DiffHunk>>(hunks);
     }
 
+    public Task<string> GetStagedPatchTextAsync(int maxChars = 8000, CancellationToken cancellationToken = default)
+    {
+        if (_repo is null)
+            return Task.FromResult(string.Empty);
+
+        var headTree = _repo.Head?.Tip?.Tree;
+        var diff = _repo.Diff.Compare<Patch>(headTree, DiffTargets.Index);
+        var content = diff.Content;
+
+        if (content.Length > maxChars)
+        {
+            content = content[..maxChars] + "\n… (diff truncated)";
+        }
+
+        return Task.FromResult(content);
+    }
+
     public Task<string?> GetFileContentFromHeadAsync(string path, CancellationToken cancellationToken = default)
     {
         if (_repo is null)

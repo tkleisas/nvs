@@ -94,6 +94,7 @@
                                 RedoCommand="{Binding RedoCommand, Mode=OneWayToSource}"
                                 OpenSearchCommand="{Binding OpenSearchCommand, Mode=OneWayToSource}"
                                 OpenReplaceCommand="{Binding OpenReplaceCommand, Mode=OneWayToSource}"
+                                SelectionAdapter="{Binding Selection, Mode=OneWayToSource}"
                                 Diagnostics="{Binding Diagnostics}"
                                 GoToDefinitionCommand="{Binding GoToDefinitionCommand}"
                                 RequestCompletionCommand="{Binding RequestCompletionCommand}"

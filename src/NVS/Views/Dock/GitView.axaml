@@ -68,17 +68,22 @@
                          Background="{DynamicResource InputBackgroundBrush}"
                          Foreground="{DynamicResource TextForegroundBrush}"
                          BorderBrush="#555" />
-                <Grid ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,2">
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,2">
                     <Button Grid.Column="0" Content="✓ Commit"
                             Command="{Binding Main.Git.CommitCommand}"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Center"
                             Background="{DynamicResource AccentBrush}" Foreground="White" Padding="8,4" />
-                    <Button Grid.Column="1" Content="✎" Margin="4,0,0,0"
+                    <Button Grid.Column="1" Content="✨" Margin="4,0,0,0"
+                            Command="{Binding Main.Git.GenerateCommitMessageCommand}"
+                            IsEnabled="{Binding !Main.Git.IsGeneratingMessage}"
+                            ToolTip.Tip="Generate commit message from staged changes (AI)"
+                            Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource AccentBrush}" Padding="8,4" />
+                    <Button Grid.Column="2" Content="✎" Margin="4,0,0,0"
                             Command="{Binding Main.Git.AmendCommitCommand}"
                             ToolTip.Tip="Amend last commit"
                             Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource AccentBrush}" Padding="8,4" />
-                    <Button Grid.Column="2" Content="📦" Margin="4,0,0,0"
+                    <Button Grid.Column="3" Content="📦" Margin="4,0,0,0"
                             Command="{Binding Main.Git.StashSaveCommand}"
                             ToolTip.Tip="Stash Changes"
                             Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" Padding="8,4" />

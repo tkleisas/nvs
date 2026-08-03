@@ -876,6 +876,9 @@ public class DocumentViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>Selection/caret adapter set by the editor behavior (used by inline AI edit).</summary>
+    public Behaviors.IEditorSelection? Selection { get; set; }
+
     public ICommand? GoToDefinitionCommand
     {
         get => _goToDefinitionCommand;
