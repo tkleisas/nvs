@@ -31,12 +31,16 @@
             <x:Double x:Key="TreeViewItemIndent">12</x:Double>
         </TreeView.Resources>
         <TreeView.ContextMenu>
-            <ContextMenu>
+            <ContextMenu Opened="OnExplorerContextMenuOpened">
                 <MenuItem Header="New File..." Click="OnNewFileInExplorerClick" />
                 <MenuItem Header="New Folder..." Click="OnNewFolderInExplorerClick" />
                 <MenuItem Header="Add Project..." Click="OnAddProjectClick" />
                 <Separator />
                 <MenuItem Header="Set as Startup Project" Click="OnSetStartupProjectClick" />
+                <Separator />
+                <MenuItem Header="Generate Dockerfile" Tag="ContainerProject" Click="OnGenerateDockerfileForNodeClick" />
+                <MenuItem Header="Build Container Image" Tag="ContainerProject" Click="OnBuildContainerImageForNodeClick" />
+                <MenuItem Header="Generate docker-compose.yml" Tag="ContainerSolution" Click="OnGenerateComposeClick" />
                 <Separator />
                 <MenuItem Header="Rename..." Click="OnRenameInExplorerClick" />
                 <MenuItem Header="Delete" Click="OnDeleteInExplorerClick" />

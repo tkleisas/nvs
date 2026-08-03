@@ -216,6 +216,79 @@ public partial class ExplorerView : UserControl
         main.StatusMessage = $"Startup project: {projectName}";
     }
 
+    private NVS.Core.Models.ProjectModel? GetProjectForNode(FileTreeNode? node)
+    {
+        if (node is null || !node.IsDirectory) return null;
+
+        return GetMain()?.SolutionService.GetLoadedProjects().FirstOrDefault(p =>
+            p.IsExecutable
+            && string.Equals(
+                System.IO.Path.GetDirectoryName(p.FilePath),
+                node.Path,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void OnExplorerContextMenuOpened(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not ContextMenu menu) return;
+
+        var hasProject = GetProjectForNode(GetSelectedTreeNode()) is not null;
+        var hasSolution = GetMain()?.SolutionService.CurrentSolution is not null;
+
+        foreach (var item in menu.Items)
+        {
+            switch (item)
+            {
+                case MenuItem { Tag: "ContainerProject" } mi:
+                    mi.IsVisible = hasProject;
+                    break;
+                case MenuItem { Tag: "ContainerSolution" } mi:
+                    mi.IsVisible = hasSolution;
+                    break;
+            }
+        }
+    }
+
+    private void OnGenerateDockerfileForNodeClick(object? sender, RoutedEventArgs e)
+    {
+        var project = GetProjectForNode(GetSelectedTreeNode());
+        var main = GetMain();
+        if (project is null || main is null) return;
+
+        try
+        {
+            var projectDir = System.IO.Path.GetDirectoryName(project.FilePath)!;
+            var path = System.IO.Path.Combine(projectDir, "Dockerfile");
+            if (System.IO.File.Exists(path))
+            {
+                main.StatusMessage = $"Dockerfile already exists: {path} — not overwriting";
+                return;
+            }
+
+            var content = NVS.Services.Containers.DockerfileScaffolder.GenerateDotNetDockerfile(project);
+            System.IO.File.WriteAllText(path, content);
+            main.StatusMessage = $"Dockerfile created: {path}";
+        }
+        catch (Exception ex)
+        {
+            main.StatusMessage = $"Failed to write Dockerfile: {ex.Message}";
+        }
+    }
+
+    private async void OnBuildContainerImageForNodeClick(object? sender, RoutedEventArgs e)
+    {
+        var project = GetProjectForNode(GetSelectedTreeNode());
+        var main = GetMain();
+        if (project is null || main is null) return;
+
+        await main.BuildContainerImageForProjectAsync(project);
+    }
+
+    private void OnGenerateComposeClick(object? sender, RoutedEventArgs e)
+    {
+        GetMain()?.GenerateComposeFileCommand.Execute(null);
+    }
+
     private async Task RefreshExplorer()
     {
         if (GetMain() is { } main)

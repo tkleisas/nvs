@@ -994,6 +994,60 @@ public partial class MainViewModel : ObservableObject
         _dockFactory?.ShowToolInBottomDock(_dockFactory.ContainersTool);
     }
 
+    // --- Container actions (also reachable from the command palette) ---
+
+    [RelayCommand]
+    private void GenerateDockerfiles()
+    {
+        _dockFactory?.ContainersTool?.GenerateDockerfilesForAllProjects();
+    }
+
+    [RelayCommand]
+    private async Task BuildContainerImages()
+    {
+        if (_dockFactory?.ContainersTool is { } tool)
+        {
+            await tool.BuildAllDockerfilesAsync();
+        }
+    }
+
+    [RelayCommand]
+    private void GenerateComposeFile()
+    {
+        _dockFactory?.ContainersTool?.NewComposeFileCommand.Execute(null);
+    }
+
+    [RelayCommand]
+    private async Task ComposeUpContainers()
+    {
+        if (_dockFactory?.ContainersTool is { } tool)
+        {
+            await tool.ComposeUpCommand.ExecuteAsync(null);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ComposeDownContainers()
+    {
+        if (_dockFactory?.ContainersTool is { } tool)
+        {
+            await tool.ComposeDownCommand.ExecuteAsync(null);
+        }
+    }
+
+    /// <summary>Builds the container image for one project (Explorer context menu).</summary>
+    public async Task BuildContainerImageForProjectAsync(NVS.Core.Models.ProjectModel project)
+    {
+        if (_dockFactory?.ContainersTool is { } tool)
+        {
+            await tool.BuildDockerfileAsync(project);
+        }
+        else
+        {
+            StatusMessage = "Container support unavailable";
+        }
+    }
+
     [RelayCommand]
     private void ShowLlmChat()
     {

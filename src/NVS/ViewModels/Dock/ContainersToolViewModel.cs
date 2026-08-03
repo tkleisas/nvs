@@ -235,8 +235,14 @@ public partial class ContainersToolViewModel : Tool
         try
         {
             var solutionDir = Path.GetDirectoryName(solution.FilePath)!;
-            var content = DockerfileScaffolder.GenerateCompose(solution.Name, solutionDir, _main.SolutionService.GetLoadedProjects());
             var path = Path.Combine(solutionDir, "docker-compose.yml");
+            if (File.Exists(path))
+            {
+                StatusText = $"docker-compose.yml already exists: {path} — not overwriting";
+                return;
+            }
+
+            var content = DockerfileScaffolder.GenerateCompose(solution.Name, solutionDir, _main.SolutionService.GetLoadedProjects());
             File.WriteAllText(path, content);
             StatusText = $"docker-compose.yml created: {path}";
             _main.StatusMessage = StatusText;
@@ -246,6 +252,125 @@ public partial class ContainersToolViewModel : Tool
             StatusText = $"Failed to write compose file: {ex.Message}";
         }
     }
+
+    /// <summary>
+    /// Dialog-free scaffolding: generates a Dockerfile for every executable project
+    /// that doesn't already have one. Returns the number of files created.
+    /// </summary>
+    public int GenerateDockerfilesForAllProjects()
+    {
+        var created = 0;
+        foreach (var project in _main.SolutionService.GetLoadedProjects().Where(p => p.IsExecutable))
+        {
+            var projectDir = Path.GetDirectoryName(project.FilePath)!;
+            var path = Path.Combine(projectDir, "Dockerfile");
+            if (File.Exists(path))
+            {
+                continue;
+            }
+
+            try
+            {
+                File.WriteAllText(path, DockerfileScaffolder.GenerateDotNetDockerfile(project));
+                created++;
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning(ex, "Failed to write Dockerfile for {Project}", project.Name);
+            }
+        }
+
+        StatusText = created > 0
+            ? $"Created {created} Dockerfile(s)"
+            : "No executable projects missing a Dockerfile";
+        _main.StatusMessage = StatusText;
+        return created;
+    }
+
+    /// <summary>
+    /// Dialog-free build: builds every Dockerfile found in loaded project directories,
+    /// tagging images as &lt;projectname&gt;:latest. Streams output to the Build panel.
+    /// </summary>
+    public async Task<int> BuildAllDockerfilesAsync()
+    {
+        if (!IsEngineAvailable)
+        {
+            StatusText = "No container engine detected";
+            return 0;
+        }
+
+        var dockerfiles = _main.SolutionService.GetLoadedProjects()
+            .Where(p => p.IsExecutable)
+            .Select(p => (Project: p, Path: Path.Combine(Path.GetDirectoryName(p.FilePath)!, "Dockerfile")))
+            .Where(x => File.Exists(x.Path))
+            .ToList();
+
+        if (dockerfiles.Count == 0)
+        {
+            StatusText = "No Dockerfiles in project directories — generate them first";
+            return 0;
+        }
+
+        IsBusy = true;
+        var built = 0;
+        try
+        {
+            foreach (var (project, dockerfile) in dockerfiles)
+            {
+                if (await BuildDockerfileAsync(project))
+                {
+                    built++;
+                }
+            }
+
+            StatusText = $"Built {built}/{dockerfiles.Count} image(s)";
+            _main.StatusMessage = StatusText;
+            await RefreshListsAsync();
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        return built;
+    }
+
+    /// <summary>Builds a single project's Dockerfile as &lt;projectname&gt;:latest. Returns success.</summary>
+    public async Task<bool> BuildDockerfileAsync(ProjectModel project)
+    {
+        if (!IsEngineAvailable)
+        {
+            StatusText = "No container engine detected";
+            return false;
+        }
+
+        var projectDir = Path.GetDirectoryName(project.FilePath)!;
+        var dockerfile = Path.Combine(projectDir, "Dockerfile");
+        if (!File.Exists(dockerfile))
+        {
+            StatusText = $"No Dockerfile in {projectDir} — generate it first";
+            return false;
+        }
+
+        var tag = $"{project.Name.ToLowerInvariant()}:latest";
+        _main.FindBuildOutputTool()?.AppendOutput($"── docker build {tag} ──", isError: false);
+        var result = await _containerService.BuildImageAsync(
+            dockerfile,
+            tag,
+            projectDir,
+            line => _main.FindBuildOutputTool()?.AppendOutput(line, isError: false));
+
+        if (!result.Success)
+        {
+            _main.FindBuildOutputTool()?.AppendOutput(result.Message, isError: true);
+        }
+
+        StatusText = result.Message;
+        _main.StatusMessage = result.Message;
+        await RefreshListsAsync();
+        return result.Success;
+    }
+
 
     [RelayCommand]
     private async Task ComposeUp()
