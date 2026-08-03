@@ -23,7 +23,11 @@ public sealed partial class ExplorerViewModel : ObservableObject
     {
         _fileSystemService = fileSystemService;
         _main = main;
+        FileTree.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsTreeEmpty));
     }
+
+    /// <summary>Whether no workspace tree is loaded (drives the explorer empty state).</summary>
+    public bool IsTreeEmpty => FileTree.Count == 0;
 
     /// <summary>Loads the plain directory tree for a workspace folder.</summary>
     public async Task LoadFileTreeAsync(string folderPath)

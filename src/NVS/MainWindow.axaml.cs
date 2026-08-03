@@ -110,7 +110,7 @@ public partial class MainWindow : Window
             Y = _restoreY,
         };
 
-        var dockSettings = ExtractDockProportions();
+        var dockSettings = ExtractDockProportions(settingsService.AppSettings.Dock);
 
         var mainVm = DataContext as MainViewModel;
 
@@ -131,7 +131,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private DockLayoutSettings ExtractDockProportions()
+    private DockLayoutSettings ExtractDockProportions(DockLayoutSettings current)
     {
         if (DataContext is MainViewModel vm && vm.DockLayout is IRootDock root)
         {
@@ -143,8 +143,9 @@ public partial class MainWindow : Window
                     && homeDock.VisibleDockables[0] is IProportionalDock mainLayout
                     && mainLayout.VisibleDockables?.Count >= 3)
                 {
-                    double leftProp = 0.22;
-                    double bottomProp = 0.25;
+                    double leftProp = current.LeftPanelProportion;
+                    double bottomProp = current.BottomPanelProportion;
+                    double rightProp = current.RightPanelProportion;
 
                     if (mainLayout.VisibleDockables[0] is IProportionalDock leftDock)
                     {
@@ -158,20 +159,28 @@ public partial class MainWindow : Window
                         bottomProp = bottomDock.Proportion;
                     }
 
+                    // The right (chat) dock may be hidden; keep the previous value then.
+                    if (mainLayout.VisibleDockables.Count >= 5
+                        && mainLayout.VisibleDockables[4] is IProportionalDock rightDock)
+                    {
+                        rightProp = rightDock.Proportion;
+                    }
+
                     return new DockLayoutSettings
                     {
                         LeftPanelProportion = leftProp,
                         BottomPanelProportion = bottomProp,
+                        RightPanelProportion = rightProp,
                     };
                 }
             }
             catch
             {
-                // Fall through to defaults
+                // Fall through to current values
             }
         }
 
-        return new DockLayoutSettings();
+        return current;
     }
 
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)

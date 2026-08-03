@@ -32,7 +32,7 @@
                     BorderThickness="0">
             <TabControl.ItemTemplate>
                 <DataTemplate DataType="vm:DocumentViewModel">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding Tooltip}">
                         <TextBlock Text="{Binding Title}" FontSize="12" VerticalAlignment="Center"/>
                         <Button Command="{Binding CloseTabCommand}"
                                 Background="Transparent"
@@ -127,7 +127,7 @@
                     IsVisible="{Binding Main.Editor.IsSplitActive}">
             <TabControl.ItemTemplate>
                 <DataTemplate DataType="vm:DocumentViewModel">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{Binding Tooltip}">
                         <TextBlock Text="{Binding Title}" FontSize="12" VerticalAlignment="Center"/>
                     </StackPanel>
                 </DataTemplate>

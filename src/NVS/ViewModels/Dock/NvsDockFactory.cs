@@ -15,12 +15,24 @@ public sealed class NvsDockFactory : Factory
     private readonly NVS.Core.Models.Settings.DockLayoutSettings _dockSettings;
     private IRootDock? _rootDock;
     private IDocumentDock? _documentDock;
+    private ProportionalDock? _mainLayout;
+    private ProportionalDock? _rightDock;
+    private ProportionalDockSplitter? _rightSplitter;
+    private ToolDock? _bottomToolDock;
+    private TerminalToolViewModel? _terminalTool;
+    private NuGetToolViewModel? _nugetTool;
+    private HelpToolViewModel? _helpTool;
+    private CodeMetricsToolViewModel? _codeMetricsTool;
 
     public DiffViewerToolViewModel? DiffViewer { get; private set; }
     public ConflictResolverToolViewModel? ConflictResolver { get; private set; }
     public LlmChatToolViewModel? LlmChat { get; private set; }
     public DatabaseExplorerToolViewModel? DatabaseExplorer { get; private set; }
     public ApiClientToolViewModel? ApiClient { get; private set; }
+    public TerminalToolViewModel? TerminalTool => _terminalTool;
+    public NuGetToolViewModel? NuGetTool => _nugetTool;
+    public HelpToolViewModel? HelpTool => _helpTool;
+    public CodeMetricsToolViewModel? CodeMetricsTool => _codeMetricsTool;
     public NvsDockFactory(MainViewModel main, NVS.Core.Models.Settings.DockLayoutSettings? dockSettings = null)
     {
         _main = main;
@@ -65,21 +77,29 @@ public sealed class NvsDockFactory : Factory
             ),
         };
 
+        var bottomToolDock = new ToolDock
+        {
+            ActiveDockable = terminal,
+            VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, nuget, codeMetrics, help, conflictResolver),
+            Alignment = Alignment.Bottom,
+            GripMode = GripMode.Visible,
+        };
+        _bottomToolDock = bottomToolDock;
+
         var bottomDock = new ProportionalDock
         {
             Proportion = _dockSettings.BottomPanelProportion,
             Orientation = Orientation.Horizontal,
             VisibleDockables = CreateList<IDockable>
             (
-                new ToolDock
-                {
-                    ActiveDockable = terminal,
-                    VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, nuget, codeMetrics, help, conflictResolver),
-                    Alignment = Alignment.Bottom,
-                    GripMode = GripMode.Visible,
-                }
+                bottomToolDock
             ),
         };
+
+        _terminalTool = terminal;
+        _nugetTool = nuget;
+        _helpTool = help;
+        _codeMetricsTool = codeMetrics;
 
         var documentDock = new DocumentDock
         {
@@ -103,7 +123,7 @@ public sealed class NvsDockFactory : Factory
 
         var rightDock = new ProportionalDock
         {
-            Proportion = 0.22,
+            Proportion = _dockSettings.RightPanelProportion,
             Orientation = Orientation.Vertical,
             VisibleDockables = CreateList<IDockable>
             (
@@ -117,6 +137,8 @@ public sealed class NvsDockFactory : Factory
             ),
         };
 
+        var rightSplitter = new ProportionalDockSplitter();
+
         var mainLayout = new ProportionalDock
         {
             Orientation = Orientation.Horizontal,
@@ -125,10 +147,21 @@ public sealed class NvsDockFactory : Factory
                 leftDock,
                 new ProportionalDockSplitter(),
                 centerWithBottom,
-                new ProportionalDockSplitter(),
+                rightSplitter,
                 rightDock
             )
         };
+
+        _mainLayout = mainLayout;
+        _rightDock = rightDock;
+        _rightSplitter = rightSplitter;
+
+        // Honor the "Enable AI chat panel" setting at startup
+        if (!_main.SettingsService.AppSettings.Llm.EnableChat)
+        {
+            mainLayout.VisibleDockables.Remove(rightSplitter);
+            mainLayout.VisibleDockables.Remove(rightDock);
+        }
 
         var homeView = new HomeViewModel
         {
@@ -211,6 +244,66 @@ public sealed class NvsDockFactory : Factory
         }
 
         return document;
+    }
+
+    /// <summary>Shows or hides the right-side LLM chat panel (Settings → LLM → Enable chat panel).</summary>
+    public void SetChatPanelVisible(bool visible)
+    {
+        if (_mainLayout?.VisibleDockables is null || _rightDock is null || _rightSplitter is null)
+        {
+            return;
+        }
+
+        var isVisible = _mainLayout.VisibleDockables.Contains(_rightDock);
+        if (visible == isVisible)
+        {
+            return;
+        }
+
+        if (visible)
+        {
+            _mainLayout.VisibleDockables.Add(_rightSplitter);
+            _mainLayout.VisibleDockables.Add(_rightDock);
+        }
+        else
+        {
+            _mainLayout.VisibleDockables.Remove(_rightSplitter);
+            _mainLayout.VisibleDockables.Remove(_rightDock);
+        }
+    }
+
+    /// <summary>Shows the LLM chat panel (un-hiding it first when disabled) and activates it.</summary>
+    public void ShowLlmChat()
+    {
+        SetChatPanelVisible(true);
+        if (_rightDock?.VisibleDockables?.Count > 0 && LlmChat is not null)
+        {
+            var toolDock = _rightDock.VisibleDockables
+                .OfType<ToolDock>()
+                .FirstOrDefault(d => d.VisibleDockables?.Contains(LlmChat) == true);
+            if (toolDock is not null)
+            {
+                toolDock.ActiveDockable = LlmChat;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Shows a bottom-dock tool, re-adding it first if the user previously closed it.
+    /// </summary>
+    public void ShowToolInBottomDock(IDockable? tool)
+    {
+        if (tool is null || _bottomToolDock?.VisibleDockables is null)
+        {
+            return;
+        }
+
+        if (!_bottomToolDock.VisibleDockables.Contains(tool))
+        {
+            _bottomToolDock.VisibleDockables.Add(tool);
+        }
+
+        _bottomToolDock.ActiveDockable = tool;
     }
 
     public override IDockWindow? CreateWindowFrom(IDockable dockable)

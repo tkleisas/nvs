@@ -8,6 +8,9 @@ public sealed record AppSettings
     public bool CheckUpdatesOnStartup { get; init; } = false;
     public bool RestorePreviousSession { get; init; } = true;
     public string? LastWorkspacePath { get; init; }
+
+    /// <summary>Recently opened workspaces/solutions, most recent first (max 10).</summary>
+    public IReadOnlyList<string> RecentWorkspaces { get; init; } = [];
     public EditorSettings Editor { get; init; } = new();
     public TerminalSettings Terminal { get; init; } = new();
     public WindowSettings Window { get; init; } = new();

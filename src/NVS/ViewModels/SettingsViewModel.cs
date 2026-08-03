@@ -141,6 +141,17 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         _themeService?.AvailableThemes.Select(t => t.Name).ToList()
         ?? ["NVS Dark"];
 
+    private string _originalTheme = "NVS Dark";
+
+    /// <summary>
+    /// Reverts the live theme preview applied while the settings window was open
+    /// (called when the user cancels without saving).
+    /// </summary>
+    public void RevertThemePreview()
+    {
+        SelectedTheme = _originalTheme;
+    }
+
     // Editor properties
     public int FontSize
     {
@@ -318,6 +329,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         RestorePreviousSession = settings.RestorePreviousSession;
         CheckUpdatesOnStartup = settings.CheckUpdatesOnStartup;
         _selectedTheme = _themeService?.CurrentTheme.Name ?? settings.Theme;
+        _originalTheme = _selectedTheme;
         OnPropertyChanged(nameof(SelectedTheme));
 
         // Editor

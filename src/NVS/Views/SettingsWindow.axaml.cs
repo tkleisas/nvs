@@ -21,6 +21,10 @@ public partial class SettingsWindow : Window
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)
     {
+        if (DataContext is ViewModels.SettingsViewModel vm)
+        {
+            vm.RevertThemePreview();
+        }
         Close();
     }
 }

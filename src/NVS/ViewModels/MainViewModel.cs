@@ -72,6 +72,33 @@ public partial class MainViewModel : ObservableObject
         ConflictResolver = _dockFactory.ConflictResolver;
         DatabaseExplorer = _dockFactory.DatabaseExplorer;
         ApiClient = _dockFactory.ApiClient;
+
+        SettingsService.AppSettingsChanged += (_, settings) =>
+        {
+            _dockFactory?.SetChatPanelVisible(settings.Llm.EnableChat);
+            OnPropertyChanged(nameof(EditorTabSize));
+        };
+    }
+
+    /// <summary>Editor tab size from settings, shown in the status bar.</summary>
+    public int EditorTabSize => SettingsService.AppSettings.Editor.TabSize;
+
+    private void RecordRecentWorkspace(string path)
+    {
+        var current = SettingsService.AppSettings;
+        var recents = new List<string> { path };
+        foreach (var recent in current.RecentWorkspaces)
+        {
+            if (!string.Equals(recent, path, StringComparison.OrdinalIgnoreCase) && recents.Count < 10)
+            {
+                recents.Add(recent);
+            }
+        }
+
+        if (!recents.SequenceEqual(current.RecentWorkspaces))
+        {
+            _ = SettingsService.SaveAppSettingsAsync(current with { RecentWorkspaces = recents });
+        }
     }
 
     private DatabaseExplorerToolViewModel? _databaseExplorer;
@@ -373,6 +400,7 @@ public partial class MainViewModel : ObservableObject
             WorkspacePath = solutionDir;
             IsWorkspaceOpen = true;
             Title = $"NVS - {Path.GetFileNameWithoutExtension(solutionPath)}";
+            RecordRecentWorkspace(solutionDir);
 
             await Explorer.LoadFileTreeAsync(solutionDir);
             await Git.InitializeAsync(solutionDir);
@@ -403,6 +431,7 @@ public partial class MainViewModel : ObservableObject
         WorkspacePath = solutionDir;
         IsWorkspaceOpen = true;
         Title = $"NVS - {Path.GetFileNameWithoutExtension(solutionPath)}";
+        RecordRecentWorkspace(solutionDir);
 
         await Explorer.LoadFileTreeAsync(solutionDir);
         await Git.InitializeAsync(solutionDir);
@@ -445,6 +474,7 @@ public partial class MainViewModel : ObservableObject
         IsWorkspaceOpen = true;
         StatusMessage = $"Opened: {folderPath}";
         Title = $"NVS - {Path.GetFileName(folderPath)}";
+        RecordRecentWorkspace(folderPath);
 
         await Explorer.LoadFileTreeAsync(folderPath);
         await Git.InitializeAsync(folderPath);
@@ -922,17 +952,46 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ShowHelp()
     {
-        var help = FindToolInDock<HelpToolViewModel>();
-        if (help is not null)
-            ActivateToolInDock(help);
+        _dockFactory?.ShowToolInBottomDock(_dockFactory.HelpTool);
     }
 
     [RelayCommand]
     private void ShowCodeMetrics()
     {
-        var metrics = FindToolInDock<CodeMetricsToolViewModel>();
-        if (metrics is not null)
-            ActivateToolInDock(metrics);
+        _dockFactory?.ShowToolInBottomDock(_dockFactory.CodeMetricsTool);
+    }
+
+    [RelayCommand]
+    private void ShowNuGet()
+    {
+        _dockFactory?.ShowToolInBottomDock(_dockFactory.NuGetTool);
+    }
+
+    [RelayCommand]
+    private void ShowLlmChat()
+    {
+        _dockFactory?.ShowLlmChat();
+    }
+
+    [RelayCommand]
+    private void ShowProblems() => ShowExistingTool<ProblemsToolViewModel>();
+
+    [RelayCommand]
+    private void ShowBuildOutput() => ShowExistingTool<BuildOutputToolViewModel>();
+
+    [RelayCommand]
+    private void ShowCallStack() => ShowExistingTool<CallStackToolViewModel>();
+
+    [RelayCommand]
+    private void ShowVariables() => ShowExistingTool<VariablesToolViewModel>();
+
+    private void ShowExistingTool<T>() where T : class, IDockable
+    {
+        var tool = FindToolInDock<T>();
+        if (tool is not null)
+        {
+            ActivateToolInDock(tool);
+        }
     }
 
     [RelayCommand]

@@ -27,6 +27,37 @@ public partial class ExplorerView : UserControl
         }
     }
 
+    private async void OnFileTreeKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.F2)
+        {
+            OnRenameInExplorerClick(sender, e);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Delete)
+        {
+            OnDeleteInExplorerClick(sender, e);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter)
+        {
+            if (FileTreeView.SelectedItem is FileTreeNode node && !node.IsDirectory && GetMain() is { } main)
+            {
+                await main.Explorer.OpenFileFromTreeCommand.ExecuteAsync(node);
+            }
+            e.Handled = true;
+        }
+    }
+
+    private static void ReportIoError(MainViewModel? main, string operation, Exception ex)
+    {
+        if (main is not null)
+        {
+            main.StatusMessage = $"{operation} failed: {ex.Message}";
+        }
+        Serilog.Log.Warning(ex, "Explorer IO operation failed: {Operation}", operation);
+    }
+
     private FileTreeNode? GetSelectedTreeNode() => FileTreeView.SelectedItem as FileTreeNode;
 
     private string GetContextDirectory()
@@ -54,10 +85,17 @@ public partial class ExplorerView : UserControl
         var name = await DialogHelper.PromptForNameAsync(window, "New File", "File name:");
         if (string.IsNullOrWhiteSpace(name)) return;
 
-        var filePath = System.IO.Path.Combine(dir, name);
-        await System.IO.File.WriteAllTextAsync(filePath, "");
-        await RefreshExplorer();
-        if (GetMain() is { } main) main.StatusMessage = $"Created: {name}";
+        try
+        {
+            var filePath = System.IO.Path.Combine(dir, name);
+            await System.IO.File.WriteAllTextAsync(filePath, "");
+            await RefreshExplorer();
+            if (GetMain() is { } main) main.StatusMessage = $"Created: {name}";
+        }
+        catch (Exception ex)
+        {
+            ReportIoError(GetMain(), "Create file", ex);
+        }
     }
 
     private async void OnNewFolderInExplorerClick(object? sender, RoutedEventArgs e)
@@ -71,9 +109,16 @@ public partial class ExplorerView : UserControl
         var name = await DialogHelper.PromptForNameAsync(window, "New Folder", "Folder name:");
         if (string.IsNullOrWhiteSpace(name)) return;
 
-        System.IO.Directory.CreateDirectory(System.IO.Path.Combine(dir, name));
-        await RefreshExplorer();
-        if (GetMain() is { } main) main.StatusMessage = $"Created folder: {name}";
+        try
+        {
+            System.IO.Directory.CreateDirectory(System.IO.Path.Combine(dir, name));
+            await RefreshExplorer();
+            if (GetMain() is { } main) main.StatusMessage = $"Created folder: {name}";
+        }
+        catch (Exception ex)
+        {
+            ReportIoError(GetMain(), "Create folder", ex);
+        }
     }
 
     private async void OnRenameInExplorerClick(object? sender, RoutedEventArgs e)
@@ -87,16 +132,23 @@ public partial class ExplorerView : UserControl
         var newName = await DialogHelper.PromptForNameAsync(window, "Rename", "New name:", node.Name);
         if (string.IsNullOrWhiteSpace(newName) || newName == node.Name) return;
 
-        var parentDir = System.IO.Path.GetDirectoryName(node.Path) ?? "";
-        var newPath = System.IO.Path.Combine(parentDir, newName);
+        try
+        {
+            var parentDir = System.IO.Path.GetDirectoryName(node.Path) ?? "";
+            var newPath = System.IO.Path.Combine(parentDir, newName);
 
-        if (node.IsDirectory)
-            System.IO.Directory.Move(node.Path, newPath);
-        else
-            System.IO.File.Move(node.Path, newPath);
+            if (node.IsDirectory)
+                System.IO.Directory.Move(node.Path, newPath);
+            else
+                System.IO.File.Move(node.Path, newPath);
 
-        await RefreshExplorer();
-        if (GetMain() is { } main) main.StatusMessage = $"Renamed to: {newName}";
+            await RefreshExplorer();
+            if (GetMain() is { } main) main.StatusMessage = $"Renamed to: {newName}";
+        }
+        catch (Exception ex)
+        {
+            ReportIoError(GetMain(), "Rename", ex);
+        }
     }
 
     private async void OnDeleteInExplorerClick(object? sender, RoutedEventArgs e)
@@ -110,13 +162,20 @@ public partial class ExplorerView : UserControl
         var confirmed = await DialogHelper.ConfirmDeleteAsync(window, node.Name);
         if (!confirmed) return;
 
-        if (node.IsDirectory)
-            System.IO.Directory.Delete(node.Path, recursive: true);
-        else
-            System.IO.File.Delete(node.Path);
+        try
+        {
+            if (node.IsDirectory)
+                System.IO.Directory.Delete(node.Path, recursive: true);
+            else
+                System.IO.File.Delete(node.Path);
 
-        await RefreshExplorer();
-        if (GetMain() is { } main) main.StatusMessage = $"Deleted: {node.Name}";
+            await RefreshExplorer();
+            if (GetMain() is { } main) main.StatusMessage = $"Deleted: {node.Name}";
+        }
+        catch (Exception ex)
+        {
+            ReportIoError(GetMain(), "Delete", ex);
+        }
     }
 
     private async void OnRefreshExplorerClick(object? sender, RoutedEventArgs e)

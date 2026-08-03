@@ -43,6 +43,23 @@
                 </StackPanel>
             </StackPanel>
 
+            <!-- Recent Workspaces -->
+            <StackPanel Spacing="6" IsVisible="{Binding HasRecents}">
+                <TextBlock Text="Recent" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource EditorForegroundBrush}" />
+                <ItemsControl ItemsSource="{Binding RecentWorkspaces}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding}"
+                                    Command="{Binding $parent[ItemsControl].DataContext.OpenRecentCommand}"
+                                    CommandParameter="{Binding}"
+                                    Background="Transparent" Foreground="{DynamicResource AccentBrush}"
+                                    Padding="4,2" HorizontalAlignment="Left"
+                                    FontSize="12" Cursor="Hand" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
             <!-- Keyboard Shortcuts Quick Reference -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Essential Shortcuts" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource EditorForegroundBrush}" />

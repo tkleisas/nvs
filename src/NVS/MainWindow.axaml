@@ -4,6 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:NVS.ViewModels"
         xmlns:dc="using:Dock.Avalonia.Controls"
+        xmlns:conv="using:Avalonia.Data.Converters"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="NVS.MainWindow"
         x:DataType="vm:MainViewModel"
@@ -79,6 +80,13 @@
                 <MenuItem Header="_Database Explorer" Command="{Binding ShowDatabaseExplorerCommand}" />
                 <MenuItem Header="_API Client" Command="{Binding ShowApiClientCommand}" />
                 <MenuItem Header="_Code Metrics" Command="{Binding ShowCodeMetricsCommand}" />
+                <MenuItem Header="AI _Chat" Command="{Binding ShowLlmChatCommand}" />
+                <Separator />
+                <MenuItem Header="_Problems" Command="{Binding ShowProblemsCommand}" />
+                <MenuItem Header="_Build Output" Command="{Binding ShowBuildOutputCommand}" />
+                <MenuItem Header="Call _Stack" Command="{Binding ShowCallStackCommand}" />
+                <MenuItem Header="_Variables" Command="{Binding ShowVariablesCommand}" />
+                <MenuItem Header="_NuGet" Command="{Binding ShowNuGetCommand}" />
                 <Separator />
                 <MenuItem Header="_Terminal" Command="{Binding Terminal.ToggleCommand}" InputGesture="Ctrl+OemTilde" />
                 <Separator />
@@ -297,8 +305,10 @@
         <Border Grid.Row="4" Background="{DynamicResource StatusBarBackgroundBrush}" Padding="8,4">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
-                    <TextBlock Text="{Binding Git.CurrentBranch}" FontWeight="Bold" Foreground="White" />
-                    <TextBlock Text="|" Foreground="#80FFFFFF" />
+                    <TextBlock Text="{Binding Git.CurrentBranch}" FontWeight="Bold" Foreground="White"
+                               IsVisible="{Binding Git.CurrentBranch, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Text="|" Foreground="#80FFFFFF"
+                               IsVisible="{Binding Git.CurrentBranch, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
                     <TextBlock Text="{Binding Editor.DiagnosticSummary}" Foreground="White" />
                 </StackPanel>
                 <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" HorizontalAlignment="Center" Foreground="White" />
@@ -307,8 +317,7 @@
                     <TextBlock Text="|" Foreground="#80FFFFFF" />
                     <TextBlock Text="{Binding Editor.CursorLine, StringFormat='Ln {0}'}" Foreground="White" />
                     <TextBlock Text="{Binding Editor.CursorColumn, StringFormat='Col {0}'}" Foreground="White" />
-                    <TextBlock Text="Spaces: 4" Foreground="White" />
-                    <TextBlock Text="UTF-8" Foreground="White" />
+                    <TextBlock Text="{Binding EditorTabSize, StringFormat='Spaces: {0}'}" Foreground="White" />
                 </StackPanel>
             </Grid>
         </Border>

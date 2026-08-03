@@ -8,10 +8,25 @@
              x:Class="NVS.Views.Dock.ExplorerView"
              x:DataType="dock:ExplorerToolViewModel">
 
-    <TreeView Padding="4" Background="Transparent"
-              ItemsSource="{Binding Main.Explorer.FileTree}"
-              DoubleTapped="OnFileTreeDoubleTapped"
-              x:Name="FileTreeView">
+    <Grid>
+        <!-- Empty state: no workspace open -->
+        <StackPanel IsVisible="{Binding Main.Explorer.IsTreeEmpty}"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8" Margin="16">
+            <TextBlock Text="No folder opened" FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextForegroundBrush}" HorizontalAlignment="Center" />
+            <TextBlock Text="Open a folder or solution to browse files here."
+                       Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="11"
+                       TextWrapping="Wrap" TextAlignment="Center" />
+            <Button Content="Open Folder..." Command="{Binding Main.OpenFolderCommand}"
+                    HorizontalAlignment="Center" Padding="12,5" />
+        </StackPanel>
+
+        <TreeView Padding="4" Background="Transparent"
+                  ItemsSource="{Binding Main.Explorer.FileTree}"
+                  DoubleTapped="OnFileTreeDoubleTapped"
+                  KeyDown="OnFileTreeKeyDown"
+                  IsVisible="{Binding !Main.Explorer.IsTreeEmpty}"
+                  x:Name="FileTreeView">
         <TreeView.Resources>
             <x:Double x:Key="TreeViewItemIndent">12</x:Double>
         </TreeView.Resources>
@@ -45,4 +60,5 @@
             </TreeDataTemplate>
         </TreeView.ItemTemplate>
     </TreeView>
+    </Grid>
 </UserControl>
