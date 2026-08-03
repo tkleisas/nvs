@@ -86,6 +86,7 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
         AllTopics.Add(new HelpTopic("Editor Features", "Editor", GetEditorFeaturesContent()));
         AllTopics.Add(new HelpTopic("Build & Run", "Build", GetBuildRunContent()));
         AllTopics.Add(new HelpTopic("Debugging", "Debug", GetDebuggingContent()));
+        AllTopics.Add(new HelpTopic("Test Explorer", "Tools", GetTestExplorerContent()));
         AllTopics.Add(new HelpTopic("Terminal", "Tools", GetTerminalContent()));
         AllTopics.Add(new HelpTopic("Git Integration", "Source Control", GetGitContent()));
         AllTopics.Add(new HelpTopic("Settings", "Configuration", GetSettingsContent()));
@@ -94,6 +95,7 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
         AllTopics.Add(new HelpTopic("LLM Chat", "Tools", GetLlmContent()));
         AllTopics.Add(new HelpTopic("Database Explorer", "Tools", GetDatabaseExplorerContent()));
         AllTopics.Add(new HelpTopic("API Client", "Tools", GetApiClientContent()));
+        AllTopics.Add(new HelpTopic("Containers", "Tools", GetContainersContent()));
     }
 
     private new void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -160,6 +162,8 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
           Shift+F12         Find references
           Ctrl+.            Code actions / quick fixes
           F2                Rename symbol
+          Ctrl+Shift+P      Command palette
+          Ctrl+I            Inline AI edit (describe a change over the selection)
           Tab               Accept ghost-text suggestion
           Escape            Dismiss ghost-text suggestion
 
@@ -239,6 +243,19 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
         Find & Replace:
         Ctrl+F opens the find bar, Ctrl+H opens find and replace.
 
+        Command Palette:
+        Ctrl+Shift+P opens the command palette — fuzzy search over every
+        command in the IDE (panels, builds, test runs, containers, AI).
+
+        Document Outline:
+        View → Symbols shows a live outline of the active file (namespaces,
+        types, members with line numbers). Click to navigate, double-click
+        to jump. For C# it uses Roslyn; other languages use their LSP server.
+
+        Rename Symbol:
+        F2 renames the symbol under the caret across the solution (Roslyn
+        for C#, LSP rename for other languages) after a name prompt.
+
         Line Numbers & Current Line:
         Line and column numbers are shown in the status bar. The current line
         is highlighted. Code metrics dots appear in the gutter for C# methods.
@@ -277,12 +294,13 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
         Starting a Debug Session:
         • Press F5 to start debugging
         • The debugger will build and launch the startup project
-        • netcoredbg must be installed and on PATH
+        • netcoredbg is downloaded automatically on first use (~3 MB)
 
         Breakpoints:
         • Press F9 to toggle a breakpoint on the current line
         • Breakpoints are shown as red circles in the editor gutter
-        • Breakpoints persist across sessions
+        • Breakpoints persist across sessions (stored per workspace
+          in .nvs/breakpoints.json)
 
         Stepping:
         • F10 — Step over (execute current line)
@@ -295,9 +313,62 @@ public sealed partial class HelpToolViewModel : Tool, INotifyPropertyChanged
         • Variables — shows local variables and their values
         • Both panels update when paused at a breakpoint
 
-        Installing netcoredbg:
-        Download from https://github.com/Samsung/netcoredbg/releases
-        and add to your PATH.
+        Adapter setup:
+        None — netcoredbg is downloaded automatically on first use. Java and
+        PHP debugging adapters are also resolved automatically.
+        """;
+
+    internal static string GetTestExplorerContent() =>
+        """
+        TEST EXPLORER
+
+        NVS discovers and runs .NET tests without leaving the editor.
+        Works with any VSTest-compatible framework (xUnit, NUnit, MSTest).
+
+        Opening:
+        • View → Test Explorer
+        • Tests are discovered automatically when a solution loads
+
+        Running Tests:
+        • ▶ in the panel toolbar (or Build → Run All Tests) runs everything
+        • ▶✗ re-runs only the tests that failed last time
+        • ▶• runs the selected scope: project, namespace, class, or one test
+        • A run requested while discovery is still busy starts right after it
+
+        Reading Results:
+        • Icons show outcome: ✓ passed, ✗ failed, ⊘ skipped, ○ not run
+        • Durations roll up from each test to its class, namespace, project
+        • Select a failed test to see the error message and stack trace
+        • Double-click a test to jump to its source line
+
+        Notes:
+        • Theory/parameterized cases are tracked per case
+        • When NVS tests the solution it is running from, it uses the
+          already-built output instead of rebuilding (file locks)
+        """;
+
+    internal static string GetContainersContent() =>
+        """
+        CONTAINERS (DOCKER / PODMAN)
+
+        NVS talks to your local container engine (docker or podman CLI —
+        whichever is installed) from the Containers panel.
+
+        Opening:
+        • View → Containers
+
+        Managing Containers:
+        • The panel lists containers and images with live status
+        • Start, stop, remove containers; view container logs
+        • Run an image into a new container
+
+        Dockerfiles & Images:
+        • Scaffold generates a ready-to-build Dockerfile for each project
+          in the solution (or for all projects at once)
+        • Compose creates a docker-compose file for the solution
+        • Build builds the Dockerfiles into images straight from the panel
+        • Scaffold and build are also available in the command palette
+          (Ctrl+Shift+P, search "container")
         """;
 
     internal static string GetTerminalContent() =>

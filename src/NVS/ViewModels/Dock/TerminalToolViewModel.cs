@@ -36,14 +36,8 @@ public class TerminalToolViewModel : Tool
     private readonly SemaphoreSlim _flushLock = new(1, 1);
 
     /// <summary>
-    /// Callback set by the old Iciclecreek view to send a command to the PTY terminal.
-    /// (Used when the new host is not wired yet. Phase 6 will remove this.)
-    /// </summary>
-    public Func<string, Task>? SendCommandAsync { get; set; }
-
-    /// <summary>
-    /// Enqueues a command to be sent to the terminal. Prefers the new <see cref="Terminal"/>
-    /// (Porta.Pty host) when available; falls back to the Iciclecreek callback.
+    /// Enqueues a command to be sent to the terminal. Goes straight to the PTY
+    /// when the session is running; otherwise queues until it appears.
     /// </summary>
     public async Task SendCommandToTerminalAsync(string command)
     {
@@ -53,19 +47,11 @@ public class TerminalToolViewModel : Tool
             return;
         }
 
-        if (SendCommandAsync is not null)
-        {
-            await SendCommandAsync(command);
-        }
-        else
-        {
-            _pendingCommands.Enqueue(command);
-        }
+        _pendingCommands.Enqueue(command);
     }
 
     /// <summary>
-    /// Flushes commands enqueued before the terminal was ready. Uses whichever
-    /// channel is available: the Porta.Pty session first, the legacy callback second.
+    /// Flushes commands enqueued before the terminal session existed.
     /// </summary>
     public async Task FlushPendingCommandsAsync()
     {
@@ -77,10 +63,6 @@ public class TerminalToolViewModel : Tool
                 if (Terminal is not null && Terminal.IsRunning)
                 {
                     await Terminal.SendInputAsync(command + "\r");
-                }
-                else if (SendCommandAsync is not null)
-                {
-                    await SendCommandAsync(command);
                 }
                 else
                 {
