@@ -101,6 +101,7 @@
                 <MenuItem Header="Call _Stack" Command="{Binding ShowCallStackCommand}" />
                 <MenuItem Header="_Variables" Command="{Binding ShowVariablesCommand}" />
                 <MenuItem Header="_NuGet" Command="{Binding ShowNuGetCommand}" />
+                <MenuItem Header="_Containers" Command="{Binding ShowContainersCommand}" />
                 <Separator />
                 <MenuItem Header="_Terminal" Command="{Binding Terminal.ToggleCommand}" InputGesture="Ctrl+OemTilde" />
                 <Separator />

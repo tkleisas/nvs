@@ -1,0 +1,114 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             xmlns:cc="clr-namespace:NVS.Core.Interfaces;assembly=NVS.Core"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.ContainersView"
+             x:DataType="dock:ContainersToolViewModel">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Toolbar -->
+        <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}" Padding="6,4">
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <TextBlock Text="{Binding EngineText}" FontWeight="SemiBold" FontSize="12"
+                           Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
+                <Button Content="↻" Padding="6,2" FontSize="11" VerticalAlignment="Center"
+                        ToolTip.Tip="Refresh" Command="{Binding RefreshListsCommand}"
+                        IsVisible="{Binding IsEngineAvailable}" />
+                <Rectangle Width="1" Fill="{DynamicResource BorderBrush}" Margin="4,0" />
+                <Button Content="+ Dockerfile" Padding="8,2" FontSize="11"
+                        ToolTip.Tip="Generate a Dockerfile for a project"
+                        Command="{Binding NewDockerfileCommand}" />
+                <Button Content="+ Compose" Padding="8,2" FontSize="11"
+                        ToolTip.Tip="Generate docker-compose.yml for the solution"
+                        Command="{Binding NewComposeFileCommand}" />
+                <Button Content="Up" Padding="8,2" FontSize="11"
+                        ToolTip.Tip="compose up -d --build"
+                        Command="{Binding ComposeUpCommand}" />
+                <Button Content="Down" Padding="8,2" FontSize="11"
+                        ToolTip.Tip="compose down"
+                        Command="{Binding ComposeDownCommand}" />
+                <ProgressBar Width="80" Height="4" VerticalAlignment="Center" Margin="6,0,0,0"
+                             IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Content -->
+        <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto,*,Auto">
+            <TextBlock Grid.Row="0" Text="Containers" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="6,4,6,2" />
+
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="6,0">
+                <ListBox Grid.Column="0" ItemsSource="{Binding Containers}"
+                         SelectedItem="{Binding SelectedContainer}"
+                         Background="Transparent" BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="cc:ContainerInfo">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,1">
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding Name}" FontSize="12"
+                                               Foreground="{DynamicResource TextForegroundBrush}" />
+                                    <TextBlock Text="{Binding Image}" FontSize="10"
+                                               Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding Status}" FontSize="10"
+                                           Foreground="{DynamicResource TextSecondaryForegroundBrush}"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <StackPanel Grid.Column="1" Spacing="3" Margin="6,0,0,0">
+                    <Button Content="Start" Padding="8,2" FontSize="11" MinWidth="64"
+                            Command="{Binding StartContainerCommand}"
+                            IsEnabled="{Binding !IsBusy}" />
+                    <Button Content="Stop" Padding="8,2" FontSize="11" MinWidth="64"
+                            Command="{Binding StopContainerCommand}"
+                            IsEnabled="{Binding !IsBusy}" />
+                    <Button Content="Logs" Padding="8,2" FontSize="11" MinWidth="64"
+                            Command="{Binding ShowLogsCommand}"
+                            IsEnabled="{Binding !IsBusy}" />
+                    <Button Content="Remove" Padding="8,2" FontSize="11" MinWidth="64"
+                            Command="{Binding RemoveContainerCommand}"
+                            IsEnabled="{Binding !IsBusy}" />
+                </StackPanel>
+            </Grid>
+
+            <TextBlock Grid.Row="2" Text="Images" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="6,6,6,2" />
+
+            <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="6,0,6,4">
+                <ListBox Grid.Column="0" ItemsSource="{Binding Images}"
+                         SelectedItem="{Binding SelectedImage}"
+                         Background="Transparent" BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="cc:ContainerImageInfo">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,1">
+                                <TextBlock Grid.Column="0" Text="{Binding DisplayName}" FontSize="12"
+                                           Foreground="{DynamicResource TextForegroundBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding Size}" FontSize="10"
+                                           Foreground="{DynamicResource TextSecondaryForegroundBrush}"
+                                           VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <StackPanel Grid.Column="1" Spacing="3" Margin="6,0,0,0">
+                    <Button Content="Build…" Padding="8,2" FontSize="11" MinWidth="64"
+                            Command="{Binding BuildImageCommand}"
+                            IsEnabled="{Binding !IsBusy}" />
+                    <Button Content="Run" Padding="8,2" FontSize="11" MinWidth="64"
+                            Command="{Binding RunImageCommand}"
+                            IsEnabled="{Binding !IsBusy}" />
+                </StackPanel>
+            </Grid>
+
+            <TextBlock Grid.Row="4" Text="{Binding StatusText}" FontSize="10"
+                       Foreground="{DynamicResource TextSecondaryForegroundBrush}"
+                       Margin="6,0,6,4" TextWrapping="Wrap" />
+        </Grid>
+    </Grid>
+</UserControl>

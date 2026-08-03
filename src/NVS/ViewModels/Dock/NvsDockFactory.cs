@@ -21,6 +21,7 @@ public sealed class NvsDockFactory : Factory
     private ToolDock? _bottomToolDock;
     private TerminalToolViewModel? _terminalTool;
     private NuGetToolViewModel? _nugetTool;
+    private ContainersToolViewModel? _containersTool;
     private HelpToolViewModel? _helpTool;
     private CodeMetricsToolViewModel? _codeMetricsTool;
 
@@ -31,6 +32,7 @@ public sealed class NvsDockFactory : Factory
     public ApiClientToolViewModel? ApiClient { get; private set; }
     public TerminalToolViewModel? TerminalTool => _terminalTool;
     public NuGetToolViewModel? NuGetTool => _nugetTool;
+    public ContainersToolViewModel? ContainersTool => _containersTool;
     public HelpToolViewModel? HelpTool => _helpTool;
     public CodeMetricsToolViewModel? CodeMetricsTool => _codeMetricsTool;
     public NvsDockFactory(MainViewModel main, NVS.Core.Models.Settings.DockLayoutSettings? dockSettings = null)
@@ -55,6 +57,7 @@ public sealed class NvsDockFactory : Factory
         ApiClient = apiClient;
         var llmChat = new LlmChatToolViewModel(_main);
         var nuget = new NuGetToolViewModel(_main);
+        var containers = new ContainersToolViewModel(_main);
         var help = new HelpToolViewModel();
         var codeMetrics = new CodeMetricsToolViewModel(_main);
         var conflictResolver = new ConflictResolverToolViewModel(_main);
@@ -80,7 +83,7 @@ public sealed class NvsDockFactory : Factory
         var bottomToolDock = new ToolDock
         {
             ActiveDockable = terminal,
-            VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, nuget, codeMetrics, help, conflictResolver),
+            VisibleDockables = CreateList<IDockable>(terminal, buildOutput, problems, callStack, variables, nuget, containers, codeMetrics, help, conflictResolver),
             Alignment = Alignment.Bottom,
             GripMode = GripMode.Visible,
         };
@@ -98,6 +101,7 @@ public sealed class NvsDockFactory : Factory
 
         _terminalTool = terminal;
         _nugetTool = nuget;
+        _containersTool = containers;
         _helpTool = help;
         _codeMetricsTool = codeMetrics;
 
@@ -332,6 +336,7 @@ public sealed class NvsDockFactory : Factory
             ["ApiClient"] = () => _main,
             ["LlmChat"] = () => _main,
             ["NuGet"] = () => _main,
+            ["Containers"] = () => _main,
             ["Help"] = () => _main,
             ["CodeMetrics"] = () => _main,
             ["DiffViewer"] = () => _main,

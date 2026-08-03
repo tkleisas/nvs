@@ -989,6 +989,12 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void ShowContainers()
+    {
+        _dockFactory?.ShowToolInBottomDock(_dockFactory.ContainersTool);
+    }
+
+    [RelayCommand]
     private void ShowLlmChat()
     {
         _dockFactory?.ShowLlmChat();
