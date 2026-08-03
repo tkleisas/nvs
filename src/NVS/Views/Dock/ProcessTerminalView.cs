@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Globalization;
 using System.Text;
 using Avalonia;
@@ -62,6 +63,7 @@ public sealed class ProcessTerminalView : Control
     /// <summary>Measured monospace cell height in device pixels — exposed for scroll-offset calculations.</summary>
     public double CellMeasuredHeight => _cellHeight;
     private IDisposable? _outputSub;
+    private int _invalidatePending;
     private DispatcherTimer? _blinkTimer;
     private bool _cursorVisible = true;
     private bool _needMeasure = true;
@@ -186,15 +188,20 @@ public sealed class ProcessTerminalView : Control
 
         _outputSub = terminal.OutputObservable.Subscribe(new AnonymousTerminalObserver(chunk =>
         {
-            var raw = new ReadOnlySpan<byte>(Encoding.UTF8.GetBytes(chunk.Text));
-            _parser?.Feed(raw);
-            Serilog.Log.Debug("[TermView] chunk {Len}b, queuing invalidate", raw.Length);
-            Dispatcher.UIThread.Post(() =>
+            // Convert once into a pooled buffer instead of allocating a byte[] per chunk.
+            var pool = ArrayPool<byte>.Shared;
+            var rented = pool.Rent(Encoding.UTF8.GetMaxByteCount(chunk.Text.Length));
+            try
             {
-                InvalidateMeasure();
-                InvalidateVisual();
-                ThrottledOutputAppended();
-            });
+                var count = Encoding.UTF8.GetBytes(chunk.Text, rented);
+                _parser?.Feed(rented.AsSpan(0, count));
+            }
+            finally
+            {
+                pool.Return(rented);
+            }
+
+            QueueRenderInvalidate();
         }));
 
         terminal.Exited += (_, _) => Dispatcher.UIThread.Post(() => { InvalidateMeasure(); InvalidateVisual(); });
@@ -204,6 +211,26 @@ public sealed class ProcessTerminalView : Control
         _blinkTimer.Start();
 
         InvalidateMeasure();
+    }
+
+    /// <summary>
+    /// Coalesces output-driven repaints: during a burst of PTY chunks only one
+    /// invalidation is queued per UI pump cycle instead of one per chunk.
+    /// </summary>
+    private void QueueRenderInvalidate()
+    {
+        if (Interlocked.Exchange(ref _invalidatePending, 1) == 1)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            Interlocked.Exchange(ref _invalidatePending, 0);
+            InvalidateMeasure();
+            InvalidateVisual();
+            ThrottledOutputAppended();
+        });
     }
 
     private void DetachTerminal()

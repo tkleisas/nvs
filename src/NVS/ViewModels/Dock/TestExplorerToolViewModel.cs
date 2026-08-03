@@ -149,10 +149,18 @@ public partial class TestExplorerToolViewModel : Tool
         try
         {
             Projects.Clear();
-            var total = 0;
-            foreach (var project in testProjects)
+
+            // Projects are independent — discover in parallel (the service gates
+            // how many dotnet CLI processes run at once).
+            var discovered = await Task.WhenAll(testProjects.Select(async project =>
             {
                 var tests = await _testService.DiscoverTestsAsync(project.FilePath, ct);
+                return (project, tests);
+            }));
+
+            var total = 0;
+            foreach (var (project, tests) in discovered)
+            {
                 if (tests.Count == 0)
                 {
                     continue;

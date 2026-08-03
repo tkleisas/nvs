@@ -220,6 +220,35 @@ public class TestExplorerToolViewModelTests
             Arg.Is<string>(p => p.EndsWith(".slnx")), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task Discover_RunsProjectDiscoveryInParallel()
+    {
+        var (solution, _) = CreateSolutionWithProjects(twoTestProjects: true);
+        var service = Substitute.For<ITestExplorerService>();
+
+        var inFlight = 0;
+        var maxInFlight = 0;
+        var sync = new object();
+        service.DiscoverTestsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(async _ =>
+            {
+                var now = Interlocked.Increment(ref inFlight);
+                lock (sync)
+                {
+                    maxInFlight = Math.Max(maxInFlight, now);
+                }
+                await Task.Delay(100);
+                Interlocked.Decrement(ref inFlight);
+                return (IReadOnlyList<TestInfo>)[Test("Ns.Cls.One")];
+            });
+
+        var vm = new TestExplorerToolViewModel(CreateMain(solution), service);
+        await vm.DiscoverCommand.ExecuteAsync(null);
+
+        maxInFlight.Should().BeGreaterThan(1, "independent project discoveries should overlap");
+        vm.Projects.Should().HaveCount(2);
+    }
+
     private static TestRunSummary Summary(params TestInfo[] tests) => new()
     {
         ExitCode = tests.Any(t => t.Outcome == TestOutcome.Failed) ? 1 : 0,

@@ -15,12 +15,20 @@ public sealed class TestExplorerService : ITestExplorerService
 {
     private static readonly ILogger Logger = Log.ForContext<TestExplorerService>();
 
-    public bool IsBusy { get; private set; }
+    /// <summary>
+    /// Bounds concurrent dotnet CLI operations. Discovery of independent projects
+    /// parallelizes well; 2 keeps build/restore contention low when builds do happen.
+    /// </summary>
+    private readonly SemaphoreSlim _gate = new(2, 2);
+    private int _inFlight;
+
+    /// <summary>Whether a discovery or run operation is currently in progress.</summary>
+    public bool IsBusy => _inFlight > 0;
 
     public async Task<IReadOnlyList<TestInfo>> DiscoverTestsAsync(string projectPath, CancellationToken cancellationToken = default)
     {
-        ThrowIfBusy();
-        IsBusy = true;
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        Interlocked.Increment(ref _inFlight);
         try
         {
             var withBuild = new List<string> { "test", projectPath, "--list-tests" };
@@ -53,14 +61,15 @@ public sealed class TestExplorerService : ITestExplorerService
         }
         finally
         {
-            IsBusy = false;
+            Interlocked.Decrement(ref _inFlight);
+            _gate.Release();
         }
     }
 
     public async Task<TestRunSummary> RunTestsAsync(string targetPath, string? filter = null, CancellationToken cancellationToken = default)
     {
-        ThrowIfBusy();
-        IsBusy = true;
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        Interlocked.Increment(ref _inFlight);
 
         var resultsDir = Path.Combine(Path.GetTempPath(), "nvs-test-results", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(resultsDir);
@@ -118,7 +127,8 @@ public sealed class TestExplorerService : ITestExplorerService
         }
         finally
         {
-            IsBusy = false;
+            Interlocked.Decrement(ref _inFlight);
+            _gate.Release();
             TryDeleteDirectory(resultsDir);
         }
     }
@@ -242,14 +252,6 @@ public sealed class TestExplorerService : ITestExplorerService
         var processDirectory = Path.GetDirectoryName(Path.GetFullPath(processPath));
         return processDirectory is not null
             && processDirectory.StartsWith(targetDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private void ThrowIfBusy()
-    {
-        if (IsBusy)
-        {
-            throw new InvalidOperationException("A test operation is already in progress.");
-        }
     }
 
     private static async Task<IReadOnlyList<TestInfo>> ReadTrxAsync(string trxPath, CancellationToken cancellationToken)
