@@ -476,4 +476,56 @@ public class EditorViewModelTests
         changedProps.Should().Contain(nameof(EditorViewModel.IsSplitVertical));
         changedProps.Should().Contain(nameof(EditorViewModel.SplitTabIndex));
     }
+
+    // --- Tab display-name disambiguation ---
+
+    private static EditorViewModel CreateWithService()
+    {
+        return new EditorViewModel(Substitute.For<IEditorService>(), Substitute.For<IFileSystemService>());
+    }
+
+    private static Document OpenDoc(string name, string filePath) => new()
+    {
+        Id = Guid.NewGuid(),
+        Path = filePath,
+        Name = name,
+        FilePath = filePath,
+        Language = Language.CSharp
+    };
+
+    [Fact]
+    public void DisplayName_DuplicateNames_IncludeParentFolder()
+    {
+        var vm = CreateWithService();
+
+        vm.OnDocumentOpened(null, OpenDoc("Program.cs", "C:/src/Api/Program.cs"));
+        vm.OnDocumentOpened(null, OpenDoc("Program.cs", "C:/src/Web/Program.cs"));
+
+        vm.OpenDocuments.Select(d => d.DisplayName).Should()
+            .BeEquivalentTo("Program.cs (Api)", "Program.cs (Web)");
+    }
+
+    [Fact]
+    public void DisplayName_UniqueName_IsPlainFileName()
+    {
+        var vm = CreateWithService();
+
+        vm.OnDocumentOpened(null, OpenDoc("Program.cs", "C:/src/Api/Program.cs"));
+
+        vm.OpenDocuments.Single().DisplayName.Should().Be("Program.cs");
+    }
+
+    [Fact]
+    public void DisplayName_ClosingOneDuplicate_RevertsToPlainFileName()
+    {
+        var vm = CreateWithService();
+        var first = OpenDoc("Program.cs", "C:/src/Api/Program.cs");
+        var second = OpenDoc("Program.cs", "C:/src/Web/Program.cs");
+        vm.OnDocumentOpened(null, first);
+        vm.OnDocumentOpened(null, second);
+
+        vm.OnDocumentClosed(null, second);
+
+        vm.OpenDocuments.Single().DisplayName.Should().Be("Program.cs");
+    }
 }

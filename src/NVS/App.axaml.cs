@@ -56,6 +56,7 @@ public partial class App : Application
             if (themeService is not null)
             {
                 Helpers.ThemeResourceApplier.WireThemeService(themeService);
+                themeService.ThemeChanged += (_, _) => Highlighting.SyntaxHighlightingLoader.InvalidateCache();
             }
 
             // Restore window size/position/state from settings

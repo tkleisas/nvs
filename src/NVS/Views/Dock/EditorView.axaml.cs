@@ -178,39 +178,40 @@ public partial class EditorView : UserControl
             docVm.CursorColumn,
             editor.Text ?? "");
 
-        if (docVm.QuickFixCommand is System.Windows.Input.ICommand cmd && cmd.CanExecute(ctx))
+        if (docVm.QuickFixCommand is not CommunityToolkit.Mvvm.Input.IAsyncRelayCommand<LspRequestContext?> asyncCmd
+            || !asyncCmd.CanExecute(ctx))
         {
-            cmd.Execute(ctx);
-
-            // Wait briefly for the async command to complete
-            await Task.Delay(500);
-
-            var actions = docVm.LastCodeActions;
-            if (actions is not { Count: > 0 }) return;
-
-            // Build a popup menu with the available code actions
-            var actionMenu = new ContextMenu();
-            foreach (var action in actions)
-            {
-                var menuItem = new MenuItem
-                {
-                    Header = FormatCodeActionHeader(action),
-                };
-
-                var capturedAction = action;
-                menuItem.Click += async (_, _) =>
-                {
-                    if (DataContext is EditorDocumentViewModel editorDocVm && editorDocVm.Main.Editor is { } editor2)
-                    {
-                        await editor2.ApplyCodeActionAsync(capturedAction);
-                    }
-                };
-
-                actionMenu.Items.Add(menuItem);
-            }
-
-            actionMenu.Open(editor);
+            return;
         }
+
+        // Await the code-action request instead of guessing a fixed delay.
+        await asyncCmd.ExecuteAsync(ctx);
+
+        var actions = docVm.LastCodeActions;
+        if (actions is not { Count: > 0 }) return;
+
+        // Build a popup menu with the available code actions
+        var actionMenu = new ContextMenu();
+        foreach (var action in actions)
+        {
+            var menuItem = new MenuItem
+            {
+                Header = FormatCodeActionHeader(action),
+            };
+
+            var capturedAction = action;
+            menuItem.Click += async (_, _) =>
+            {
+                if (DataContext is EditorDocumentViewModel editorDocVm && editorDocVm.Main.Editor is { } editor2)
+                {
+                    await editor2.ApplyCodeActionAsync(capturedAction);
+                }
+            };
+
+            actionMenu.Items.Add(menuItem);
+        }
+
+        actionMenu.Open(editor);
     }
 
     private static string FormatCodeActionHeader(CodeAction action)

@@ -1,4 +1,5 @@
 using System.Xml;
+using Avalonia.Media;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
 using NVS.Core.Enums;
@@ -52,8 +53,37 @@ public static class SyntaxHighlightingLoader
         if (stream is null)
             return null;
 
-        using var reader = XmlReader.Create(stream);
+        // Recolor the VS Dark+ palette to stay readable on the active theme's
+        // editor background (critical for the light theme).
+        var doc = new XmlDocument();
+        doc.Load(stream);
+        HighlightingRecolorer.RecolorForBackground(doc, CurrentEditorBackground());
+
+        using var reader = new XmlNodeReader(doc);
         return HighlightingLoader.Load(reader, HighlightingManager.Instance);
+    }
+
+    private static Color CurrentEditorBackground()
+    {
+        if (Avalonia.Application.Current?.Resources.TryGetValue("EditorBackgroundBrush", out var value) == true
+            && value is Avalonia.Media.SolidColorBrush brush)
+        {
+            return brush.Color;
+        }
+        return Color.FromRgb(0x1E, 0x1E, 0x1E);
+    }
+
+    /// <summary>Raised after <see cref="InvalidateCache"/> so views can re-apply highlighting.</summary>
+    public static event EventHandler? CacheInvalidated;
+
+    /// <summary>
+    /// Clears the cache and notifies subscribers (called on theme change so open
+    /// editors re-apply highlighting recolored for the new background).
+    /// </summary>
+    public static void InvalidateCache()
+    {
+        ClearCache();
+        CacheInvalidated?.Invoke(null, EventArgs.Empty);
     }
 
     /// <summary>

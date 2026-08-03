@@ -308,7 +308,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
         }
     }
 
-    private void OnDocumentOpened(object? sender, Document document)
+    internal void OnDocumentOpened(object? sender, Document document)
     {
         var docVm = new DocumentViewModel(document);
         docVm.CloseTabCommand = new RelayCommand(() => _ = CloseTabAsync(docVm));
@@ -318,6 +318,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
         ActiveDocument = docVm;
         ActiveTabIndex = OpenDocuments.Count - 1;
         OnPropertyChanged(nameof(HasNoOpenDocuments));
+        RefreshDocumentDisplayNames();
 
         _lspSessionManager?.NotifyDocumentOpened(document);
 
@@ -351,7 +352,7 @@ public partial class EditorViewModel : INotifyPropertyChanged
         _ = _editorService.CloseDocumentAsync(docVm.Document);
     }
 
-    private void OnDocumentClosed(object? sender, Document document)
+    internal void OnDocumentClosed(object? sender, Document document)
     {
         var docVm = OpenDocuments.FirstOrDefault(d => d.Document.Id == document.Id);
         if (docVm != null)
@@ -359,7 +360,34 @@ public partial class EditorViewModel : INotifyPropertyChanged
             CloseDocument(docVm);
         }
 
+        RefreshDocumentDisplayNames();
         _lspSessionManager?.NotifyDocumentClosed(document);
+    }
+
+    /// <summary>
+    /// Disambiguates tab titles when several open documents share the same file name
+    /// by appending the parent folder, e.g. "Program.cs (Api)".
+    /// </summary>
+    private void RefreshDocumentDisplayNames()
+    {
+        foreach (var group in OpenDocuments.GroupBy(d => d.Document.Name))
+        {
+            if (group.Count() == 1)
+            {
+                group.First().SetDisplayName(null);
+                continue;
+            }
+
+            foreach (var docVm in group)
+            {
+                var folder = docVm.Document.FilePath is { } path
+                    ? Path.GetFileName(Path.GetDirectoryName(path))
+                    : null;
+                docVm.SetDisplayName(string.IsNullOrEmpty(folder)
+                    ? null
+                    : $"{docVm.Document.Name} ({folder})");
+            }
+        }
     }
 
     private void OnActiveDocumentChanged(object? sender, Document document)
@@ -747,7 +775,22 @@ public class DocumentViewModel : INotifyPropertyChanged
     public int WarningCount => _diagnostics.Count(d => d.Severity == DiagnosticSeverity.Warning);
     public int InfoCount => _diagnostics.Count(d => d.Severity is DiagnosticSeverity.Information or DiagnosticSeverity.Hint);
 
-    public string Title => IsDirty ? $"{Document.Name} *" : Document.Name;
+    public string Title => IsDirty ? $"{DisplayName} *" : DisplayName;
+
+    /// <summary>Tab display name — includes a folder hint when several open documents share a file name.</summary>
+    public string DisplayName => _displayName ?? Document.Name;
+
+    private string? _displayName;
+
+    internal void SetDisplayName(string? displayName)
+    {
+        if (_displayName != displayName)
+        {
+            _displayName = displayName;
+            OnPropertyChanged(nameof(DisplayName));
+            OnPropertyChanged(nameof(Title));
+        }
+    }
     public string Tooltip => Document.FilePath ?? Document.Name;
     public Language Language => Document.Language;
 
