@@ -61,10 +61,24 @@ public sealed class MainWindowAutomationHost : IAutomationHost
             };
         });
 
-    public async Task<object> GetTreeAsync(int maxDepth, int maxNodes) =>
+    public async Task<object> GetTreeAsync(int maxDepth, int maxNodes, string? controlId = null) =>
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             var budget = new NodeBudget(maxNodes);
+
+            if (!string.IsNullOrWhiteSpace(controlId))
+            {
+                var control = FindControl(controlId)
+                    ?? throw new InvalidOperationException($"no control with automation id or name '{controlId}'");
+                var root = DescribeVisual(control, depth: 0, maxDepth, budget, isWindow: false);
+                return (object)new Dictionary<string, object?>
+                {
+                    ["nodeCount"] = budget.Count,
+                    ["truncated"] = budget.Exhausted,
+                    ["root"] = root,
+                };
+            }
+
             var windows = new List<Dictionary<string, object?>>();
             foreach (var window in GetWindows())
             {
@@ -107,6 +121,9 @@ public sealed class MainWindowAutomationHost : IAutomationHost
 
     private static object RenderToPng(Visual target, string path)
     {
+        // Flush pending layout/render work so the capture reflects the latest state.
+        Dispatcher.UIThread.RunJobs(DispatcherPriority.Render);
+
         var width = (int)Math.Ceiling(target.Bounds.Width);
         var height = (int)Math.Ceiling(target.Bounds.Height);
         if (width <= 0 || height <= 0)
@@ -241,19 +258,30 @@ public sealed class MainWindowAutomationHost : IAutomationHost
 
     private Visual? FindControl(string idOrName)
     {
+        // Dock panels may keep detached/cached view instances around with stale
+        // content — always prefer the effectively visible match.
+        Visual? hiddenFallback = null;
         foreach (var window in GetWindows())
         {
-                var match = window.GetVisualDescendants()
-                    .OfType<Control>()
-                    .FirstOrDefault(c =>
-                        string.Equals(AutomationProperties.GetAutomationId(c), idOrName, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(c.Name, idOrName, StringComparison.OrdinalIgnoreCase));
-                if (match is not null)
+            foreach (var control in window.GetVisualDescendants().OfType<Control>())
+            {
+                var matches =
+                    string.Equals(AutomationProperties.GetAutomationId(control), idOrName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(control.Name, idOrName, StringComparison.OrdinalIgnoreCase);
+                if (!matches)
                 {
-                    return match;
+                    continue;
                 }
+
+                if (control.IsEffectivelyVisible)
+                {
+                    return control;
+                }
+
+                hiddenFallback ??= control;
+            }
         }
-        return null;
+        return hiddenFallback;
     }
 
     private static void CollectDockables(IDockable dockable, List<Dictionary<string, object?>> output)

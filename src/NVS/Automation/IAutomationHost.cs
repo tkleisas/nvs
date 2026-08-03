@@ -13,8 +13,9 @@ public interface IAutomationHost
     /// <summary>High-level IDE state (workspace, status, open documents).</summary>
     Task<object> GetStateAsync();
 
-    /// <summary>Visual tree summary of all top-level windows (depth- and node-capped).</summary>
-    Task<object> GetTreeAsync(int maxDepth, int maxNodes);
+    /// <summary>Visual tree summary of all top-level windows (depth- and node-capped).
+    /// When controlId is given, dumps only that control's subtree instead.</summary>
+    Task<object> GetTreeAsync(int maxDepth, int maxNodes, string? controlId = null);
 
     /// <summary>Renders the main window (or a specific control by automation id/name) to a PNG file.</summary>
     Task<object> ScreenshotAsync(string path, string? controlId);

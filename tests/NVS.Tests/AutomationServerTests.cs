@@ -17,8 +17,8 @@ public class AutomationServerTests
 
         public Task<object> PingAsync() => Task.FromResult<object>(new Dictionary<string, object?> { ["app"] = "NVS" });
         public Task<object> GetStateAsync() => Task.FromResult<object>(new Dictionary<string, object?>());
-        public Task<object> GetTreeAsync(int maxDepth, int maxNodes) =>
-            Task.FromResult<object>(new Dictionary<string, object?> { ["maxDepth"] = maxDepth, ["maxNodes"] = maxNodes });
+        public Task<object> GetTreeAsync(int maxDepth, int maxNodes, string? controlId = null) =>
+            Task.FromResult<object>(new Dictionary<string, object?> { ["maxDepth"] = maxDepth, ["maxNodes"] = maxNodes, ["control"] = controlId });
         public Task<object> ScreenshotAsync(string path, string? controlId)
         {
             LastScreenshot = (path, controlId);
@@ -113,6 +113,20 @@ public class AutomationServerTests
         var result = doc.RootElement.GetProperty("result");
         result.GetProperty("maxDepth").GetInt32().Should().Be(4);
         result.GetProperty("maxNodes").GetInt32().Should().Be(50);
+        result.GetProperty("control").GetString().Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Tree_ForwardsControlScope()
+    {
+        using var server = new AutomationServer(new FakeHost(), 0);
+        server.Start();
+
+        var response = await RoundTripAsync(server, """{"id":3,"cmd":"tree","args":{"control":"SymbolsPanel"}}""");
+
+        using var doc = JsonDocument.Parse(response);
+        var result = doc.RootElement.GetProperty("result");
+        result.GetProperty("control").GetString().Should().Be("SymbolsPanel");
     }
 
     [Fact]

@@ -136,7 +136,8 @@ public sealed class AutomationServer : IDisposable
             case "tree":
                 var maxDepth = GetInt(args, "maxDepth", 12);
                 var maxNodes = GetInt(args, "maxNodes", 4000);
-                return await _host.GetTreeAsync(maxDepth, maxNodes).ConfigureAwait(false);
+                var treeControl = GetString(args, "control");
+                return await _host.GetTreeAsync(maxDepth, maxNodes, treeControl).ConfigureAwait(false);
             case "screenshot":
                 var path = GetString(args, "path") ?? throw new InvalidOperationException("screenshot requires args.path");
                 var control = GetString(args, "control");

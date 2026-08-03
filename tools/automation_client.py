@@ -54,7 +54,7 @@ def main() -> int:
     parser.add_argument("cmd", help="ping | state | tree | screenshot | command | menu | open-solution | activate")
     parser.add_argument("--port", type=int, default=5050, help="automation port (default 5050)")
     parser.add_argument("--path", help="file path (screenshot output, solution path, or menu path)")
-    parser.add_argument("--control", help="automation id or control name for --cmd screenshot")
+    parser.add_argument("--control", help="automation id or control name for --cmd screenshot/tree")
     parser.add_argument("--window", help="window title (substring) to screenshot instead of the main window")
     parser.add_argument("--text", help="text for --cmd set-text")
     parser.add_argument("--name", help="command name for --cmd command")
