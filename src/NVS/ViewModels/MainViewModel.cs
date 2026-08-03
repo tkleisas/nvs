@@ -77,11 +77,22 @@ public partial class MainViewModel : ObservableObject
         {
             _dockFactory?.SetChatPanelVisible(settings.Llm.EnableChat);
             OnPropertyChanged(nameof(EditorTabSize));
+            OnPropertyChanged(nameof(EditorFontSize));
+            OnPropertyChanged(nameof(EditorFontFamily));
         };
     }
 
     /// <summary>Editor tab size from settings, shown in the status bar.</summary>
     public int EditorTabSize => SettingsService.AppSettings.Editor.TabSize;
+
+    /// <summary>Editor font size from settings.</summary>
+    public int EditorFontSize => SettingsService.AppSettings.Editor.FontSize;
+
+    /// <summary>Editor font family from settings (with a safe fallback).</summary>
+    public string EditorFontFamily =>
+        string.IsNullOrWhiteSpace(SettingsService.AppSettings.Editor.FontFamily)
+            ? "Consolas,Courier New,monospace"
+            : SettingsService.AppSettings.Editor.FontFamily;
 
     /// <summary>The command palette (Ctrl+Shift+P) view model.</summary>
     public CommandPaletteViewModel CommandPalette { get; private set; } = null!;

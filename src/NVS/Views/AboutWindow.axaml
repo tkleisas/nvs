@@ -12,7 +12,7 @@
         Background="{DynamicResource AppBackgroundBrush}"
         SystemDecorations="BorderOnly">
 
-    <Border BorderBrush="#3F3F46" BorderThickness="1" Padding="32">
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="32">
         <StackPanel Spacing="16">
             <!-- Title -->
             <TextBlock Text="NVS — No Vim Substitute"
@@ -20,37 +20,41 @@
                        Foreground="{DynamicResource TextForegroundBrush}"
                        HorizontalAlignment="Center" />
 
-            <Separator Background="#3F3F46" Height="1" />
+            <Separator Background="{DynamicResource BorderBrush}" Height="1" />
 
             <!-- Version info -->
             <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="8,0">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Version:" Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="0,2" />
-                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="VersionText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" />
+                <SelectableTextBlock Grid.Row="0" Grid.Column="1" x:Name="VersionText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Commit:" Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="0,2" />
-                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="CommitText" Foreground="{DynamicResource AccentBrush}" FontFamily="Cascadia Mono,Consolas,Menlo,monospace" Margin="12,2" />
+                <SelectableTextBlock Grid.Row="1" Grid.Column="1" x:Name="CommitText" Foreground="{DynamicResource AccentBrush}" FontFamily="Cascadia Mono,Consolas,Menlo,monospace" Margin="12,2" />
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Runtime:" Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="0,2" />
-                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="RuntimeText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" />
+                <SelectableTextBlock Grid.Row="2" Grid.Column="1" x:Name="RuntimeText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" />
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="OS:" Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="0,2" />
-                <TextBlock Grid.Row="3" Grid.Column="1" x:Name="OsText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" TextWrapping="Wrap" />
+                <SelectableTextBlock Grid.Row="3" Grid.Column="1" x:Name="OsText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" TextWrapping="Wrap" />
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Architecture:" Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="0,2" />
-                <TextBlock Grid.Row="4" Grid.Column="1" x:Name="ArchText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" />
+                <SelectableTextBlock Grid.Row="4" Grid.Column="1" x:Name="ArchText" Foreground="{DynamicResource TextForegroundBrush}" Margin="12,2" />
             </Grid>
 
-            <Separator Background="#3F3F46" Height="1" />
+            <Separator Background="{DynamicResource BorderBrush}" Height="1" />
 
             <!-- Copyright & link -->
             <TextBlock Text="© 2025 NVS Contributors — MIT License"
                        FontSize="11" Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                        HorizontalAlignment="Center" />
 
-            <!-- Close button -->
-            <Button Content="OK" HorizontalAlignment="Center"
-                    Width="80" HorizontalContentAlignment="Center"
-                    Click="OnCloseClick" />
+            <!-- Buttons -->
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                <Button Content="Copy Info" HorizontalAlignment="Center"
+                        Padding="12,4" Click="OnCopyInfoClick" />
+                <Button Content="OK" HorizontalAlignment="Center"
+                        Width="80" HorizontalContentAlignment="Center"
+                        Click="OnCloseClick" />
+            </StackPanel>
         </StackPanel>
     </Border>
 </Window>

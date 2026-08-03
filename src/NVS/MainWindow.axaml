@@ -14,8 +14,7 @@
         Background="{DynamicResource AppBackgroundBrush}">
 
     <Window.KeyBindings>
-        <KeyBinding Gesture="Ctrl+Shift+P" Command="{Binding OpenCommandPaletteCommand}" />
-        <KeyBinding Gesture="Ctrl+N" Command="{Binding NewFileCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+P" Command="{Binding OpenCommandPaletteCommand}" />        <KeyBinding Gesture="Ctrl+N" Command="{Binding NewFileCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding NewProjectCommand}" />
         <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding OpenFolderCommand}" />
@@ -39,7 +38,20 @@
         <KeyBinding Gesture="F9" Command="{Binding Debug.ToggleBreakpointCommand}" />
         <KeyBinding Gesture="F1" Command="{Binding ShowHelpCommand}" />
         <KeyBinding Gesture="Ctrl+OemPipe" Command="{Binding SplitEditorRightCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+OemPipe" Command="{Binding SplitEditorDownCommand}" />
     </Window.KeyBindings>
+
+    <Window.Styles>
+        <Style Selector="Border.info">
+            <Setter Property="Background" Value="{DynamicResource InfoBarInfoBackgroundBrush}"/>
+        </Style>
+        <Style Selector="Border.warning">
+            <Setter Property="Background" Value="{DynamicResource InfoBarWarningBackgroundBrush}"/>
+        </Style>
+        <Style Selector="Border.error">
+            <Setter Property="Background" Value="{DynamicResource InfoBarErrorBackgroundBrush}"/>
+        </Style>
+    </Window.Styles>
 
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
         <!-- Menu Bar -->
@@ -93,7 +105,7 @@
                 <MenuItem Header="_Terminal" Command="{Binding Terminal.ToggleCommand}" InputGesture="Ctrl+OemTilde" />
                 <Separator />
                 <MenuItem Header="Split Editor _Right" InputGesture="Ctrl+OemPipe" Command="{Binding SplitEditorRightCommand}" />
-                <MenuItem Header="Split Editor _Down" Command="{Binding SplitEditorDownCommand}" />
+                <MenuItem Header="Split Editor _Down" InputGesture="Ctrl+Shift+OemPipe" Command="{Binding SplitEditorDownCommand}" />
                 <MenuItem Header="Close _Split" Command="{Binding CloseEditorSplitCommand}" />
             </MenuItem>
             <MenuItem Header="_Database">
@@ -287,7 +299,7 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:InfoBarViewModel">
                     <Border IsVisible="{Binding IsVisible}" Padding="8,6" Margin="0,0,0,1"
-                            Background="{Binding BackgroundColor}">
+                            Classes.info="{Binding IsInfo}" Classes.warning="{Binding IsWarning}" Classes.error="{Binding IsError}">
                         <Grid ColumnDefinitions="Auto,*,Auto">
                             <TextBlock Grid.Column="0" Text="{Binding IconGlyph}" Foreground="White" Margin="0,0,8,0" FontSize="14" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" Text="{Binding Message}" Foreground="White" VerticalAlignment="Center" TextWrapping="Wrap" />

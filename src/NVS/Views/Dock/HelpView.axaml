@@ -21,7 +21,7 @@
         </Grid>
 
         <!-- Content: topic list + detail -->
-        <Grid Grid.Row="1" ColumnDefinitions="180,*">
+        <Grid Grid.Row="1" ColumnDefinitions="180,Auto,*">
 
             <!-- Topic list -->
             <ListBox Grid.Column="0"
@@ -34,23 +34,26 @@
                         <Setter Property="MinHeight" Value="28"/>
                     </Style>
                     <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                        <Setter Property="Background" Value="#264F78"/>
+                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                     </Style>
                 </ListBox.Styles>
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="dock:HelpTopic">
                         <StackPanel Spacing="1">
                             <TextBlock Text="{Binding Title}" FontSize="12" Foreground="{DynamicResource TextForegroundBrush}" />
-                            <TextBlock Text="{Binding Category}" FontSize="9" Foreground="#808080" />
+                            <TextBlock Text="{Binding Category}" FontSize="9" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
 
+            <GridSplitter Grid.Column="1" Width="4" ResizeDirection="Columns"
+                          Background="{DynamicResource BorderBrush}" />
+
             <!-- Topic content -->
-            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled"
+            <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto">
-                <TextBlock Text="{Binding SelectedTopic.Content}"
+                <SelectableTextBlock Text="{Binding SelectedTopic.Content}"
                            FontFamily="Consolas" FontSize="12"
                            Foreground="{DynamicResource EditorForegroundBrush}" Margin="16,8"
                            TextWrapping="Wrap" />

@@ -48,6 +48,23 @@ public partial class InfoBarViewModel : INotifyPropertyChanged
         _ => "InfoBarInfoBackgroundBrush",
     };
 
+    /// <summary>Style class for the severity ("info" | "warning" | "error") used by the view's styles.</summary>
+    public string SeverityClass => Severity switch
+    {
+        InfoBarSeverity.Warning => "warning",
+        InfoBarSeverity.Error => "error",
+        _ => "info",
+    };
+
+    /// <summary>Whether severity is Info (drives the conditional style class).</summary>
+    public bool IsInfo => Severity == InfoBarSeverity.Info;
+
+    /// <summary>Whether severity is Warning.</summary>
+    public bool IsWarning => Severity == InfoBarSeverity.Warning;
+
+    /// <summary>Whether severity is Error.</summary>
+    public bool IsError => Severity == InfoBarSeverity.Error;
+
     public string IconGlyph => Severity switch
     {
         InfoBarSeverity.Warning => "⚠",
