@@ -7,8 +7,9 @@ using RepositoryStatus = NVS.Core.Interfaces.RepositoryStatus;
 namespace NVS.Services.Tests;
 
 // Native integration suites (LibGit2Sharp, PTY) are timing/contention-sensitive
-// under full-suite parallel load; run them serialized in one collection.
-[CollectionDefinition("NativeIntegration")]
+// under full-suite parallel load; run them serialized AND isolated — after all
+// parallel-capable tests have finished, with nothing else running alongside.
+[CollectionDefinition("NativeIntegration", DisableParallelization = true)]
 public sealed class NativeIntegrationCollection;
 
 [Collection("NativeIntegration")]

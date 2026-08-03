@@ -69,7 +69,8 @@ public sealed class ProcessTerminalTests
             onCompleted: () => done.TrySetResult(true)));
 
         await terminal.StartAsync(new TerminalStartOptions { Command = app, Args = args, AllocatePty = true });
-        (await done.Task.WaitAsync(TimeSpan.FromSeconds(15))).Should().BeTrue();
+        // Generous timeout: under load, PTY spawn on Windows can be slow.
+        (await done.Task.WaitAsync(TimeSpan.FromSeconds(60))).Should().BeTrue();
 
         lock (viaObservable) viaObservable.ToString().Should().Contain("two-birds");
         await terminal.DisposeAsync();
