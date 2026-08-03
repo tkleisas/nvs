@@ -60,6 +60,14 @@ public partial class CallStackToolViewModel : Tool
         try
         {
             await _main.OpenFileAsync(frame.Source);
+
+            if (_main.Editor?.ActiveDocument is { } doc && frame.Line > 0)
+            {
+                doc.CursorLine = frame.Line;
+                doc.CursorColumn = 1;
+            }
+
+            _main.ActivateEditorDocument();
         }
         catch (Exception ex)
         {

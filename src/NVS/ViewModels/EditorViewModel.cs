@@ -37,6 +37,12 @@ public partial class EditorViewModel : INotifyPropertyChanged
             if (_activeDocument != null)
                 _activeDocument.PropertyChanged += OnActiveDocumentPropertyChanged;
 
+            if (value is not null)
+            {
+                _mruOrder.Remove(value);
+                _mruOrder.Insert(0, value);
+            }
+
             OnPropertyChanged();
             OnPropertyChanged(nameof(CursorLine));
             OnPropertyChanged(nameof(CursorColumn));
@@ -139,6 +145,29 @@ public partial class EditorViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<DocumentViewModel> OpenDocuments { get; } = [];
+
+    // Most-recently-used order, front = most recent (drives Ctrl+Tab).
+    private readonly List<DocumentViewModel> _mruOrder = new();
+
+    /// <summary>Activates the given document (used by the tab overflow list).</summary>
+    [RelayCommand]
+    private void ActivateDocument(DocumentViewModel? document)
+    {
+        if (document is not null)
+        {
+            ActiveDocument = document;
+        }
+    }
+
+    /// <summary>Ctrl+Tab: jump to the most recently used document (repeated presses alternate).</summary>
+    [RelayCommand]
+    private void CycleToPreviousTab()
+    {
+        _mruOrder.RemoveAll(d => !OpenDocuments.Contains(d));
+        if (_mruOrder.Count < 2) return;
+
+        ActiveDocument = _mruOrder[1];
+    }
 
     public EditorViewModel(IEditorService editorService, IFileSystemService fileSystemService, ILspSessionManager? lspSessionManager = null, IBreakpointStore? breakpointStore = null, ICodeMetricsService? codeMetricsService = null)
     {

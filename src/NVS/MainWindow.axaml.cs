@@ -34,6 +34,49 @@ public partial class MainWindow : Window
         {
             vm.OpenSettingsRequested += OnOpenSettingsRequested;
             vm.NewProjectRequested += (_, _) => OnNewProjectClick(this, new RoutedEventArgs());
+            vm.CommandPalette.PropertyChanged += OnCommandPalettePropertyChanged;
+        }
+    }
+
+    private void OnCommandPalettePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ViewModels.CommandPaletteViewModel.IsOpen)
+            && sender is ViewModels.CommandPaletteViewModel { IsOpen: true })
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => CommandPaletteInput.Focus());
+        }
+    }
+
+    private void OnCommandPaletteKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not ViewModels.MainViewModel vm) return;
+
+        switch (e.Key)
+        {
+            case Key.Down:
+                vm.CommandPalette.MoveSelection(1);
+                e.Handled = true;
+                break;
+            case Key.Up:
+                vm.CommandPalette.MoveSelection(-1);
+                e.Handled = true;
+                break;
+            case Key.Enter:
+                vm.CommandPalette.ExecuteSelected();
+                e.Handled = true;
+                break;
+            case Key.Escape:
+                vm.CommandPalette.Close();
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void OnCommandPaletteBackdropPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is ViewModels.MainViewModel vm)
+        {
+            vm.CommandPalette.Close();
         }
     }
 

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NVS.Core.Interfaces;
@@ -27,6 +28,15 @@ public sealed partial class SearchViewModel : ObservableObject
     private string _query = "";
 
     [ObservableProperty]
+    private bool _matchCase;
+
+    [ObservableProperty]
+    private bool _wholeWord;
+
+    [ObservableProperty]
+    private bool _useRegex;
+
+    [ObservableProperty]
     private bool _isSearching;
 
     public ObservableCollection<FileSearchResult> Results { get; } = [];
@@ -49,6 +59,19 @@ public sealed partial class SearchViewModel : ObservableObject
         IsSearching = true;
         Results.Clear();
         var query = Query;
+
+        Func<string, bool> matcher;
+        try
+        {
+            matcher = BuildMatcher(query, MatchCase, WholeWord, UseRegex);
+        }
+        catch (ArgumentException ex)
+        {
+            _main.StatusMessage = $"Search: invalid regular expression ({ex.Message})";
+            IsSearching = false;
+            return;
+        }
+
         var resultsCapped = false;
 
         try
@@ -84,7 +107,7 @@ public sealed partial class SearchViewModel : ObservableObject
                     var lines = content.Split('\n');
                     for (var i = 0; i < lines.Length; i++)
                     {
-                        if (lines[i].Contains(query, StringComparison.OrdinalIgnoreCase))
+                        if (matcher(lines[i]))
                         {
                             batch.Add(new FileSearchResult
                             {
@@ -140,6 +163,32 @@ public sealed partial class SearchViewModel : ObservableObject
         {
             doc.CursorLine = result.LineNumber;
         }
+    }
+
+    /// <summary>
+    /// Builds the line matcher for a search. Regex mode takes the query as a pattern
+    /// (with a timeout guard against catastrophic backtracking); whole-word wraps the
+    /// literal query in \b anchors; otherwise it's a plain substring match.
+    /// </summary>
+    internal static Func<string, bool> BuildMatcher(string query, bool matchCase, bool wholeWord, bool useRegex)
+    {
+        var options = matchCase ? RegexOptions.None : RegexOptions.IgnoreCase;
+        var timeout = TimeSpan.FromMilliseconds(500);
+
+        if (useRegex)
+        {
+            var regex = new Regex(query, options, timeout);
+            return line => regex.IsMatch(line);
+        }
+
+        if (wholeWord)
+        {
+            var regex = new Regex(@"\b" + Regex.Escape(query) + @"\b", options, timeout);
+            return line => regex.IsMatch(line);
+        }
+
+        var comparison = matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        return line => line.Contains(query, comparison);
     }
 
     private static List<string> EnumerateFilesSafe(string rootPath)

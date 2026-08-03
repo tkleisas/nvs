@@ -14,6 +14,7 @@
         Background="{DynamicResource AppBackgroundBrush}">
 
     <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+Shift+P" Command="{Binding OpenCommandPaletteCommand}" />
         <KeyBinding Gesture="Ctrl+N" Command="{Binding NewFileCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding NewProjectCommand}" />
         <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
@@ -22,6 +23,7 @@
         <KeyBinding Gesture="Ctrl+H" Command="{Binding Editor.ReplaceCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveFileAsCommand}" />
         <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseFileCommand}" />
+        <KeyBinding Gesture="Ctrl+Tab" Command="{Binding Editor.CycleToPreviousTabCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+E" Command="{Binding ShowExplorerCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+F" Command="{Binding ShowSearchCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+G" Command="{Binding ShowSourceControlCommand}" />
@@ -321,5 +323,34 @@
                 </StackPanel>
             </Grid>
         </Border>
+
+        <!-- Command Palette (Ctrl+Shift+P) -->
+        <Grid Grid.Row="0" Grid.RowSpan="5" IsVisible="{Binding CommandPalette.IsOpen}">
+            <Border Background="#80000000" PointerPressed="OnCommandPaletteBackdropPressed" />
+            <Border VerticalAlignment="Top" HorizontalAlignment="Center" Width="560" Margin="0,60,0,0"
+                    Background="{DynamicResource MenuBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="6" Padding="8">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBox x:Name="CommandPaletteInput" Grid.Row="0"
+                             Text="{Binding CommandPalette.Query}"
+                             PlaceholderText="Type a command name..."
+                             KeyDown="OnCommandPaletteKeyDown"
+                             Background="{DynamicResource InputBackgroundBrush}"
+                             Foreground="{DynamicResource TextForegroundBrush}" />
+                    <ListBox x:Name="CommandPaletteList" Grid.Row="1" Margin="0,8,0,0" MaxHeight="400"
+                             Background="Transparent" BorderThickness="0"
+                             ItemsSource="{Binding CommandPalette.Items}"
+                             SelectedItem="{Binding CommandPalette.SelectedItem}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CommandPaletteItem">
+                                <TextBlock Text="{Binding Title}" Padding="6,4" FontSize="13"
+                                           Foreground="{DynamicResource TextForegroundBrush}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

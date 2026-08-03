@@ -83,6 +83,15 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Editor tab size from settings, shown in the status bar.</summary>
     public int EditorTabSize => SettingsService.AppSettings.Editor.TabSize;
 
+    /// <summary>The command palette (Ctrl+Shift+P) view model.</summary>
+    public CommandPaletteViewModel CommandPalette { get; private set; } = null!;
+
+    [RelayCommand]
+    private void OpenCommandPalette()
+    {
+        CommandPalette.Open();
+    }
+
     private void RecordRecentWorkspace(string path)
     {
         var current = SettingsService.AppSettings;
@@ -161,6 +170,7 @@ public partial class MainViewModel : ObservableObject
         SettingsService = settingsService;
         Editor = editor;
         Editor.DiagnosticsReceived = (path, diagnostics) => FindProblemsTool()?.SetLspDiagnostics(path, diagnostics);
+        CommandPalette = new CommandPaletteViewModel(this);
 
         Git = new GitViewModel(gitService, this);
         BuildRun = new BuildRunViewModel(buildService, solutionService, this);

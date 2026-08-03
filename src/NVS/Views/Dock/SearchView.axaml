@@ -8,7 +8,7 @@
              x:Class="NVS.Views.Dock.SearchView"
              x:DataType="dock:SearchToolViewModel">
 
-    <Grid RowDefinitions="Auto,*" Margin="8,4">
+    <Grid RowDefinitions="Auto,Auto,*" Margin="8,4">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,4">
             <TextBox Grid.Column="0"
                      Text="{Binding Main.Search.Query}"
@@ -27,11 +27,22 @@
                     Command="{Binding Main.Search.SearchFilesCommand}"
                     Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}" />
         </Grid>
-        <Border Grid.Row="1" IsVisible="{Binding Main.Search.IsSearching}"
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="0,0,0,4">
+            <ToggleButton Content="Aa" FontSize="11" Padding="6,2" MinWidth="30"
+                          IsChecked="{Binding Main.Search.MatchCase}"
+                          ToolTip.Tip="Match Case" />
+            <ToggleButton Content="W" FontSize="11" Padding="6,2" MinWidth="30"
+                          IsChecked="{Binding Main.Search.WholeWord}"
+                          ToolTip.Tip="Match Whole Word" />
+            <ToggleButton Content=".*" FontSize="11" Padding="6,2" MinWidth="30"
+                          IsChecked="{Binding Main.Search.UseRegex}"
+                          ToolTip.Tip="Use Regular Expression" />
+        </StackPanel>
+        <Border Grid.Row="2" IsVisible="{Binding Main.Search.IsSearching}"
                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8">
             <TextBlock Text="Searching..." Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="12" />
         </Border>
-        <ListBox Grid.Row="1"
+        <ListBox Grid.Row="2"
                  ItemsSource="{Binding Main.Search.Results}"
                  Background="Transparent"
                  BorderThickness="0"

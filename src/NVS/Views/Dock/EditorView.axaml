@@ -25,7 +25,8 @@
             <RowDefinition Height="0"/>
         </Grid.RowDefinitions>
 
-        <TabControl Grid.Column="0"
+        <Grid Grid.Column="0">
+            <TabControl
                     ItemsSource="{Binding Main.Editor.OpenDocuments}"
                     SelectedIndex="{Binding Main.Editor.ActiveTabIndex}"
                     Background="{DynamicResource ToolPanelBackgroundBrush}"
@@ -112,6 +113,25 @@
                 </DataTemplate>
             </TabControl.ContentTemplate>
         </TabControl>
+            <Button Content="▼" FontSize="8" Padding="6,1" Margin="0,1,3,0"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Background="Transparent" BorderThickness="0"
+                    Foreground="{DynamicResource TextSecondaryForegroundBrush}"
+                    ToolTip.Tip="Open documents"
+                    IsVisible="{Binding !Main.Editor.HasNoOpenDocuments}">
+                <Button.Flyout>
+                    <MenuFlyout ItemsSource="{Binding Main.Editor.OpenDocuments}">
+                        <MenuFlyout.ItemTemplate>
+                            <DataTemplate DataType="vm:DocumentViewModel">
+                                <MenuItem Header="{Binding Title}"
+                                          Command="{Binding $parent[UserControl].((dock:EditorDocumentViewModel)DataContext).Main.Editor.ActivateDocumentCommand}"
+                                          CommandParameter="{Binding}"/>
+                            </DataTemplate>
+                        </MenuFlyout.ItemTemplate>
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+        </Grid>
 
         <!-- Split Splitter -->
         <GridSplitter x:Name="Splitter" Grid.Column="1" Width="4"
