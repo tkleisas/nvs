@@ -1,3 +1,4 @@
+using System.Text.Json;
 using NVS.Core.Interfaces;
 
 namespace NVS.Services.Debug;
@@ -153,4 +154,93 @@ public sealed class BreakpointStore : IBreakpointStore
             });
         }
     }
+
+    /// <inheritdoc />
+    public void Load(string workspacePath)
+    {
+        List<PersistedBreakpoint>? persisted = null;
+        var storagePath = GetStoragePath(workspacePath);
+        if (File.Exists(storagePath))
+        {
+            try
+            {
+                persisted = JsonSerializer.Deserialize<List<PersistedBreakpoint>>(File.ReadAllText(storagePath));
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning(ex, "Failed to read breakpoints from {Path} — starting empty", storagePath);
+            }
+        }
+
+        lock (_lock)
+        {
+            _breakpoints.Clear();
+            if (persisted is null)
+            {
+                return;
+            }
+
+            foreach (var entry in persisted)
+            {
+                if (string.IsNullOrWhiteSpace(entry.Path) || entry.Line <= 0)
+                {
+                    continue;
+                }
+
+                if (!_breakpoints.TryGetValue(entry.Path, out var list))
+                {
+                    list = [];
+                    _breakpoints[entry.Path] = list;
+                }
+
+                var bp = new Breakpoint
+                {
+                    Id = Guid.NewGuid(),
+                    Path = entry.Path,
+                    Line = entry.Line,
+                    IsEnabled = entry.IsEnabled,
+                    IsVerified = false,
+                };
+                list.Add(bp);
+
+                BreakpointChanged?.Invoke(this, new BreakpointChangedEventArgs
+                {
+                    FilePath = entry.Path,
+                    Breakpoint = bp,
+                    Kind = BreakpointChangeKind.Added,
+                });
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public void Save(string workspacePath)
+    {
+        List<PersistedBreakpoint> persisted;
+        lock (_lock)
+        {
+            persisted = _breakpoints.Values
+                .SelectMany(list => list)
+                .Select(bp => new PersistedBreakpoint(bp.Path, bp.Line, bp.IsEnabled))
+                .ToList();
+        }
+
+        var storagePath = GetStoragePath(workspacePath);
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(storagePath)!);
+            File.WriteAllText(storagePath, JsonSerializer.Serialize(persisted, JsonOptions));
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Failed to save breakpoints to {Path}", storagePath);
+        }
+    }
+
+    internal static string GetStoragePath(string workspacePath) =>
+        Path.Combine(workspacePath, ".nvs", "breakpoints.json");
+
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
+    private sealed record PersistedBreakpoint(string Path, int Line, bool IsEnabled);
 }

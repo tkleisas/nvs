@@ -214,3 +214,75 @@ public sealed class BreakpointStoreTests
         bp1.Id.Should().NotBe(Guid.Empty);
     }
 }
+
+public sealed class BreakpointStorePersistenceTests : IDisposable
+{
+    private readonly string _workspace = Path.Combine(Path.GetTempPath(), "nvs-bp-test-" + Guid.NewGuid().ToString("N")[..8]);
+    private readonly BreakpointStore _store = new();
+
+    public BreakpointStorePersistenceTests()
+    {
+        Directory.CreateDirectory(_workspace);
+    }
+
+    public void Dispose()
+    {
+        try { Directory.Delete(_workspace, recursive: true); } catch { }
+    }
+
+    [Fact]
+    public void Save_ThenLoad_RoundTripsBreakpoints()
+    {
+        _store.ToggleBreakpoint("/src/Program.cs", 10);
+        _store.ToggleBreakpoint("/src/Program.cs", 20);
+        _store.ToggleBreakpoint("/src/Other.cs", 5);
+
+        _store.Save(_workspace);
+
+        var restored = new BreakpointStore();
+        restored.Load(_workspace);
+
+        restored.GetBreakpoints("/src/Program.cs").Select(b => b.Line).Should().BeEquivalentTo([10, 20]);
+        restored.GetBreakpoints("/src/Other.cs").Select(b => b.Line).Should().BeEquivalentTo([5]);
+        restored.GetAllBreakpoints().Should().HaveCount(3);
+    }
+
+    [Fact]
+    public void Load_MissingFile_StartsEmpty()
+    {
+        _store.ToggleBreakpoint("/src/Program.cs", 10);
+
+        _store.Load(_workspace);
+
+        _store.GetAllBreakpoints().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Load_CorruptFile_StartsEmptyWithoutThrowing()
+    {
+        var storagePath = BreakpointStore.GetStoragePath(_workspace);
+        Directory.CreateDirectory(Path.GetDirectoryName(storagePath)!);
+        File.WriteAllText(storagePath, "{ not json !!");
+        _store.ToggleBreakpoint("/src/Program.cs", 10);
+
+        var act = () => _store.Load(_workspace);
+
+        act.Should().NotThrow();
+        _store.GetAllBreakpoints().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Load_RaisesAddedEventsSoUiRefreshes()
+    {
+        _store.ToggleBreakpoint("/src/Program.cs", 10);
+        _store.Save(_workspace);
+
+        var restored = new BreakpointStore();
+        var events = new List<BreakpointChangedEventArgs>();
+        restored.BreakpointChanged += (_, e) => events.Add(e);
+
+        restored.Load(_workspace);
+
+        events.Should().ContainSingle(e => e.Kind == BreakpointChangeKind.Added && e.FilePath == "/src/Program.cs");
+    }
+}

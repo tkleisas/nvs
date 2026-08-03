@@ -16,6 +16,16 @@ public interface IBreakpointStore
     void ClearAllBreakpoints();
     void UpdateVerifiedStatus(string filePath, int line, bool verified);
 
+    /// <summary>
+    /// Replaces the store contents with the breakpoints persisted for the given
+    /// workspace (`.nvs/breakpoints.json`). Missing or corrupt files yield an
+    /// empty store. Raises <see cref="BreakpointChanged"/> for loaded entries.
+    /// </summary>
+    void Load(string workspacePath);
+
+    /// <summary>Persists the current breakpoints for the given workspace (`.nvs/breakpoints.json`).</summary>
+    void Save(string workspacePath);
+
     event EventHandler<BreakpointChangedEventArgs>? BreakpointChanged;
 }
 

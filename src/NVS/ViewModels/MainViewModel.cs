@@ -113,9 +113,31 @@ public partial class MainViewModel : ObservableObject
         InlineChat.Open();
     }
 
-    private void RecordRecentWorkspace(string path)
+    private CancellationTokenSource? _breakpointSaveCts;
+
+    /// <summary>Persists breakpoints (debounced 1s) whenever they change and a workspace is open.</summary>
+    private void ScheduleBreakpointSave()
     {
-        var current = SettingsService.AppSettings;
+        if (WorkspacePath is not { } path)
+        {
+            return;
+        }
+
+        _breakpointSaveCts?.Cancel();
+        var cts = _breakpointSaveCts = new CancellationTokenSource();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(1000, cts.Token);
+                _breakpointStore?.Save(path);
+            }
+            catch (OperationCanceledException) { }
+        });
+    }
+
+    private void RecordRecentWorkspace(string path)
+    {        var current = SettingsService.AppSettings;
         var recents = new List<string> { path };
         foreach (var recent in current.RecentWorkspaces)
         {
@@ -190,6 +212,11 @@ public partial class MainViewModel : ObservableObject
         _browserLauncher = browserLauncher;
         _terminalHost = terminalHost;
         _testExplorerService = testExplorerService;
+
+        if (_breakpointStore is not null)
+        {
+            _breakpointStore.BreakpointChanged += (_, _) => ScheduleBreakpointSave();
+        }
         SettingsService = settingsService;
         Editor = editor;
         Editor.DiagnosticsReceived = (path, diagnostics) => FindProblemsTool()?.SetLspDiagnostics(path, diagnostics);
@@ -467,6 +494,7 @@ public partial class MainViewModel : ObservableObject
         IsWorkspaceOpen = true;
         Title = $"NVS - {Path.GetFileNameWithoutExtension(solutionPath)}";
         RecordRecentWorkspace(solutionDir);
+        _breakpointStore?.Load(solutionDir);
 
         await Explorer.LoadFileTreeAsync(solutionDir);
         await Git.InitializeAsync(solutionDir);
@@ -510,6 +538,7 @@ public partial class MainViewModel : ObservableObject
         StatusMessage = $"Opened: {folderPath}";
         Title = $"NVS - {Path.GetFileName(folderPath)}";
         RecordRecentWorkspace(folderPath);
+        _breakpointStore?.Load(folderPath);
 
         await Explorer.LoadFileTreeAsync(folderPath);
         await Git.InitializeAsync(folderPath);
