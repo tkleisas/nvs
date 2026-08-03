@@ -8,8 +8,8 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 12](https://img.shields.io/badge/AvaloniaUI-12.0-blue)
-![Version](https://img.shields.io/badge/version-0.13.0-green)
-![Tests](https://img.shields.io/badge/tests-1231%20passing-brightgreen)
+![Version](https://img.shields.io/badge/version-0.21.0-green)
+![Tests](https://img.shields.io/badge/tests-1393%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -23,18 +23,20 @@ NVS is a code editor / IDE that:
 - **Does not replace Vim.** We cannot stress this enough.
 - Runs on Windows, macOS, and Linux (thanks Avalonia).
 - Has language server support for 14+ languages with auto-completion and signature help.
-- Has Roslyn-powered C# intelligence: completions, hover, go-to-definition, references, diagnostics, signature help, formatting — no external language server needed.
+- Has Roslyn-powered C# intelligence: completions, hover, go-to-definition, references, rename, diagnostics, signature help, formatting — no external language server needed.
 - Has a built-in PTY terminal that actually works.
 - Has git integration that will absolutely let you force-push to main.
 - Has .NET solution/project loading with full build integration.
 - Has DAP-based debugging with breakpoints, call stack, and variable inspection.
+- Has a Test Explorer that discovers and runs your tests without leaving the editor.
 - Has an AI chat assistant that can read and modify your project files.
 - Has a NuGet package manager, a multi-database explorer (SQLite, PostgreSQL, SQL Server, Oracle), and a built-in HTTP API client.
 - Has Roslyn-based code metrics with gutter indicators and a dashboard panel.
+- Has Docker/Podman support: container management, Dockerfile scaffolding, and image builds.
 - Supports multi-project solutions with startup project selection.
 - Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
-- Has 1204 tests, which is 1204 more than the AI thought were necessary before the human insisted.
+- Has 1393 tests, which is 1393 more than the AI thought were necessary before the human insisted.
 
 ## Features
 
@@ -49,10 +51,12 @@ NVS is a code editor / IDE that:
 - **Minimap** — scaled document overview with viewport indicator, click-to-scroll
 - **Split editor** — vertical/horizontal split (Ctrl+\\, context menu, View menu)
 - **Multiple cursors** — Ctrl+D for next occurrence, Ctrl+Alt+Up/Down to add cursor above/below, Escape to clear
+- **Command palette** — Ctrl+Shift+P, fuzzy search over every command in the IDE (including test runs and container scaffolding)
 - Compiled bindings for that sweet, sweet performance
 
 ### 🧠 Language Server Protocol (LSP) & Roslyn
-- **Roslyn-powered C# language service** — completions (including `.` trigger), hover tooltips, go-to-definition, find references, document symbols, diagnostics, signature help, and document formatting — all via in-process MSBuildWorkspace with no external server
+- **Roslyn-powered C# language service** — completions (including `.` trigger), hover tooltips, go-to-definition, find references, document symbols, **rename symbol (F2)** with preview prompt, diagnostics, signature help, and document formatting — all via in-process MSBuildWorkspace with no external server
+- **Document symbols outline** (View → Symbols) — live namespace → type → member tree of the active file with per-kind icons, line numbers, and click/double-click navigation; Roslyn for C#, LSP for everything else
 - Full JSON-RPC 2.0 transport layer for non-C# languages
 - Auto-completion with trigger characters (`.`, `<`, `:`) and debounced identifier completion
 - Signature help / parameter info on `(` and `,`
@@ -60,6 +64,7 @@ NVS is a code editor / IDE that:
 - Code Actions / Quick Fixes (Ctrl+.)
 - Inline diagnostics with squiggly underlines
 - Incremental document sync (`textDocument/didChange`)
+- Language servers that aren't installed are skipped quietly instead of failing loudly on every keystroke
 - 14 open-source language servers, installable from Settings:
 
 | Server | Languages | Install |
@@ -90,6 +95,7 @@ NVS is a code editor / IDE that:
 ### 🔀 Git Integration
 - Repository status, staging, unstaging
 - Commit with message (the AI suggested "fix stuff" for every commit message)
+- **AI commit messages** — one click generates a real message from the staged diff (infinitely better than "fix stuff")
 - **Amend last commit** — edit the most recent commit message or contents
 - Branch management (create, checkout, delete, list)
 - Commit log
@@ -102,9 +108,10 @@ NVS is a code editor / IDE that:
 - Branch picker in the status bar
 
 ### 💻 Terminal
-- Built-in PTY terminal panel (Ctrl+`) via Iciclecreek
+- Built-in PTY terminal panel (Ctrl+`) via Porta.Pty (ConPTY on Windows, native PTY elsewhere)
 - Cross-platform shell detection (pwsh → PowerShell → cmd on Windows; `$SHELL` on Unix)
 - Multiple terminal instances — for when one terminal full of errors isn't enough
+- Frame-coalesced rendering — a flood of build output no longer floods the UI thread
 - Configurable fonts (MesloLGM Nerd Font etc.)
 
 ### 🏗️ Solution & Build
@@ -115,7 +122,7 @@ NVS is a code editor / IDE that:
 - Build, Rebuild, Clean (Ctrl+Shift+B)
 - Run without debugging (Ctrl+F5) — GUI apps launch as detached windows, console apps run in terminal, **web apps run with the selected launch profile** (`dotnet run --launch-profile`) and auto-open a browser
 - **Web application run/debug** — launchSettings.json parsing, launch-profile selector (toolbar dropdown + Settings → Web / Launch), cross-platform browser launch, and live "Now listening on:" URL scraping for the debug browser launch (with a static fallback)
-- Build Output panel with auto-scroll and MSBuild error parsing
+- Build Output panel with auto-scroll, MSBuild error parsing, and batched line rendering
 - Problems panel with click-to-navigate diagnostics
 - New project / file-from-template scaffolding via `dotnet new`, Maven, and Composer
 - Add existing project to solution
@@ -132,7 +139,16 @@ NVS is a code editor / IDE that:
 - Variables panel with expandable tree view (lazy-loaded children)
 - Debug output streamed to Build Output panel
 - Debug toolbar with visual step controls
-- Console apps debug in integrated terminal; GUI apps debug directly
+- Console apps debug in the integrated terminal via a two-phase startup-hook handshake (breakpoints re-sync after module load); GUI apps debug directly
+
+### 🧪 Test Explorer
+- **Auto-discovers tests** in every test project on solution load — any VSTest-compatible framework (xUnit, NUnit, MSTest)
+- Project → namespace → class → test tree with pass/fail/skip icons, per-node durations, and outcomes aggregated up the tree
+- **Run All** (Build → Run All Tests or the toolbar), **re-run failed**, **run selected** scope (project, namespace, class, or a single test)
+- Results parsed from TRX: double-click a test to jump to its source line; the details pane shows the error message and stack trace for failures
+- Theory/parameterized cases tracked per case (matched by display name); projects run one-by-one and merge — a solution-wide `dotnet test` would overwrite one shared TRX file per project
+- Self-hosting aware: when NVS tests the solution it's running from, it skips the doomed build (locked binaries) and tests the already-built output
+- Parallel project discovery (~2× faster on multi-project solutions)
 
 ### 💬 LLM Chat Assistant
 - Built-in AI chat panel with streaming responses
@@ -144,6 +160,7 @@ NVS is a code editor / IDE that:
 - **Context enrichment** — attach files (📎), auto-includes open files, diagnostics, git branch/status in prompts
 - **Vision/image support** — attach images (📷) for multimodal models, base64 data URI encoding
 - **Inline ghost-text completions** — LLM-powered code suggestions appear as dimmed text after cursor, accept with Tab, dismiss with Escape
+- **Inline AI edit (Ctrl+I)** — select code, describe the change in one line, preview the proposed diff, apply or discard
 - Configurable model, temperature, max iterations, and prompt templates
 - Yes, we built an AI-powered IDE using AI. It's slop all the way down.
 
@@ -172,6 +189,13 @@ NVS is a code editor / IDE that:
 - Environments and `{{variable}}` substitution, keeping secrets out of version control
 - Code generation (C#-first: HttpClient, Refit, RestSharp; JSON → records) and pre/post-request JavaScript scripting (Jint) with `req`/`res`/`bru`/`crypto` and `test`/`expect`
 - **AI integration**: build requests from natural-language descriptions, analyze responses, and generate post-response test scripts — powered by the NVS LLM settings
+
+### 🐳 Containers (Docker / Podman)
+- Engine auto-detection (docker or podman CLI) with live container and image lists
+- Start / stop / remove containers, view logs, run images
+- **Dockerfile scaffolding** — generate a ready-to-build Dockerfile per project (or all projects at once), plus docker-compose file creation
+- **Image builds** straight from the panel; scaffold and build are also reachable from the command palette
+- View → Containers
 
 ### ❓ Help System
 - Welcome tab with getting started links and feature overview
@@ -217,13 +241,15 @@ nvs --automation-port 5050
 # or: set NVS_AUTOMATION_PORT=5050
 ```
 
-Commands: `ping`, `state` (workspace/dock state), `tree` (visual-tree dump),
-`screenshot` (whole window or a control by name/automation id),
-`command` (invoke any MainViewModel command by name), `menu` (invoke a menu
-item by header path), `open-solution`, `activate` (open a panel/document).
+Commands: `ping`, `state` (workspace/dock state), `tree` (visual-tree dump,
+optionally scoped to one control with `--control`), `screenshot` (whole window
+or a control by name/automation id), `command` (invoke any MainViewModel
+command by name), `menu` (invoke a menu item by header path), `open-solution`,
+`open-file`, `activate` (open a panel/document), `set-text`.
 
 ```bash
 python tools/automation_client.py screenshot --path shot.png --control DatabaseTreeView
+python tools/automation_client.py tree --control SymbolsPanel --max-depth 30
 python tools/automation_client.py command --name ShowDatabaseExplorer
 python tools/automation_client.py menu --path "Database/Ask AI..."
 ```
@@ -242,7 +268,7 @@ NVS (UI)  →  NVS.Services / NVS.Infrastructure  →  NVS.Core
 | Project | Role |
 |---------|------|
 | **NVS.Core** | Interfaces and models only. No implementations. The Switzerland of the codebase. |
-| **NVS.Services** | All the actual work: Editor, FileSystem, Workspace, Language, LSP, Git, Terminal, Settings, Solution, Build, Debug, LLM, NuGet, Code Metrics. The load-bearing wall of this house of cards. |
+| **NVS.Services** | All the actual work: Editor, FileSystem, Workspace, Language, LSP, Git, Terminal, Settings, Solution, Build, Debug, Testing, LLM, NuGet, Code Metrics. The load-bearing wall of this house of cards. |
 | **NVS.Infrastructure** | DI registration, Serilog logging config. |
 | **NVS.Plugins** | Plugin loading via `AssemblyLoadContext`. Currently quiet. Suspiciously quiet. |
 | **NVS** | The Avalonia UI app — ViewModels, Views, Behaviors, and the DI composition root. |
@@ -267,11 +293,11 @@ dotnet run --project src/NVS
 # Open a solution directly
 dotnet run --project src/NVS -- path/to/solution.sln
 
-# Run tests (1204 of them)
+# Run tests (1393 of them)
 dotnet test NVS.slnx
 ```
 
-There is no separate lint command. Code style is enforced at build time via `TreatWarningsAsErrors`, `EnforceCodeStyleInBuild`, and the .NET analyzers. If it builds, it's "lint-passing." If it doesn't build, well, that's a different kind of feedback.
+There is no separate lint command. Code style is enforced at build time via `TreatWarningsAsErrors`, `EnforceCodeStyleInBuild`, and the .NET analyzers — plus a theme-color lint test that keeps hardcoded hex colors out of the views. If it builds, it's "lint-passing." If it doesn't build, well, that's a different kind of feedback.
 
 ### Run a Single Test
 
@@ -306,13 +332,14 @@ git push origin v0.5.0
 | UI Framework | [AvaloniaUI](https://avaloniaui.net/) 12.0 |
 | Text Editor | [AvaloniaEdit](https://github.com/AvaloniaUI/AvaloniaEdit) 12.0 |
 | Docking | [Dock.Avalonia](https://github.com/wieslawsoltes/Dock) 12.0 |
-| Terminal | [Iciclecreek.Avalonia.Terminal](https://github.com/tomlm/Iciclecreek.Avalonia.Terminal) 2.0 |
+| Terminal | [Porta.Pty](https://www.nuget.org/packages/Porta.Pty) (ConPTY/native PTY) |
 | Database Explorer | [SQLiteExplorer](https://github.com/tkleisas/SQLiteExplorer) (embedded, multi-engine) |
 | API Client | [ApiClient](https://github.com/tkleisas/ApiClient) (embedded) |
 | MVVM | [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/) 8.4 |
 | Git | [LibGit2Sharp](https://github.com/libgit2/libgit2sharp) 0.31 |
 | Code Metrics | [Microsoft.CodeAnalysis](https://github.com/dotnet/roslyn) (Roslyn) |
 | C# Language Service | [Microsoft.CodeAnalysis](https://github.com/dotnet/roslyn) (Roslyn MSBuildWorkspace) |
+| Test Runner | `dotnet test` + TRX parsing (xUnit, NUnit, MSTest) |
 | Debugging | [netcoredbg](https://github.com/Samsung/netcoredbg) (MIT, auto-downloaded) |
 | Java Debug | [java-debug](https://github.com/microsoft/java-debug) (EPL-1.0, JDT.LS plugin) |
 | PHP Debug | [vscode-php-debug](https://github.com/xdebug/vscode-php-debug) (MIT, Node.js) |
@@ -323,12 +350,12 @@ git push origin v0.5.0
 
 ## Testing
 
-1204 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
+1393 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
 
 - **NVS.Core.Tests** — Core model tests
 - **NVS.Plugins.Tests** — Plugin system tests
-- **NVS.Services.Tests** — EditorService, LanguageService, LSP, Git, Terminal, Registry, Solution, Build, DAP, Debug, Breakpoints, LLM Agent Tools, Inline Completions, Chat Sessions, NuGet, Code Metrics
-- **NVS.Tests** — ViewModel tests (Editor, Document, Settings, MainViewModel, Build/Run, LLM Chat, NuGet, Help, Welcome)
+- **NVS.Services.Tests** — EditorService, LanguageService, LSP, Git, Terminal, Registry, Solution, Build, DAP, Debug, Breakpoints, LLM Agent Tools, Inline Completions, Chat Sessions, NuGet, Code Metrics, Test Explorer (discovery/TRX parsing, self-host detection)
+- **NVS.Tests** — ViewModel tests (Editor, Document, Settings, MainViewModel, Build/Run, LLM Chat, NuGet, Help, Welcome, Test Explorer, Symbols outline, Terminal, Build Output, Automation server) and the theme-color lint guard
 
 Test naming convention: `MethodName_Scenario_ExpectedOutcome`
 
