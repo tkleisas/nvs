@@ -238,6 +238,7 @@ public partial class App : Application
                 sp.GetRequiredService<ILlmService>(),
                 () => sp.GetRequiredService<ISettingsService>().AppSettings.Llm));
         services.AddSingleton<INuGetService, NVS.Services.NuGet.NuGetPackageService>();
+        services.AddSingleton<ITestExplorerService, NVS.Services.Testing.TestExplorerService>();
         services.AddSingleton<ICodeMetricsService, NVS.Services.Metrics.CodeMetricsService>();
         services.AddSingleton<IPrerequisiteService, NVS.Services.Prerequisites.PrerequisiteService>();
         services.AddSingleton<IThemeService, NVS.Services.Themes.ThemeService>();

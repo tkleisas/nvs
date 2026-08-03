@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:dock="clr-namespace:NVS.ViewModels.Dock"
+             xmlns:converters="clr-namespace:NVS.Converters"
+             mc:Ignorable="d"
+             x:Class="NVS.Views.Dock.TestExplorerView"
+             x:DataType="dock:TestExplorerToolViewModel">
+
+    <Grid x:Name="TestExplorerPanel" RowDefinitions="Auto,*">
+        <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}" Padding="6,4">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="Test Explorer" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <ProgressBar Width="60" Height="4" VerticalAlignment="Center"
+                                 IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+                    <Button Content="↻" Padding="6,1" FontSize="11"
+                            ToolTip.Tip="Discover tests" Command="{Binding DiscoverCommand}"
+                            IsEnabled="{Binding !IsBusy}" />
+                    <Button Content="▶" Padding="6,1" FontSize="11"
+                            ToolTip.Tip="Run all tests" Command="{Binding RunAllCommand}"
+                            IsEnabled="{Binding !IsBusy}" />
+                    <Button Content="▶✗" Padding="6,1" FontSize="11"
+                            ToolTip.Tip="Re-run failed tests" Command="{Binding RunFailedCommand}"
+                            IsEnabled="{Binding !IsBusy}" />
+                    <Button Content="▶•" Padding="6,1" FontSize="11"
+                            ToolTip.Tip="Run selected" Command="{Binding RunSelectedCommand}"
+                            CommandParameter="{Binding SelectedNode}"
+                            IsEnabled="{Binding !IsBusy}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" RowDefinitions="*,Auto,Auto">
+            <TreeView Grid.Row="0" ItemsSource="{Binding Projects}"
+                      SelectedItem="{Binding SelectedNode}"
+                      Background="Transparent" Padding="4">
+                <TreeView.Styles>
+                    <Style Selector="TreeViewItem">
+                        <Setter Property="IsExpanded" Value="True" />
+                    </Style>
+                </TreeView.Styles>
+                <TreeView.ItemTemplate>
+                    <TreeDataTemplate x:DataType="dock:TestNodeViewModel" ItemsSource="{Binding Children}">
+                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,1"
+                                    DoubleTapped="OnTestDoubleTapped">
+                            <TextBlock Text="{Binding Icon}" FontSize="11" VerticalAlignment="Center"
+                                       Foreground="{Binding Outcome, Converter={x:Static converters:TestOutcomeBrushConverter.Instance}}" />
+                            <TextBlock Text="{Binding Name}" FontSize="12"
+                                       Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding DurationText}" FontSize="10"
+                                       Foreground="{DynamicResource TextSecondaryForegroundBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </TreeDataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
+
+            <Border Grid.Row="1" MaxHeight="160" Margin="4,2" Padding="6,4"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
+                    IsVisible="{Binding SelectedNode, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <SelectableTextBlock Text="{Binding DetailsText}" FontSize="11" TextWrapping="Wrap"
+                                         Foreground="{DynamicResource TextForegroundBrush}" />
+                </ScrollViewer>
+            </Border>
+
+            <TextBlock Grid.Row="2" Text="{Binding StatusText}" FontSize="10"
+                       Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="6,2" />
+        </Grid>
+    </Grid>
+</UserControl>

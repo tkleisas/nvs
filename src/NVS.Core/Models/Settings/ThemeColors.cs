@@ -32,4 +32,10 @@ public sealed record ThemeColors
     public required string ScrollBarBackground { get; init; }
     public required string ScrollBarThumb { get; init; }
     public required string LineNumberForeground { get; init; }
+
+    /// <summary>Success/pass indicator (test results, confirmations).</summary>
+    public string SuccessColor { get; init; } = "#57A64A";
+
+    /// <summary>Error/failure indicator (test results, diagnostics accents).</summary>
+    public string ErrorColor { get; init; } = "#F14C4C";
 }

@@ -49,11 +49,12 @@ internal static class ThemeResourceApplier
         SetBrush(app, "InfoBarWarningBackgroundBrush", c.InfoBarWarningBackground);
         SetBrush(app, "InfoBarErrorBackgroundBrush", c.InfoBarErrorBackground);
         SetBrush(app, "InfoBarForegroundBrush", c.InfoBarForeground);
+        SetBrush(app, "SuccessBrush", c.SuccessColor);
+        SetBrush(app, "ErrorBrush", c.ErrorColor);
 
         // Fluent system keys used by the embedded components (SQLiteExplorer,
         // ApiClient) and stock Avalonia dialogs — map them onto the same palette
-        // so hosted panels don't clash with the NVS theme.
-        SetBrush(app, "SystemControlBackgroundChromeMediumBrush", c.MenuBackground);
+        // so hosted panels don't clash with the NVS theme.        SetBrush(app, "SystemControlBackgroundChromeMediumBrush", c.MenuBackground);
         SetBrush(app, "SystemControlBackgroundChromeMediumLowBrush", c.MenuBackground);
         SetBrush(app, "SystemControlBackgroundChromeLowBrush", c.ToolPanelBackground);
         SetBrush(app, "SystemControlBackgroundBaseLowBrush", c.InputBackground);

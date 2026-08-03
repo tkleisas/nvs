@@ -79,6 +79,8 @@ internal static class BuiltInThemes
             ScrollBarBackground = "#F3F3F3",
             ScrollBarThumb = "#C1C1C1",
             LineNumberForeground = "#6E7681",
+            SuccessColor = "#107C10",
+            ErrorColor = "#D13438",
         },
     };
 
@@ -118,6 +120,8 @@ internal static class BuiltInThemes
             ScrollBarBackground = "#272822",
             ScrollBarThumb = "#414339",
             LineNumberForeground = "#90908A",
+            SuccessColor = "#A6E22E",
+            ErrorColor = "#F92672",
         },
     };
 
@@ -157,6 +161,8 @@ internal static class BuiltInThemes
             ScrollBarBackground = "#002B36",
             ScrollBarThumb = "#073642",
             LineNumberForeground = "#586E75",
+            SuccessColor = "#859900",
+            ErrorColor = "#DC322F",
         },
     };
 

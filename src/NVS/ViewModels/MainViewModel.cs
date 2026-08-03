@@ -31,6 +31,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ILaunchSettingsService? _launchSettingsService;
     private readonly IBrowserLauncher? _browserLauncher;
     private readonly ITerminalHost? _terminalHost;
+    private readonly ITestExplorerService? _testExplorerService;
 
     private string _title = "NVS - No Vim Substitute";
     private bool _isWorkspaceOpen;
@@ -167,7 +168,8 @@ public partial class MainViewModel : ObservableObject
         IInlineCompletionService? inlineCompletionService = null,
         ILaunchSettingsService? launchSettingsService = null,
         IBrowserLauncher? browserLauncher = null,
-        ITerminalHost? terminalHost = null)
+        ITerminalHost? terminalHost = null,
+        ITestExplorerService? testExplorerService = null)
     {
         _workspaceService = workspaceService;
         _editorService = editorService;
@@ -187,6 +189,7 @@ public partial class MainViewModel : ObservableObject
         _launchSettingsService = launchSettingsService;
         _browserLauncher = browserLauncher;
         _terminalHost = terminalHost;
+        _testExplorerService = testExplorerService;
         SettingsService = settingsService;
         Editor = editor;
         Editor.DiagnosticsReceived = (path, diagnostics) => FindProblemsTool()?.SetLspDiagnostics(path, diagnostics);
@@ -218,6 +221,7 @@ public partial class MainViewModel : ObservableObject
     public ITerminalHost? TerminalHost => _terminalHost;
     public IBreakpointStore? BreakpointStore => _breakpointStore;
     public ICodeMetricsService? CodeMetricsService => _codeMetricsService;
+    public ITestExplorerService? TestExplorerService => _testExplorerService;
     public IChatSessionService? ChatSessionService => _chatSessionService;
     public IGitService GitServiceAccessor => _gitService;
 
@@ -865,6 +869,22 @@ public partial class MainViewModel : ObservableObject
     private void ShowSymbols()
     {
         _dockFactory?.ShowToolInLeftDock(_dockFactory.SymbolsTool);
+    }
+
+    [RelayCommand]
+    private void ShowTestExplorer()
+    {
+        _dockFactory?.ShowToolInLeftDock(_dockFactory.TestExplorerTool);
+    }
+
+    [RelayCommand]
+    private async Task RunAllTests()
+    {
+        if (_dockFactory?.TestExplorerTool is { } tool)
+        {
+            _dockFactory.ShowToolInLeftDock(tool);
+            await tool.RunAllCommand.ExecuteAsync(null);
+        }
     }
 
     [RelayCommand]

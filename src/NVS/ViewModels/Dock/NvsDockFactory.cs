@@ -21,6 +21,7 @@ public sealed class NvsDockFactory : Factory
     private ToolDock? _leftToolDock;
     private ToolDock? _bottomToolDock;
     private SymbolsToolViewModel? _symbolsTool;
+    private TestExplorerToolViewModel? _testExplorerTool;
     private TerminalToolViewModel? _terminalTool;
     private NuGetToolViewModel? _nugetTool;
     private ContainersToolViewModel? _containersTool;
@@ -38,6 +39,7 @@ public sealed class NvsDockFactory : Factory
     public HelpToolViewModel? HelpTool => _helpTool;
     public CodeMetricsToolViewModel? CodeMetricsTool => _codeMetricsTool;
     public SymbolsToolViewModel? SymbolsTool => _symbolsTool;
+    public TestExplorerToolViewModel? TestExplorerTool => _testExplorerTool;
     public NvsDockFactory(MainViewModel main, NVS.Core.Models.Settings.DockLayoutSettings? dockSettings = null)
     {
         _main = main;
@@ -50,6 +52,7 @@ public sealed class NvsDockFactory : Factory
         var search = new SearchToolViewModel(_main);
         var git = new GitToolViewModel(_main);
         var symbols = new SymbolsToolViewModel(_main, _main.Editor?.LspSessionManager);
+        var testExplorer = new TestExplorerToolViewModel(_main, _main.TestExplorerService);
         var terminal = new TerminalToolViewModel(_main);
         var buildOutput = new BuildOutputToolViewModel(_main);
         var problems = new ProblemsToolViewModel(_main);
@@ -77,7 +80,7 @@ public sealed class NvsDockFactory : Factory
                 new ToolDock
                 {
                     ActiveDockable = explorer,
-                    VisibleDockables = CreateList<IDockable>(explorer, search, git, symbols),
+                    VisibleDockables = CreateList<IDockable>(explorer, search, git, symbols, testExplorer),
                     Alignment = Alignment.Left,
                     GripMode = GripMode.Visible,
                 }
@@ -85,6 +88,7 @@ public sealed class NvsDockFactory : Factory
         };
         _leftToolDock = (ToolDock)leftDock.VisibleDockables![0];
         _symbolsTool = symbols;
+        _testExplorerTool = testExplorer;
 
         var bottomToolDock = new ToolDock
         {

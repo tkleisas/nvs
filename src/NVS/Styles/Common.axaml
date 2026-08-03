@@ -24,5 +24,7 @@
         <SolidColorBrush x:Key="InfoBarWarningBackgroundBrush" Color="#CC6600" />
         <SolidColorBrush x:Key="InfoBarErrorBackgroundBrush" Color="#CC0000" />
         <SolidColorBrush x:Key="InfoBarForegroundBrush" Color="White" />
+        <SolidColorBrush x:Key="SuccessBrush" Color="#57A64A" />
+        <SolidColorBrush x:Key="ErrorBrush" Color="#F14C4C" />
     </Styles.Resources>
 </Styles>

@@ -100,6 +100,7 @@
                 <MenuItem Header="_Search" InputGesture="Ctrl+Shift+F" Command="{Binding ShowSearchCommand}" />
                 <MenuItem Header="_Source Control" InputGesture="Ctrl+Shift+G" Command="{Binding ShowSourceControlCommand}" />
                 <MenuItem Header="S_ymbols" Command="{Binding ShowSymbolsCommand}" />
+                <MenuItem Header="_Test Explorer" Command="{Binding ShowTestExplorerCommand}" />
                 <MenuItem Header="_Database Explorer" Command="{Binding ShowDatabaseExplorerCommand}" />
                 <MenuItem Header="_API Client" Command="{Binding ShowApiClientCommand}" />
                 <MenuItem Header="_Code Metrics" Command="{Binding ShowCodeMetricsCommand}" />
@@ -154,6 +155,8 @@
                 <MenuItem Header="_Build Solution" InputGesture="Ctrl+Shift+B" Command="{Binding BuildRun.BuildSolutionCommand}" />
                 <MenuItem Header="_Rebuild Solution" Command="{Binding BuildRun.RebuildSolutionCommand}" />
                 <MenuItem Header="_Clean Solution" Command="{Binding BuildRun.CleanSolutionCommand}" />
+                <Separator />
+                <MenuItem Header="Run All _Tests" Command="{Binding RunAllTestsCommand}" />
                 <Separator />
                 <MenuItem Header="_Run Without Debugging" InputGesture="Ctrl+F5" Command="{Binding BuildRun.RunProjectCommand}" />
                 <MenuItem Header="_Stop" Command="{Binding BuildRun.StopExecutionCommand}" />
