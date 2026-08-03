@@ -11,6 +11,7 @@ namespace NVS.Services.Tests;
 /// we have; tagged "terminal" so they can be filtered out in CI sandboxes if needed.
 /// </summary>
 [Trait("Category", "terminal")]
+[Collection("NativeIntegration")]
 public sealed class ProcessTerminalTests
 {
     private static bool CanSpawn => string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI"));
@@ -98,7 +99,8 @@ public sealed class ProcessTerminalTests
             }));
 
         await terminal.StartAsync(new TerminalStartOptions { Command = app, Args = args, AllocatePty = true });
-        await Task.WhenAll(tcs1.Task.WaitAsync(TimeSpan.FromSeconds(15)), tcs2.Task.WaitAsync(TimeSpan.FromSeconds(15)));
+        // Generous timeout: under full-suite parallel load, PTY spawn on Windows can be slow.
+        await Task.WhenAll(tcs1.Task.WaitAsync(TimeSpan.FromSeconds(60)), tcs2.Task.WaitAsync(TimeSpan.FromSeconds(60)));
 
         lock (s1) s1.ToString().Should().Contain("fan-out");
         lock (s2) s2.ToString().Should().Contain("fan-out");

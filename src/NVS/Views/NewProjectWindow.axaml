@@ -17,7 +17,7 @@
         Background="{DynamicResource AppBackgroundBrush}"
         SystemDecorations="BorderOnly">
 
-    <Border BorderBrush="#3F3F46" BorderThickness="1">
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
         <Grid RowDefinitions="Auto,*,Auto,Auto">
 
             <!-- Header -->
@@ -34,7 +34,7 @@
                          ItemsSource="{Binding Templates}"
                          SelectedItem="{Binding SelectedTemplate}"
                          Background="{DynamicResource MenuBackgroundBrush}"
-                         BorderBrush="#3F3F46"
+                         BorderBrush="{DynamicResource BorderBrush}"
                          BorderThickness="1">
                     <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="m:ProjectTemplate">
@@ -59,7 +59,7 @@
                 <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
                          Text="{Binding ProjectName, Mode=TwoWay}"
                          Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
-                         BorderBrush="#3F3F46" Margin="0,0,0,8" />
+                         BorderBrush="{DynamicResource BorderBrush}" Margin="0,0,0,8" />
 
                 <!-- Location -->
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Location:"
@@ -67,7 +67,7 @@
                 <TextBox Grid.Row="1" Grid.Column="1"
                          Text="{Binding Location, Mode=TwoWay}"
                          Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
-                         BorderBrush="#3F3F46" Margin="0,0,8,8" />
+                         BorderBrush="{DynamicResource BorderBrush}" Margin="0,0,8,8" />
                 <Button Grid.Row="1" Grid.Column="2" Content="Browse..."
                         Click="OnBrowseClick" Margin="0,0,0,8"
                         MinWidth="80" HorizontalContentAlignment="Center" />
@@ -79,7 +79,7 @@
                           ItemsSource="{Binding AvailableFrameworks}"
                           SelectedItem="{Binding SelectedFramework}"
                           Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextForegroundBrush}"
-                          BorderBrush="#3F3F46" Margin="0,0,0,8"
+                          BorderBrush="{DynamicResource BorderBrush}" Margin="0,0,0,8"
                           HorizontalAlignment="Stretch" />
 
                 <!-- Error Message -->
@@ -92,7 +92,7 @@
 
             <!-- Buttons -->
             <Border Grid.Row="3" Background="{DynamicResource SidebarBackgroundBrush}" Padding="20,10"
-                    BorderBrush="#3F3F46" BorderThickness="0,1,0,0">
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                     <Button Content="Create" Command="{Binding CreateProjectCommand}"
                             MinWidth="90" HorizontalContentAlignment="Center"

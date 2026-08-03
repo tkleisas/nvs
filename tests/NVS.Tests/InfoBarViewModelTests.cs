@@ -58,14 +58,16 @@ public class InfoBarViewModelTests
     }
 
     [Theory]
-    [InlineData(InfoBarSeverity.Warning, "#CC6600")]
-    [InlineData(InfoBarSeverity.Error, "#CC0000")]
-    [InlineData(InfoBarSeverity.Info, "#007ACC")]
-    public void BackgroundColor_ShouldMatchSeverity(InfoBarSeverity severity, string expectedColor)
+    [InlineData(InfoBarSeverity.Warning, "warning", "InfoBarWarningBackgroundBrush")]
+    [InlineData(InfoBarSeverity.Error, "error", "InfoBarErrorBackgroundBrush")]
+    [InlineData(InfoBarSeverity.Info, "info", "InfoBarInfoBackgroundBrush")]
+    public void SeverityClassAndBrushKey_ShouldMatchSeverity(
+        InfoBarSeverity severity, string expectedClass, string expectedKey)
     {
         var infoBar = new InfoBarViewModel("msg", severity);
 
-        infoBar.BackgroundColor.Should().Be(expectedColor);
+        infoBar.SeverityClass.Should().Be(expectedClass);
+        infoBar.BackgroundResourceKey.Should().Be(expectedKey);
     }
 
     [Theory]

@@ -17,7 +17,7 @@
                      BorderBrush="{DynamicResource BorderBrush}" FontSize="12" Padding="6,4" />
             <Button Grid.Column="1" Content="✕" Padding="6,4" Margin="4,0,0,0"
                     Command="{Binding ClearSearchCommand}"
-                    Background="{DynamicResource InputBackgroundBrush}" Foreground="#808080" FontSize="11" />
+                    Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource TextSecondaryForegroundBrush}" FontSize="11" />
         </Grid>
 
         <!-- Content: topic list + detail -->

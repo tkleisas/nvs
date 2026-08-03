@@ -77,7 +77,7 @@
                     <Button Grid.Column="1" Content="✎" Margin="4,0,0,0"
                             Command="{Binding Main.Git.AmendCommitCommand}"
                             ToolTip.Tip="Amend last commit"
-                            Background="{DynamicResource InputBackgroundBrush}" Foreground="#D7BA7D" Padding="8,4" />
+                            Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource AccentBrush}" Padding="8,4" />
                     <Button Grid.Column="2" Content="📦" Margin="4,0,0,0"
                             Command="{Binding Main.Git.StashSaveCommand}"
                             ToolTip.Tip="Stash Changes"
@@ -141,12 +141,12 @@
                                     </Style>
                                 </Grid.Styles>
                                 <TextBlock Grid.Column="0" Text="{Binding Status}" FontSize="10"
-                                           Foreground="#D7BA7D" Width="16" Margin="0,0,4,0" />
+                                           Foreground="{DynamicResource AccentBrush}" Width="16" Margin="0,0,4,0" />
                                 <Button Grid.Column="1"
                                         Content="{Binding Path}"
                                         Command="{Binding $parent[ItemsControl].((dock:GitToolViewModel)DataContext).Main.Git.ViewDiffCommand}"
                                         CommandParameter="{Binding}"
-                                        FontSize="12" Foreground="#D7BA7D"
+                                        FontSize="12" Foreground="{DynamicResource AccentBrush}"
                                         Background="Transparent" BorderThickness="0"
                                         Padding="0" Margin="0" Cursor="Hand"
                                         HorizontalAlignment="Stretch"

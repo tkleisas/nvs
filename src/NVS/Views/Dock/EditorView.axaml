@@ -42,7 +42,7 @@
                                 Cursor="Hand"
                                 VerticalAlignment="Center"
                                 Width="16" Height="16">
-                            <TextBlock Text="✕" FontSize="10" Foreground="#808080"
+                            <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
                     </StackPanel>
@@ -201,7 +201,7 @@
                           HorizontalAlignment="Center"/>
                 <TextBlock Text="Press Ctrl+O to open a file or Ctrl+Shift+O to open a folder"
                           FontSize="14"
-                          Foreground="#808080"
+                          Foreground="{DynamicResource TextSecondaryForegroundBrush}"
                           HorizontalAlignment="Center"/>
             </StackPanel>
         </Border>

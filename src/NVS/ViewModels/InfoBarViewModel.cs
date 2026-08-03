@@ -34,13 +34,6 @@ public partial class InfoBarViewModel : INotifyPropertyChanged
         set => SetProperty(ref _isVisible, value);
     }
 
-    public string BackgroundColor => Severity switch
-    {
-        InfoBarSeverity.Warning => "#CC6600",
-        InfoBarSeverity.Error => "#CC0000",
-        _ => "#007ACC",
-    };
-
     public string BackgroundResourceKey => Severity switch
     {
         InfoBarSeverity.Warning => "InfoBarWarningBackgroundBrush",

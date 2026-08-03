@@ -6,6 +6,12 @@ using RepositoryStatus = NVS.Core.Interfaces.RepositoryStatus;
 
 namespace NVS.Services.Tests;
 
+// Native integration suites (LibGit2Sharp, PTY) are timing/contention-sensitive
+// under full-suite parallel load; run them serialized in one collection.
+[CollectionDefinition("NativeIntegration")]
+public sealed class NativeIntegrationCollection;
+
+[Collection("NativeIntegration")]
 public sealed class GitServiceIntegrationTests : IDisposable
 {
     private readonly string _tempDir;

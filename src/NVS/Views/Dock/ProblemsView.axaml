@@ -15,9 +15,9 @@
 
         <!-- Header row -->
         <Grid DockPanel.Dock="Top" ColumnDefinitions="30,*,200" Margin="4,4,4,2">
-            <TextBlock Grid.Column="0" Text="" FontSize="11" Foreground="#808080" />
-            <TextBlock Grid.Column="1" Text="Message" FontSize="11" Foreground="#808080" Margin="4,0" />
-            <TextBlock Grid.Column="2" Text="Location" FontSize="11" Foreground="#808080" />
+            <TextBlock Grid.Column="0" Text="" FontSize="11" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
+            <TextBlock Grid.Column="1" Text="Message" FontSize="11" Foreground="{DynamicResource TextSecondaryForegroundBrush}" Margin="4,0" />
+            <TextBlock Grid.Column="2" Text="Location" FontSize="11" Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
         </Grid>
 
         <ListBox x:Name="ProblemsList"
@@ -43,7 +43,7 @@
                                    Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="4,0"
                                    TextWrapping="NoWrap" />
                         <SelectableTextBlock Grid.Column="2" Text="{ReflectionBinding Location}" FontSize="12"
-                                   Foreground="#808080" VerticalAlignment="Center" />
+                                   Foreground="{DynamicResource TextSecondaryForegroundBrush}" VerticalAlignment="Center" />
                     </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>

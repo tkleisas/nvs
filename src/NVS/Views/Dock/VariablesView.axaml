@@ -33,7 +33,7 @@
                                    FontSize="12"/>
                         <TextBlock Grid.Column="1"
                                    Text="{Binding Value}"
-                                   Foreground="#CE9178"
+                                   Foreground="{DynamicResource AccentBrush}"
                                    FontFamily="Consolas,Courier New,monospace"
                                    FontSize="12"
                                    Margin="8,0,0,0"/>
