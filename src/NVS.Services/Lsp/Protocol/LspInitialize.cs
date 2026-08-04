@@ -72,6 +72,9 @@ public sealed record ReferencesClientCapabilities
 public sealed record DocumentSymbolClientCapabilities
 {
     public bool DynamicRegistration { get; init; }
+
+    /// <summary>Client understands hierarchical DocumentSymbol results (vs flat SymbolInformation).</summary>
+    public bool HierarchicalDocumentSymbolSupport { get; init; }
 }
 
 public sealed record FormattingClientCapabilities

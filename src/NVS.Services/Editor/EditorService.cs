@@ -9,7 +9,16 @@ public sealed class EditorService : IEditorService
 {
     private readonly ConcurrentDictionary<Guid, Document> _documents = new();
     private readonly List<Document> _openDocumentsList = [];
+    private readonly ILanguageService _languageService;
     private Document? _activeDocument;
+
+    public EditorService(ILanguageService? languageService = null)
+    {
+        // Single source of truth for extension → language mapping (the previous
+        // private map had drifted: .java/.php detected as Unknown — no highlighting,
+        // no LSP). Defaults to the shared implementation so tests get the full map too.
+        _languageService = languageService ?? new Languages.LanguageService();
+    }
 
     public IReadOnlyList<Document> OpenDocuments => _openDocumentsList;
     public Document? ActiveDocument => _activeDocument;
@@ -41,7 +50,7 @@ public sealed class EditorService : IEditorService
             Name = Path.GetFileName(path),
             FilePath = fullPath,
             State = DocumentState.Loading,
-            Language = DetectLanguage(path)
+            Language = _languageService.DetectLanguage(path)
         };
 
         _documents[document.Id] = document;
@@ -174,30 +183,5 @@ public sealed class EditorService : IEditorService
         }
 
         return content.Length;
-    }
-
-    private static Language DetectLanguage(string filePath)
-    {
-        var ext = Path.GetExtension(filePath).ToLowerInvariant();
-        return ext switch
-        {
-            ".cs" => Language.CSharp,
-            ".cpp" or ".cc" or ".cxx" or ".hpp" or ".h" => Language.Cpp,
-            ".c" => Language.C,
-            ".js" => Language.JavaScript,
-            ".ts" => Language.TypeScript,
-            ".json" => Language.Json,
-            ".xml" => Language.Xml,
-            ".html" or ".htm" => Language.Html,
-            ".css" => Language.Css,
-            ".py" => Language.Python,
-            ".rs" => Language.Rust,
-            ".go" => Language.Go,
-            ".md" => Language.Markdown,
-            ".yaml" or ".yml" => Language.Yaml,
-            ".toml" => Language.Toml,
-            ".sql" => Language.Sql,
-            _ => Language.Unknown
-        };
     }
 }

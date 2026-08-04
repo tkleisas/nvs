@@ -94,7 +94,7 @@ public sealed class LspClient : ILspClient, IAsyncDisposable
                     Hover = new HoverClientCapabilities(),
                     Definition = new DefinitionClientCapabilities(),
                     References = new ReferencesClientCapabilities(),
-                    DocumentSymbol = new DocumentSymbolClientCapabilities(),
+                    DocumentSymbol = new DocumentSymbolClientCapabilities { HierarchicalDocumentSymbolSupport = true },
                     Formatting = new FormattingClientCapabilities(),
                     PublishDiagnostics = new PublishDiagnosticsClientCapabilities { RelatedInformation = true },
                     Synchronization = new SynchronizationClientCapabilities { DidSave = true, DidChange = true },

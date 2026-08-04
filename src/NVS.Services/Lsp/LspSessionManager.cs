@@ -83,17 +83,9 @@ public sealed class LspSessionManager : ILspSessionManager
 
                     if (newClient is not null)
                     {
-                        Logger.Information("New LSP client created for {Language}, re-registering open documents", language);
-
-                        // Re-register all open documents for this language
-                        foreach (var doc in _openDocuments.Values)
-                        {
-                            if (doc.Language == language)
-                            {
-                                newClient.NotifyDocumentOpened(doc);
-                                Logger.Debug("Re-registered document {Path} with new LSP client", doc.Path);
-                            }
-                        }
+                        // CreateAndTrackClientAsync registers all open documents
+                        // with the new client — nothing more to do here.
+                        Logger.Information("New LSP client created for {Language}", language);
                     }
                 }
                 catch (Exception ex)
@@ -439,6 +431,18 @@ public sealed class LspSessionManager : ILspSessionManager
 
         _activeClients[language] = client;
         client.DiagnosticsReceived += OnDiagnosticsReceived;
+
+        // Register documents opened before this client existed (lazy creation) —
+        // without didOpen the server has no content to answer requests about.
+        foreach (var doc in _openDocuments.Values)
+        {
+            if (doc.Language == language)
+            {
+                client.NotifyDocumentOpened(doc);
+                Logger.Debug("Registered already-open document {Path} with new LSP client", doc.Path);
+            }
+        }
+
         Logger.Information("LSP client ready for {Language}", language);
         return client;
     }

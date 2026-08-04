@@ -38,6 +38,23 @@ public sealed class LspSessionManagerTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task GetClientAsync_DocumentOpenedBeforeClientCreation_IsRegisteredWithNewClient()
+    {
+        // Regression: documents opened before the server exists must still receive
+        // didOpen — otherwise the server has no content for documentSymbol etc.
+        var mockClient = CreateMockClient(Language.JavaScript);
+        SetupFactory(Language.JavaScript, mockClient);
+        var doc = CreateDocument("index.js", Language.JavaScript);
+
+        _manager.NotifyDocumentOpened(doc);
+
+        var result = await _manager.GetClientAsync(doc);
+
+        result.Should().BeSameAs(mockClient);
+        mockClient.Received(1).NotifyDocumentOpened(doc);
+    }
+
+    [Fact]
     public async Task GetClientAsync_WithUnknownLanguage_ShouldReturnNull()
     {
         var doc = CreateDocument("readme.txt", Language.Unknown);
