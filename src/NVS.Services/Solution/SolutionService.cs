@@ -174,6 +174,66 @@ public sealed partial class SolutionService : ISolutionService
                 $"dotnet sln add failed (exit code {exitCode}): {stderr.Trim()}");
     }
 
+    public Task SetCopyToOutputDirectoryAsync(string projectPath, string fileRelativePath, CopyToOutputMode mode, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileRelativePath);
+
+        if (!File.Exists(projectPath))
+        {
+            throw new FileNotFoundException("Project file not found.", projectPath);
+        }
+
+        var normalized = fileRelativePath.Replace('/', '\\');
+        var doc = XDocument.Load(projectPath, LoadOptions.PreserveWhitespace);
+        var ns = doc.Root!.Name.Namespace;
+
+        // Find an existing None/Content item for the file (Update for SDK-globbed,
+        // Include for explicitly listed files).
+        var item = doc.Root!.Elements(ns + "ItemGroup")
+            .Elements()
+            .Where(e => (e.Name.LocalName is "None" or "Content")
+                        && string.Equals(
+                            e.Attribute("Update")?.Value ?? e.Attribute("Include")?.Value,
+                            normalized, StringComparison.OrdinalIgnoreCase))
+            .FirstOrDefault();
+
+        if (item is null)
+        {
+            var itemGroup = doc.Root!.Elements(ns + "ItemGroup").LastOrDefault();
+            if (itemGroup is null)
+            {
+                itemGroup = new XElement(ns + "ItemGroup");
+                doc.Root!.Add(itemGroup);
+            }
+
+            // SDK-style projects auto-glob files as None — metadata goes on an Update item.
+            item = new XElement(ns + "None", new XAttribute("Update", normalized));
+            itemGroup.Add(item);
+        }
+
+        var metadata = item.Elements(ns + "CopyToOutputDirectory").FirstOrDefault();
+        if (mode == CopyToOutputMode.Never)
+        {
+            metadata?.Remove();
+        }
+        else
+        {
+            var value = mode == CopyToOutputMode.Always ? "Always" : "PreserveNewest";
+            if (metadata is null)
+            {
+                item.Add(new XElement(ns + "CopyToOutputDirectory", value));
+            }
+            else
+            {
+                metadata.Value = value;
+            }
+        }
+
+        doc.Save(projectPath);
+        return Task.CompletedTask;
+    }
+
     private static async Task<(int ExitCode, string Stdout, string Stderr)> RunDotnetAsync(
         string arguments, string workingDirectory, CancellationToken cancellationToken)
     {

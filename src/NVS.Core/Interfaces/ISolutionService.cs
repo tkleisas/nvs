@@ -47,6 +47,13 @@ public interface ISolutionService
     /// <param name="projectPath">Full path to the .csproj file to add.</param>
     Task AddProjectToSolutionAsync(string solutionPath, string projectPath, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Sets the <c>CopyToOutputDirectory</c> metadata for a file in a project
+    /// (as a <c>&lt;None Update&gt;</c> item). <see cref="CopyToOutputMode.Never"/>
+    /// removes the metadata.
+    /// </summary>
+    Task SetCopyToOutputDirectoryAsync(string projectPath, string fileRelativePath, CopyToOutputMode mode, CancellationToken cancellationToken = default);
+
     event EventHandler<SolutionModel>? SolutionLoaded;
     event EventHandler? SolutionClosed;
 }

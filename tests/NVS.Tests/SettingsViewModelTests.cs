@@ -42,16 +42,19 @@ public sealed class SettingsViewModelTests
     {
         var vm = new SettingsViewModel(CreateSettingsService(), CreateServerManager());
 
-        vm.Sections.Should().HaveCount(6);
+        vm.Sections.Should().HaveCount(7);
         vm.Sections.Should().Contain("General");
         vm.Sections.Should().Contain("Editor");
         vm.Sections.Should().Contain("Terminal");
         vm.Sections.Should().Contain("Language Servers");
         vm.Sections.Should().Contain("LLM");
         vm.Sections.Should().Contain("Web / Launch");
+        vm.Sections.Should().Contain("Build");
         vm.IsWebLaunchVisible.Should().BeFalse();
         vm.SelectedSectionIndex = 5;
         vm.IsWebLaunchVisible.Should().BeTrue();
+        vm.SelectedSectionIndex = 6;
+        vm.IsBuildVisible.Should().BeTrue();
     }
 
     [Fact]

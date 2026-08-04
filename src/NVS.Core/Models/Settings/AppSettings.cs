@@ -16,6 +16,7 @@ public sealed record AppSettings
     public WindowSettings Window { get; init; } = new();
     public DockLayoutSettings Dock { get; init; } = new();
     public LlmSettings Llm { get; init; } = new();
+    public BuildSettings Build { get; init; } = new();
     public Dictionary<string, LanguageServerUserConfig> LanguageServers { get; init; } = new();
 
     /// <summary>

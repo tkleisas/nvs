@@ -119,17 +119,18 @@ public sealed partial class BuildRunViewModel : ObservableObject
         try
         {
             var args = new List<string> { dotnetVerb };
-            var selfHosted = false;
+            string? outDir = null;
             if (_solutionService.CurrentSolution is { } sol)
             {
                 args.Add(sol.FilePath);
 
-                // Self-hosting: the running IDE locks its own build output, so
-                // build into a shadow directory instead of the real bin folders.
-                selfHosted = SelfHostHelper.IsSelfHosted(sol.FilePath);
-                if (selfHosted)
+                // One rule for every flow: standard bin, auto-shadow when
+                // self-hosted, or the user's custom output directory.
+                outDir = BuildOutputResolver.ResolveOutputDirectory(
+                    sol.FilePath, _main.SettingsService.AppSettings.Build);
+                if (outDir is not null)
                 {
-                    args.Add(SelfHostHelper.ShadowOutDirArgument(sol.FilePath));
+                    args.Add($"-p:OutDir={outDir}{Path.DirectorySeparatorChar}");
                 }
             }
             args.Add("--nologo");
@@ -151,7 +152,7 @@ public sealed partial class BuildRunViewModel : ObservableObject
             {
                 "clean" => result.Success ? "Clean succeeded" : "Clean failed",
                 _ => result.Success
-                    ? $"Build succeeded ({result.Duration.TotalSeconds:F1}s)" + (selfHosted ? " — shadow output (self-hosted)" : "")
+                    ? $"Build succeeded ({result.Duration.TotalSeconds:F1}s)" + (outDir is not null ? $" — output: {outDir}" : "")
                     : $"Build failed — {result.Errors.Count} error(s), {result.Warnings.Count} warning(s)"
             };
         }
@@ -180,13 +181,20 @@ public sealed partial class BuildRunViewModel : ObservableObject
         {
             var startup = _solutionService.GetStartupProject();
 
-            // Build first
+            // Build first (through the shared output resolver: standard bin,
+            // auto-shadow when self-hosted, or a custom directory)
             var buildOutput = _main.FindBuildOutputTool();
             buildOutput?.ClearOutput();
 
             var buildArgs = new List<string> { "build" };
+            var outDir = _solutionService.CurrentSolution is { } solForResolve
+                ? BuildOutputResolver.ResolveOutputDirectory(
+                    solForResolve.FilePath, _main.SettingsService.AppSettings.Build)
+                : null;
             if (_solutionService.CurrentSolution is { } sol)
                 buildArgs.Add(sol.FilePath);
+            if (outDir is not null)
+                buildArgs.Add($"-p:OutDir={outDir}{Path.DirectorySeparatorChar}");
             buildArgs.Add("--nologo");
 
             var buildTask = new Core.Interfaces.BuildTask
@@ -238,10 +246,11 @@ public sealed partial class BuildRunViewModel : ObservableObject
             else if (isGuiApp)
             {
                 var projectArg = $" --project \"{startup!.FilePath}\"";
+                var outDirArg = outDir is not null ? $" -p:OutDir={outDir}{Path.DirectorySeparatorChar}" : "";
                 var psi = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    Arguments = $"run{projectArg} --nologo",
+                    Arguments = $"run{projectArg}{outDirArg} --nologo",
                     WorkingDirectory = _main.WorkspacePath,
                     UseShellExecute = false,
                     CreateNoWindow = false,
@@ -256,7 +265,8 @@ public sealed partial class BuildRunViewModel : ObservableObject
                 var projectArg = startup is not null
                     ? $" --project \"{startup.FilePath}\""
                     : "";
-                var runCommand = $"dotnet run{projectArg} --nologo";
+                var outDirArg = outDir is not null ? $" -p:OutDir={outDir}{Path.DirectorySeparatorChar}" : "";
+                var runCommand = $"dotnet run{projectArg}{outDirArg} --nologo";
 
                 _main.Terminal.IsVisible = true;
 
@@ -301,7 +311,22 @@ public sealed partial class BuildRunViewModel : ObservableObject
             return;
         }
 
-        var args = new StringBuilder("dotnet run --no-build");
+        var outDir = _solutionService.CurrentSolution is { } solForResolve
+            ? BuildOutputResolver.ResolveOutputDirectory(
+                solForResolve.FilePath, _main.SettingsService.AppSettings.Build)
+            : null;
+
+        var args = new StringBuilder("dotnet run");
+        if (outDir is not null)
+        {
+            // Redirected output: run from the resolved directory. Without this,
+            // --no-build would use the default (stale) bin layout.
+            args.Append($" -p:OutDir={outDir}{Path.DirectorySeparatorChar}");
+        }
+        else
+        {
+            args.Append(" --no-build");
+        }
         args.Append($" --project \"{startup.FilePath}\"");
         if (profile is not null && !string.IsNullOrWhiteSpace(profile.Name))
             args.Append($" --launch-profile \"{profile.Name}\"");

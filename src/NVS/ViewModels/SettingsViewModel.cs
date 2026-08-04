@@ -55,6 +55,8 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     private bool _llmRequireToolApproval = true;
     private bool _llmStream = true;
     private string _llmActivePromptTemplate = "general";
+    private int _buildOutputModeIndex = (int)NVS.Core.Models.Settings.BuildOutputMode.Auto;
+    private string _customBuildOutputDirectory = "";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -74,7 +76,8 @@ public partial class SettingsViewModel : INotifyPropertyChanged
             "Terminal",
             "Language Servers",
             "LLM",
-            "Web / Launch"
+            "Web / Launch",
+            "Build"
         ];
     }
 
@@ -96,6 +99,7 @@ public partial class SettingsViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(IsLanguageServersVisible));
                 OnPropertyChanged(nameof(IsLlmVisible));
                 OnPropertyChanged(nameof(IsWebLaunchVisible));
+                OnPropertyChanged(nameof(IsBuildVisible));
             }
         }
     }
@@ -106,6 +110,31 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     public bool IsLanguageServersVisible => _selectedSectionIndex == 3;
     public bool IsLlmVisible => _selectedSectionIndex == 4;
     public bool IsWebLaunchVisible => _selectedSectionIndex == 5;
+    public bool IsBuildVisible => _selectedSectionIndex == 6;
+
+    // Build section
+    public IReadOnlyList<string> AvailableBuildOutputModes { get; } =
+        ["Default (per-project bin)", "Auto (shadow when self-hosting)", "Custom directory"];
+
+    public int BuildOutputModeIndex
+    {
+        get => _buildOutputModeIndex;
+        set
+        {
+            if (SetProperty(ref _buildOutputModeIndex, value))
+            {
+                OnPropertyChanged(nameof(IsCustomBuildOutputDirectoryEnabled));
+            }
+        }
+    }
+
+    public string CustomBuildOutputDirectory
+    {
+        get => _customBuildOutputDirectory;
+        set => SetProperty(ref _customBuildOutputDirectory, value);
+    }
+
+    public bool IsCustomBuildOutputDirectoryEnabled => _buildOutputModeIndex == (int)NVS.Core.Models.Settings.BuildOutputMode.Custom;
 
     /// <summary>Exposes the shared MainViewModel so the Web / Launch section can bind to
     /// the same LaunchProfiles/SelectedLaunchProfile that the toolbar dropdown uses.</summary>
@@ -368,6 +397,10 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         TerminalFontFamily = settings.Terminal.FontFamily;
         TerminalFontSize = settings.Terminal.FontSize;
         TerminalBufferSize = settings.Terminal.BufferSize;
+
+        // Build
+        BuildOutputModeIndex = (int)settings.Build.OutputMode;
+        CustomBuildOutputDirectory = settings.Build.CustomOutputDirectory ?? "";
     }
 
     private async Task LoadLanguageServersAsync()
@@ -491,6 +524,13 @@ public partial class SettingsViewModel : INotifyPropertyChanged
                 FontFamily = TerminalFontFamily,
                 FontSize = TerminalFontSize,
                 BufferSize = TerminalBufferSize,
+            },
+            Build = new NVS.Core.Models.Settings.BuildSettings
+            {
+                OutputMode = (NVS.Core.Models.Settings.BuildOutputMode)BuildOutputModeIndex,
+                CustomOutputDirectory = string.IsNullOrWhiteSpace(CustomBuildOutputDirectory)
+                    ? null
+                    : CustomBuildOutputDirectory.Trim(),
             },
             LanguageServers = BuildLanguageServerConfigs(),
             PreferredLanguageServers = BuildPreferredLanguageServers(),

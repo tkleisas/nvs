@@ -145,16 +145,18 @@ public sealed partial class DebugViewModel : ObservableObject
             buildOutput?.ClearOutput();
 
             var buildArgs = new List<string> { "build" };
-            var selfHosted = _solutionService.CurrentSolution is { } solForHost
-                             && Core.Models.SelfHostHelper.IsSelfHosted(solForHost.FilePath);
+            var outDir = _solutionService.CurrentSolution is { } solForResolve
+                ? Core.Models.BuildOutputResolver.ResolveOutputDirectory(
+                    solForResolve.FilePath, _main.SettingsService.AppSettings.Build)
+                : null;
             if (_solutionService.CurrentSolution is { } sol)
             {
                 buildArgs.Add(sol.FilePath);
-                // Self-hosting: build into a shadow directory — the running IDE
-                // locks its own output files, and the debuggee runs from the shadow.
-                if (selfHosted)
+                // Redirected output (self-host shadow or custom directory): build
+                // into it — the debuggee then launches from there.
+                if (outDir is not null)
                 {
-                    buildArgs.Add(Core.Models.SelfHostHelper.ShadowOutDirArgument(sol.FilePath));
+                    buildArgs.Add($"-p:OutDir={outDir}{System.IO.Path.DirectorySeparatorChar}");
                 }
             }
             buildArgs.Add("--nologo");
@@ -194,10 +196,8 @@ public sealed partial class DebugViewModel : ObservableObject
             _main.StatusMessage = "Starting debugger...";
             var projectDir = System.IO.Path.GetDirectoryName(startup.FilePath) ?? ".";
             var assemblyName = startup.AssemblyName ?? startup.Name;
-            var programPath = selfHosted && _solutionService.CurrentSolution is { } solForPath
-                ? System.IO.Path.Combine(
-                    Core.Models.SelfHostHelper.GetShadowDirectory(solForPath.FilePath),
-                    assemblyName + ".dll")
+            var programPath = outDir is not null
+                ? System.IO.Path.Combine(outDir, assemblyName + ".dll")
                 : System.IO.Path.Combine(projectDir, "bin", "Debug", startup.TargetFramework, assemblyName + ".dll");
 
             // If exact path doesn't exist, search for the DLL under bin/Debug/

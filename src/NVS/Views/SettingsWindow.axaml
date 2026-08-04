@@ -104,6 +104,31 @@
                         </Grid>
                     </StackPanel>
 
+                    <!-- Build Section -->
+                    <StackPanel Spacing="12" IsVisible="{Binding IsBuildVisible}">
+                        <TextBlock Text="Build" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />
+                        <TextBlock Text="Choose where solution builds put their output. Applies to build, run, debug, and test."
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryForegroundBrush}" TextWrapping="Wrap" />
+                        <Separator Background="{DynamicResource BorderBrush}" />
+
+                        <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Output mode" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" />
+                            <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AvailableBuildOutputModes}"
+                                      SelectedIndex="{Binding BuildOutputModeIndex}" MaxWidth="320" HorizontalAlignment="Left" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Custom directory" Foreground="{DynamicResource TextForegroundBrush}" VerticalAlignment="Center" Margin="0,8,0,0" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CustomBuildOutputDirectory}"
+                                     IsEnabled="{Binding IsCustomBuildOutputDirectoryEnabled}"
+                                     Watermark="e.g. D:\build\out or %TEMP%\nvs-out"
+                                     MaxWidth="360" HorizontalAlignment="Left" Margin="0,8,0,0" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="1"
+                                       Text="Auto builds to the standard bin folders, except when NVS runs from the opened solution itself (self-hosting) — then output goes to a shadow directory so builds don't hit locked binaries."
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryForegroundBrush}"
+                                       TextWrapping="Wrap" MaxWidth="420" HorizontalAlignment="Left" Margin="0,10,0,0" />
+                        </Grid>
+                    </StackPanel>
+
                     <!-- Language Servers Section -->
                     <StackPanel Spacing="12" IsVisible="{Binding IsLanguageServersVisible}">
                         <TextBlock Text="Language Servers" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource TextForegroundBrush}" />

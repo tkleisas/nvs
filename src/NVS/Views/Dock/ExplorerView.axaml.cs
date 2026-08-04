@@ -234,6 +234,9 @@ public partial class ExplorerView : UserControl
 
         var hasProject = GetProjectForNode(GetSelectedTreeNode()) is not null;
         var hasSolution = GetMain()?.SolutionService.CurrentSolution is not null;
+        var isFileInProject = GetMain() is { } main
+                              && GetSelectedTreeNode() is { IsDirectory: false } node
+                              && GetContainingProject(node.Path, main) is not null;
 
         foreach (var item in menu.Items)
         {
@@ -245,9 +248,56 @@ public partial class ExplorerView : UserControl
                 case MenuItem { Tag: "ContainerSolution" } mi:
                     mi.IsVisible = hasSolution;
                     break;
+                case MenuItem { Tag: "CopyToOutput" } mi:
+                    mi.IsVisible = isFileInProject;
+                    break;
             }
         }
     }
+
+    private async void OnCopyToOutputClick(object? sender, RoutedEventArgs e)
+    {
+        var node = GetSelectedTreeNode();
+        var main = GetMain();
+        if (node is null || node.IsDirectory || main is null || sender is not MenuItem { Tag: string mode }) return;
+
+        var project = GetContainingProject(node.Path, main);
+        if (project is null)
+        {
+            main.StatusMessage = "File is not inside a loaded project";
+            return;
+        }
+
+        var copyMode = mode switch
+        {
+            "Always" => NVS.Core.Models.CopyToOutputMode.Always,
+            "PreserveNewest" => NVS.Core.Models.CopyToOutputMode.PreserveNewest,
+            _ => NVS.Core.Models.CopyToOutputMode.Never,
+        };
+
+        try
+        {
+            var projectDir = System.IO.Path.GetDirectoryName(project.FilePath)!;
+            var relative = System.IO.Path.GetRelativePath(projectDir, node.Path);
+            await main.SolutionService.SetCopyToOutputDirectoryAsync(project.FilePath, relative, copyMode);
+            main.StatusMessage = copyMode == NVS.Core.Models.CopyToOutputMode.Never
+                ? $"{node.Name}: will not be copied to output"
+                : $"{node.Name}: copy to output = {mode}";
+        }
+        catch (Exception ex)
+        {
+            main.StatusMessage = $"Failed to update {System.IO.Path.GetFileName(project.FilePath)}: {ex.Message}";
+        }
+    }
+
+    private static NVS.Core.Models.ProjectModel? GetContainingProject(string filePath, MainViewModel main) =>
+        main.SolutionService.GetLoadedProjects()
+            .Select(p => (Project: p, Dir: System.IO.Path.GetDirectoryName(p.FilePath)))
+            .Where(x => x.Dir is not null
+                        && filePath.StartsWith(x.Dir + System.IO.Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(x => x.Dir!.Length)
+            .Select(x => x.Project)
+            .FirstOrDefault();
 
     private void OnGenerateDockerfileForNodeClick(object? sender, RoutedEventArgs e)
     {

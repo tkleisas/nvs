@@ -41,6 +41,11 @@
                 <MenuItem Header="Generate Dockerfile" Tag="ContainerProject" Click="OnGenerateDockerfileForNodeClick" />
                 <MenuItem Header="Build Container Image" Tag="ContainerProject" Click="OnBuildContainerImageForNodeClick" />
                 <MenuItem Header="Generate docker-compose.yml" Tag="ContainerSolution" Click="OnGenerateComposeClick" />
+                <MenuItem Header="Copy to Output Directory" Tag="CopyToOutput">
+                    <MenuItem Header="Always" Tag="Always" Click="OnCopyToOutputClick" />
+                    <MenuItem Header="If newer" Tag="PreserveNewest" Click="OnCopyToOutputClick" />
+                    <MenuItem Header="Never" Tag="Never" Click="OnCopyToOutputClick" />
+                </MenuItem>
                 <Separator />
                 <MenuItem Header="Rename..." Click="OnRenameInExplorerClick" />
                 <MenuItem Header="Delete" Click="OnDeleteInExplorerClick" />

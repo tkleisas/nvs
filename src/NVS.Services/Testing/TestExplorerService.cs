@@ -21,6 +21,12 @@ public sealed class TestExplorerService : ITestExplorerService
     /// </summary>
     private readonly SemaphoreSlim _gate = new(2, 2);
     private int _inFlight;
+    private readonly ISettingsService? _settingsService;
+
+    public TestExplorerService(ISettingsService? settingsService = null)
+    {
+        _settingsService = settingsService;
+    }
 
     /// <summary>Whether a discovery or run operation is currently in progress.</summary>
     public bool IsBusy => _inFlight > 0;
@@ -33,6 +39,15 @@ public sealed class TestExplorerService : ITestExplorerService
         {
             var withBuild = new List<string> { "test", projectPath, "--list-tests" };
             var withoutBuild = new List<string> { "test", projectPath, "--list-tests", "--no-build" };
+
+            // Redirected output (self-host shadow or custom directory): both build
+            // and --no-build resolve the test assembly from the resolved directory.
+            var outDirArg = ResolveOutDirArg(projectPath);
+            if (outDirArg is not null)
+            {
+                withBuild.Add(outDirArg);
+                withoutBuild.Add(outDirArg);
+            }
 
             // Self-hosting (the IDE runs from this solution's output): builds fail on
             // locked binaries, so skip the doomed build attempt and go straight to
@@ -90,6 +105,16 @@ public sealed class TestExplorerService : ITestExplorerService
 
             var stopwatch = Stopwatch.StartNew();
             var withoutBuild = new List<string>(args) { "--no-build" };
+
+            // Redirected output (self-host shadow or custom directory): both build
+            // and --no-build resolve the test assembly from the resolved directory.
+            var outDirArg = ResolveOutDirArg(targetPath);
+            if (outDirArg is not null)
+            {
+                args.Add(outDirArg);
+                withoutBuild.Add(outDirArg);
+            }
+
             var attempts = IsSelfHostedRun(targetPath)
                 ? new[] { withoutBuild, args }
                 : new[] { args, withoutBuild };
@@ -234,6 +259,13 @@ public sealed class TestExplorerService : ITestExplorerService
         }
 
         return results;
+    }
+
+    /// <summary>The MSBuild OutDir argument from the build-output resolver, or null for standard layout.</summary>
+    private string? ResolveOutDirArg(string targetPath)
+    {
+        var build = _settingsService?.AppSettings.Build;
+        return build is null ? null : BuildOutputResolver.ResolveOutDirArgument(targetPath, build);
     }
 
     /// <summary>
