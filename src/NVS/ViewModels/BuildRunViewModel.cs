@@ -119,8 +119,19 @@ public sealed partial class BuildRunViewModel : ObservableObject
         try
         {
             var args = new List<string> { dotnetVerb };
+            var selfHosted = false;
             if (_solutionService.CurrentSolution is { } sol)
+            {
                 args.Add(sol.FilePath);
+
+                // Self-hosting: the running IDE locks its own build output, so
+                // build into a shadow directory instead of the real bin folders.
+                selfHosted = SelfHostHelper.IsSelfHosted(sol.FilePath);
+                if (selfHosted)
+                {
+                    args.Add(SelfHostHelper.ShadowOutDirArgument(sol.FilePath));
+                }
+            }
             args.Add("--nologo");
 
             var task = new Core.Interfaces.BuildTask
@@ -140,7 +151,7 @@ public sealed partial class BuildRunViewModel : ObservableObject
             {
                 "clean" => result.Success ? "Clean succeeded" : "Clean failed",
                 _ => result.Success
-                    ? $"Build succeeded ({result.Duration.TotalSeconds:F1}s)"
+                    ? $"Build succeeded ({result.Duration.TotalSeconds:F1}s)" + (selfHosted ? " — shadow output (self-hosted)" : "")
                     : $"Build failed — {result.Errors.Count} error(s), {result.Warnings.Count} warning(s)"
             };
         }

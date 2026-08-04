@@ -241,21 +241,11 @@ public sealed class TestExplorerService : ITestExplorerService
     /// directory — meaning builds will fail on locked output files (self-hosting).
     /// </summary>
     internal static bool IsSelfHostedRun(string targetPath) =>
-        IsSelfHostedRun(targetPath, Environment.ProcessPath);
+        SelfHostHelper.IsSelfHosted(targetPath);
 
     /// <summary>Testable core of <see cref="IsSelfHostedRun(string)"/> with an explicit process path.</summary>
-    internal static bool IsSelfHostedRun(string targetPath, string? processPath)
-    {
-        var targetDirectory = Path.GetDirectoryName(Path.GetFullPath(targetPath));
-        if (processPath is null || targetDirectory is null)
-        {
-            return false;
-        }
-
-        var processDirectory = Path.GetDirectoryName(Path.GetFullPath(processPath));
-        return processDirectory is not null
-            && processDirectory.StartsWith(targetDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
-    }
+    internal static bool IsSelfHostedRun(string targetPath, string? processPath) =>
+        SelfHostHelper.IsSelfHosted(targetPath, processPath);
 
     private static async Task<IReadOnlyList<TestInfo>> ReadTrxAsync(string trxPath, CancellationToken cancellationToken)
     {

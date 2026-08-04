@@ -145,8 +145,18 @@ public sealed partial class DebugViewModel : ObservableObject
             buildOutput?.ClearOutput();
 
             var buildArgs = new List<string> { "build" };
+            var selfHosted = _solutionService.CurrentSolution is { } solForHost
+                             && Core.Models.SelfHostHelper.IsSelfHosted(solForHost.FilePath);
             if (_solutionService.CurrentSolution is { } sol)
+            {
                 buildArgs.Add(sol.FilePath);
+                // Self-hosting: build into a shadow directory — the running IDE
+                // locks its own output files, and the debuggee runs from the shadow.
+                if (selfHosted)
+                {
+                    buildArgs.Add(Core.Models.SelfHostHelper.ShadowOutDirArgument(sol.FilePath));
+                }
+            }
             buildArgs.Add("--nologo");
 
             var buildTask = new Core.Interfaces.BuildTask
@@ -184,7 +194,11 @@ public sealed partial class DebugViewModel : ObservableObject
             _main.StatusMessage = "Starting debugger...";
             var projectDir = System.IO.Path.GetDirectoryName(startup.FilePath) ?? ".";
             var assemblyName = startup.AssemblyName ?? startup.Name;
-            var programPath = System.IO.Path.Combine(projectDir, "bin", "Debug", startup.TargetFramework, assemblyName + ".dll");
+            var programPath = selfHosted && _solutionService.CurrentSolution is { } solForPath
+                ? System.IO.Path.Combine(
+                    Core.Models.SelfHostHelper.GetShadowDirectory(solForPath.FilePath),
+                    assemblyName + ".dll")
+                : System.IO.Path.Combine(projectDir, "bin", "Debug", startup.TargetFramework, assemblyName + ".dll");
 
             // If exact path doesn't exist, search for the DLL under bin/Debug/
             if (!System.IO.File.Exists(programPath))
