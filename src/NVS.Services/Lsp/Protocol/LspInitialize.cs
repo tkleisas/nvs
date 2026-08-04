@@ -36,7 +36,9 @@ public sealed record CodeActionClientCapabilities
     public bool DynamicRegistration { get; init; }
     public CodeActionLiteralSupport? CodeActionLiteralSupport { get; init; }
     public bool IsPreferredSupport { get; init; }
-    public bool ResolveSupport { get; init; }
+    // Note: resolveSupport is intentionally omitted — when present it must be an
+    // object ({ properties: [...] }) per spec, and strict servers (jdtls/Gson)
+    // reject a bare boolean. NVS does not use code-action resolve.
 }
 
 public sealed record CodeActionLiteralSupport
