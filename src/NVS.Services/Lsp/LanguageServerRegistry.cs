@@ -182,12 +182,14 @@ public static class LanguageServerRegistry
             {
                 Id = "jdtls",
                 Name = "Eclipse JDT Language Server",
-                Description = "Java language server based on Eclipse JDT",
+                Description = "Java language server based on Eclipse JDT (requires JDK 17+)",
                 License = "EPL-2.0",
                 Languages = [Language.Java],
                 BinaryName = "jdtls",
                 DefaultArgs = [],
                 InstallMethod = InstallMethod.BinaryDownload,
+                Version = "1.57.0",
+                DownloadUrlTemplate = "https://download.eclipse.org/jdtls/milestones/1.57.0/jdt-language-server-1.57.0-202602261110.tar.gz",
                 HomepageUrl = "https://github.com/eclipse-jdtls/eclipse.jdt.ls",
             },
             new()

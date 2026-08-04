@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Formats.Tar;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using NVS.Core.Enums;
@@ -9,7 +10,12 @@ namespace NVS.Services.Lsp;
 
 public sealed class LanguageServerManager : ILanguageServerManager
 {
-    private static readonly HttpClient SharedHttpClient = new();
+    private static readonly HttpClient SharedHttpClient = new()
+    {
+        // Language server archives can be large (jdtls ~50 MB) and mirrors slow —
+        // the default 100s timeout is not enough.
+        Timeout = TimeSpan.FromMinutes(15),
+    };
 
     public IReadOnlyList<LanguageServerDefinition> GetAvailableServers() =>
         LanguageServerRegistry.GetAll();
@@ -56,7 +62,11 @@ public sealed class LanguageServerManager : ILanguageServerManager
             InstallMethod.GoInstall => await RunInstallCommandAsync(
                 "go", $"install {def.InstallPackage}", def, progress, cancellationToken),
             InstallMethod.GitHubRelease => await DownloadAndExtractAsync(def, progress, cancellationToken),
-            InstallMethod.BinaryDownload => HandleBinaryDownload(def, progress),
+            // BinaryDownload with a URL template downloads and extracts; without
+            // one it falls back to the manual-download hint.
+            InstallMethod.BinaryDownload => string.IsNullOrEmpty(def.DownloadUrlTemplate)
+                ? HandleBinaryDownload(def, progress)
+                : await DownloadAndExtractAsync(def, progress, cancellationToken),
             _ => false,
         };
     }
@@ -86,11 +96,7 @@ public sealed class LanguageServerManager : ILanguageServerManager
             return false;
         }
 
-        var ext = OperatingSystem.IsWindows() ? "zip" : "tar.gz";
-        var url = def.DownloadUrlTemplate
-            .Replace("{version}", def.Version)
-            .Replace("{rid}", rid)
-            .Replace("{ext}", ext);
+        var (url, ext) = ResolveDownloadUrl(def, rid);
 
         var toolsDir = GetNvsToolsDir(def.Id);
         Directory.CreateDirectory(toolsDir);
@@ -101,28 +107,43 @@ public sealed class LanguageServerManager : ILanguageServerManager
         {
             progress?.Report($"Downloading {def.Name} {def.Version} for {rid}...");
 
-            using (var response = await SharedHttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
+            // Large archives on slow/flaky mirrors (eclipse.org) can reset mid-way —
+            // retry the download a few times before giving up.
+            const int maxAttempts = 3;
+            for (var attempt = 1; ; attempt++)
             {
-                response.EnsureSuccessStatusCode();
-
-                var totalBytes = response.Content.Headers.ContentLength;
-                await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                await using var fileStream = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-
-                var buffer = new byte[81920];
-                long downloaded = 0;
-                int bytesRead;
-
-                while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
+                try
                 {
-                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
-                    downloaded += bytesRead;
-
-                    if (totalBytes.HasValue && totalBytes.Value > 0)
+                    using (var response = await SharedHttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
                     {
-                        var pct = (int)(downloaded * 100 / totalBytes.Value);
-                        progress?.Report($"Downloading {def.Name}... {pct}%");
+                        response.EnsureSuccessStatusCode();
+
+                        var totalBytes = response.Content.Headers.ContentLength;
+                        await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                        await using var fileStream = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
+
+                        var buffer = new byte[81920];
+                        long downloaded = 0;
+                        int bytesRead;
+
+                        while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
+                        {
+                            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                            downloaded += bytesRead;
+
+                            if (totalBytes.HasValue && totalBytes.Value > 0)
+                            {
+                                var pct = (int)(downloaded * 100 / totalBytes.Value);
+                                progress?.Report($"Downloading {def.Name}... {pct}%");
+                            }
+                        }
                     }
+                    break;
+                }
+                catch (Exception ex) when (attempt < maxAttempts && ex is not OperationCanceledException)
+                {
+                    progress?.Report($"Download interrupted ({ex.GetType().Name}); retrying ({attempt}/{maxAttempts - 1})...");
+                    try { File.Delete(tempFile); } catch { /* partial file cleanup */ }
                 }
             }
 
@@ -136,6 +157,13 @@ public sealed class LanguageServerManager : ILanguageServerManager
             {
                 // Use tar for .tar.gz extraction
                 await ExtractTarGzAsync(tempFile, toolsDir, cancellationToken);
+            }
+
+            if (def.Id == "jdtls")
+            {
+                // JDT.LS ships no standalone executable — generate the launcher
+                // script the factory looks for (resolves a JDK at run time).
+                WriteJdtlsLauncher(toolsDir);
             }
 
             // Make binary executable on Unix
@@ -192,6 +220,94 @@ public sealed class LanguageServerManager : ILanguageServerManager
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "NVS", "tools", serverId);
 
+    /// <summary>
+    /// Builds the final download URL and derives the archive format from it, so
+    /// servers with a single archive kind (e.g. jdtls ships only .tar.gz) need
+    /// no per-OS {ext} placeholder.
+    /// </summary>
+    internal static (string Url, string Ext) ResolveDownloadUrl(LanguageServerDefinition def, string rid)
+    {
+        var url = def.DownloadUrlTemplate!
+            .Replace("{version}", def.Version)
+            .Replace("{rid}", rid);
+
+        if (url.Contains("{ext}", StringComparison.Ordinal))
+        {
+            url = url.Replace("{ext}", OperatingSystem.IsWindows() ? "zip" : "tar.gz");
+        }
+
+        var ext = url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ? "zip" : "tar.gz";
+        return (url, ext);
+    }
+
+    /// <summary>Writes the jdtls launcher script the LSP factory looks for in the tools dir.</summary>
+    internal static void WriteJdtlsLauncher(string toolsDir)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            File.WriteAllText(Path.Combine(toolsDir, "jdtls.cmd"), JdtlsCmdContent.Replace("\n", "\r\n"));
+        }
+        else
+        {
+            var path = Path.Combine(toolsDir, "jdtls");
+            File.WriteAllText(path, JdtlsShContent);
+        }
+    }
+
+    internal const string JdtlsCmdContent = """
+        @echo off
+        setlocal
+        rem JDT.LS launcher generated by NVS. Resolves a JDK 17+ at run time.
+        rem Order: user apps JDKs (newest) -> MS OpenJDK dirs (newest) -> JAVA_HOME -> PATH.
+        set "JAVA_BIN="
+        if not defined JAVA_BIN (
+          for /f "delims=" %%J in ('dir /b /ad /o-n "%USERPROFILE%\apps\jdk-*" 2^>nul') do (
+            if not defined JAVA_BIN if exist "%USERPROFILE%\apps\%%J\bin\java.exe" set "JAVA_BIN=%USERPROFILE%\apps\%%J\bin\java.exe"
+          )
+        )
+        if not defined JAVA_BIN (
+          for /f "delims=" %%J in ('dir /b /ad /o-n "%ProgramFiles%\Microsoft\jdk-*" 2^>nul') do (
+            if not defined JAVA_BIN if exist "%ProgramFiles%\Microsoft\%%J\bin\java.exe" set "JAVA_BIN=%ProgramFiles%\Microsoft\%%J\bin\java.exe"
+          )
+        )
+        if not defined JAVA_BIN if defined JAVA_HOME if exist "%JAVA_HOME%\bin\java.exe" set "JAVA_BIN=%JAVA_HOME%\bin\java.exe"
+        if not defined JAVA_BIN (
+          where java >nul 2>nul && set "JAVA_BIN=java"
+        )
+        if not defined JAVA_BIN (
+          echo JDT.LS requires a JDK 17+. Install one or point JAVA_HOME at it. 1>&2
+          exit /b 1
+        )
+        for %%f in ("%~dp0plugins\org.eclipse.equinox.launcher_*.jar") do set "LAUNCHER=%%f"
+        "%JAVA_BIN%" -Declipse.application=org.eclipse.jdt.ls.core.id1 -Dosgi.bundles.defaultStartLevel=4 -Declipse.product=org.eclipse.jdt.ls.core.product -Dlog.level=ERROR -Xmx1G --add-modules=ALL-SYSTEM --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED -jar "%LAUNCHER%" -configuration "%~dp0config_win" -data "%TEMP%\nvs-jdtls-data" %*
+        endlocal
+
+        """;
+
+    internal const string JdtlsShContent = """
+        #!/bin/sh
+        # JDT.LS launcher generated by NVS. Resolves a JDK 17+ at run time.
+        # Order: user apps JDKs (newest) -> JAVA_HOME -> PATH.
+        DIR="$(cd "$(dirname "$0")" && pwd)"
+        JAVA_BIN=""
+        for j in "$HOME"/apps/jdk-*/bin/java; do
+          [ -x "$j" ] && JAVA_BIN="$j"
+        done
+        if [ -z "$JAVA_BIN" ] && [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+          JAVA_BIN="$JAVA_HOME/bin/java"
+        fi
+        if [ -z "$JAVA_BIN" ] && command -v java >/dev/null 2>&1; then
+          JAVA_BIN="java"
+        fi
+        if [ -z "$JAVA_BIN" ]; then
+          echo "JDT.LS requires a JDK 17+. Install one or point JAVA_HOME at it." >&2
+          exit 1
+        fi
+        LAUNCHER=$(ls "$DIR"/plugins/org.eclipse.equinox.launcher_*.jar | head -n 1)
+        exec "$JAVA_BIN" -Declipse.application=org.eclipse.jdt.ls.core.id1 -Dosgi.bundles.defaultStartLevel=4 -Declipse.product=org.eclipse.jdt.ls.core.product -Dlog.level=ERROR -Xmx1G --add-modules=ALL-SYSTEM --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED -jar "$LAUNCHER" -configuration "$DIR/config_linux" -data "${TMPDIR:-/tmp}/nvs-jdtls-data" "$@"
+
+        """;
+
     internal static string? FindInNvsTools(string serverId, string binaryName)
     {
         var toolsDir = GetNvsToolsDir(serverId);
@@ -214,29 +330,12 @@ public sealed class LanguageServerManager : ILanguageServerManager
 
     private static async Task ExtractTarGzAsync(string archivePath, string destinationDir, CancellationToken ct)
     {
-        var tarPath = FindBinaryOnPath("tar");
-        if (tarPath is null)
-            throw new InvalidOperationException("'tar' is not available on PATH. Cannot extract .tar.gz archive.");
-
-        var psi = new ProcessStartInfo
-        {
-            FileName = tarPath,
-            ArgumentList = { "xzf", archivePath, "-C", destinationDir },
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-
-        using var process = Process.Start(psi)
-            ?? throw new InvalidOperationException("Failed to start tar process.");
-
-        await process.WaitForExitAsync(ct);
-        if (process.ExitCode != 0)
-        {
-            var error = await process.StandardError.ReadToEndAsync(ct);
-            throw new InvalidOperationException($"tar extraction failed: {error}");
-        }
+        // Managed extraction (System.Formats.Tar) — no external 'tar' dependency
+        // and no MSYS-vs-native path issues on Windows.
+        await using var fileStream = File.OpenRead(archivePath);
+        await using var gzip = new GZipStream(fileStream, CompressionMode.Decompress);
+        await Task.Run(() => TarFile.ExtractToDirectory(gzip, destinationDir, overwriteFiles: true), ct)
+            .ConfigureAwait(false);
     }
 
     private static async Task RunCommandAsync(string command, string arguments, CancellationToken ct)

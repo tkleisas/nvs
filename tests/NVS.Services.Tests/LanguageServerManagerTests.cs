@@ -1,5 +1,6 @@
 using NVS.Core.Enums;
 using NVS.Core.Interfaces;
+using NVS.Core.Models.Settings;
 using NVS.Services.Lsp;
 
 namespace NVS.Services.Tests;
@@ -137,4 +138,76 @@ public sealed class LanguageServerManagerTests
         path.Should().BeNull();
     }
 
+}
+
+public sealed class LanguageServerDownloadUrlTests
+{
+    private static LanguageServerDefinition Def(string template, string version = "1.0.0") => new()
+    {
+        Id = "test-server",
+        Name = "Test",
+        Description = "Test server",
+        License = "MIT",
+        Languages = [],
+        BinaryName = "test",
+        InstallMethod = InstallMethod.BinaryDownload,
+        DownloadUrlTemplate = template,
+        Version = version,
+    };
+
+    [Fact]
+    public void ResolveDownloadUrl_PlaceholderTemplate_SubstitutesVersionAndRid()
+    {
+        var (url, _) = LanguageServerManager.ResolveDownloadUrl(
+            Def("https://example.com/{version}/binary-{rid}.{ext}", "2.3.4"), "linux-x64");
+
+        var expectedExt = OperatingSystem.IsWindows() ? "zip" : "tar.gz";
+        url.Should().Be($"https://example.com/2.3.4/binary-linux-x64.{expectedExt}");
+    }
+
+    [Fact]
+    public void ResolveDownloadUrl_StaticTarGzUrl_DerivesTarGzOnAllPlatforms()
+    {
+        // jdtls ships only .tar.gz — no {ext} placeholder needed, format comes from the URL
+        var (_, ext) = LanguageServerManager.ResolveDownloadUrl(
+            Def("https://example.com/jdt-language-server-1.57.0-202602261110.tar.gz"), "win-x64");
+
+        ext.Should().Be("tar.gz");
+    }
+
+    [Fact]
+    public void ResolveDownloadUrl_StaticZipUrl_DerivesZip()
+    {
+        var (_, ext) = LanguageServerManager.ResolveDownloadUrl(
+            Def("https://example.com/server-win64.zip"), "win-x64");
+
+        ext.Should().Be("zip");
+    }
+
+    [Fact]
+    public void JdtlsEntry_HasDownloadUrlAndVersion()
+    {
+        var def = LanguageServerRegistry.GetById("jdtls");
+
+        def.Should().NotBeNull();
+        def!.Version.Should().NotBeNullOrWhiteSpace();
+        def.DownloadUrlTemplate.Should().StartWith("https://");
+        def.InstallMethod.Should().Be(InstallMethod.BinaryDownload);
+    }
+
+    [Fact]
+    public void JdtlsLauncherContent_Cmd_ResolvesJdkAndLauncherJar()
+    {
+        LanguageServerManager.JdtlsCmdContent.Should().Contain("org.eclipse.equinox.launcher_*.jar");
+        LanguageServerManager.JdtlsCmdContent.Should().Contain("config_win");
+        LanguageServerManager.JdtlsCmdContent.Should().Contain("JAVA_HOME");
+    }
+
+    [Fact]
+    public void JdtlsLauncherContent_Shell_ResolvesJdkAndLauncherJar()
+    {
+        LanguageServerManager.JdtlsShContent.Should().Contain("org.eclipse.equinox.launcher_*.jar");
+        LanguageServerManager.JdtlsShContent.Should().Contain("config_linux");
+        LanguageServerManager.JdtlsShContent.Should().Contain("JAVA_HOME");
+    }
 }
