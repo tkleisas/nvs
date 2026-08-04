@@ -110,7 +110,7 @@ public sealed class ProcessTerminal : IProcessTerminal
         var buffer = new byte[8192];
         try
         {
-            while (!ct.IsCancellationRequested && _running)
+            while (true)
             {
                 int bytesRead;
                 try
@@ -119,6 +119,7 @@ public sealed class ProcessTerminal : IProcessTerminal
                         .ConfigureAwait(false);
                 }
                 catch (ObjectDisposedException) { break; }
+                catch (OperationCanceledException) { break; } // disposal teardown
                 catch (Exception ex) when (!ct.IsCancellationRequested)
                 {
                     Log.Debug(ex, "[ProcessTerminal {Id}] read error", Session.Id);
@@ -126,7 +127,7 @@ public sealed class ProcessTerminal : IProcessTerminal
                 }
 
                 if (bytesRead <= 0)
-                    break; // EOF — process likely terminated
+                    break; // EOF — child closed its end of the PTY
 
                 var text = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 var chunk = new TerminalOutputChunk
@@ -144,8 +145,12 @@ public sealed class ProcessTerminal : IProcessTerminal
         }
         finally
         {
-            // Ensure exit is surfaced even when the read loop returns before ProcessExited fires.
-            // (Some hosts close stdout before signaling exit.)
+            // The output stream completes only now, after the reader drained everything
+            // the child wrote. Completing on ProcessExited raced ahead of this drain on
+            // Unix (fast-exiting children) and silently dropped the final chunks for Rx
+            // observers.
+            try { _outputSubject.OnCompleted(); }
+            catch { /* subject may already be disposed */ }
         }
     }
 
@@ -153,13 +158,20 @@ public sealed class ProcessTerminal : IProcessTerminal
     {
         _exitCode = e.ExitCode;
         _running = false;
-        _readCts?.Cancel();
-
-        try { _outputSubject.OnCompleted(); }
-        catch { /* subject may already be disposed */ }
 
         Exited?.Invoke(this, e.ExitCode);
         Log.Debug("[ProcessTerminal {Id}] exited with code {ExitCode}", Session.Id, e.ExitCode);
+
+        // Give the read loop a grace window to drain buffered output (fast-exiting
+        // children on Unix), then cancel it — ConPTY keeps the reader open after
+        // exit, so without this the loop (and OnCompleted) would hang forever.
+        _ = Task.Run(async () =>
+        {
+            try { await Task.Delay(500).ConfigureAwait(false); }
+            catch { return; }
+            try { _readCts?.Cancel(); }
+            catch (ObjectDisposedException) { /* disposed meanwhile */ }
+        });
     }
 
     private static (string App, IReadOnlyList<string> Args) ResolveCommand(TerminalStartOptions options)

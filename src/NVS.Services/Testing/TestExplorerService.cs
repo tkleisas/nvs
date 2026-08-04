@@ -240,9 +240,12 @@ public sealed class TestExplorerService : ITestExplorerService
     /// True when the running IDE executable lives under the target solution/project
     /// directory — meaning builds will fail on locked output files (self-hosting).
     /// </summary>
-    internal static bool IsSelfHostedRun(string targetPath)
+    internal static bool IsSelfHostedRun(string targetPath) =>
+        IsSelfHostedRun(targetPath, Environment.ProcessPath);
+
+    /// <summary>Testable core of <see cref="IsSelfHostedRun(string)"/> with an explicit process path.</summary>
+    internal static bool IsSelfHostedRun(string targetPath, string? processPath)
     {
-        var processPath = Environment.ProcessPath;
         var targetDirectory = Path.GetDirectoryName(Path.GetFullPath(targetPath));
         if (processPath is null || targetDirectory is null)
         {

@@ -36,24 +36,28 @@ public class TestExplorerServiceParsingTests
     }
 
     [Fact]
-    public void IsSelfHostedRun_TargetUnderProcessTree_ReturnsTrue()
+    public void IsSelfHostedRun_ProcessUnderTargetTree_ReturnsTrue()
     {
-        // The test host runs from the repo's test output, so the repo solution is "self-hosted".
-        var repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
-        var solutionPath = Path.Combine(repoRoot, "NVS.slnx");
-        if (!File.Exists(solutionPath))
-        {
-            return; // layout assumption broken — nothing to assert against
-        }
+        var target = Path.Combine(Path.GetTempPath(), "app", "App.slnx");
+        var process = Path.Combine(Path.GetTempPath(), "app", "src", "App", "bin", "Debug", "net10.0", "App");
 
-        TestExplorerService.IsSelfHostedRun(solutionPath).Should().BeTrue();
+        TestExplorerService.IsSelfHostedRun(target, process).Should().BeTrue();
     }
 
     [Fact]
-    public void IsSelfHostedRun_UnrelatedTarget_ReturnsFalse()
+    public void IsSelfHostedRun_ProcessOutsideTargetTree_ReturnsFalse()
+    {
+        var target = Path.Combine(Path.GetTempPath(), "app", "App.slnx");
+        var process = Path.Combine(Path.GetTempPath(), "elsewhere", "ide", "nvs");
+
+        TestExplorerService.IsSelfHostedRun(target, process).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsSelfHostedRun_NullProcessPath_ReturnsFalse()
     {
         TestExplorerService.IsSelfHostedRun(
-            Path.Combine(Path.GetTempPath(), "some-other-solution", "App.slnx")).Should().BeFalse();
+            Path.Combine(Path.GetTempPath(), "app", "App.slnx"), null).Should().BeFalse();
     }
 
     private const string Trx = """
