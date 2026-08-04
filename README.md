@@ -38,6 +38,23 @@ NVS is a code editor / IDE that:
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
 - Has 1415 tests, which is 1415 more than the AI thought were necessary before the human insisted.
 
+## What's New in 1.0.0
+
+The first stable release. Highlights beyond the 0.x line:
+
+- **Test Explorer** — discover, run, and navigate tests (xUnit/NUnit/MSTest) with a results tree, per-node durations, re-run-failed, and failure details. Self-hosting aware.
+- **Document symbols outline** — live namespace → type → member tree of the active file (View → Symbols), Roslyn for C#, LSP for everything else.
+- **Rename symbol (F2)** — solution-wide rename via Roslyn `Renamer` (LSP fallback) with a name prompt.
+- **Command palette (Ctrl+Shift+P)** — fuzzy access to every command in the IDE.
+- **Inline AI edit (Ctrl+I)** — describe a change over a selection, preview the diff, apply or discard. Plus **AI commit messages** generated from the staged diff.
+- **Debugging that actually works everywhere** — console (startup-hook attach), GUI (direct DAP launch), and web (launch profile + URL scrape) paths all verified; netcoredbg auto-downloads on first use.
+- **Breakpoints persist** — stored per workspace (`.nvs/breakpoints.json`), restored on open.
+- **Configurable build output** — Settings → Build: Default (per-project bin), Auto (shadow when self-hosting), Custom (your directory). One resolver drives build, run, debug, and test — so building/debugging the solution NVS itself is running from just works.
+- **Copy to Output Directory** — Solution Explorer file context menu (Always / If newer / Never), like the Visual Studio file property.
+- **Containers** — Docker/Podman panel: containers, images, logs, Dockerfile scaffolding, image builds.
+- **Faster** — parallel test discovery (~2×), frame-coalesced terminal rendering, batched build output.
+- **Greener** — 1415 tests passing on Windows *and* Linux, with the flaky native suites properly isolated.
+
 ## Features
 
 ### 🖊️ Editor
@@ -124,6 +141,9 @@ NVS is a code editor / IDE that:
 - **Web application run/debug** — launchSettings.json parsing, launch-profile selector (toolbar dropdown + Settings → Web / Launch), cross-platform browser launch, and live "Now listening on:" URL scraping for the debug browser launch (with a static fallback)
 - Build Output panel with auto-scroll, MSBuild error parsing, and batched line rendering
 - Problems panel with click-to-navigate diagnostics
+- **Configurable build output** — Settings → Build: Default (standard `bin/`), Auto (shadow directory when self-hosting), or a Custom directory; build, run, debug, and test all follow one resolver
+- **Self-hosting works** — build, run, debug, and test the very solution NVS is running from; locked binaries are redirected to a shadow output instead of failing
+- **Copy to Output Directory** — right-click a file in Solution Explorer → Always / If newer / Never (writes `CopyToOutputDirectory` metadata to the project, like the Visual Studio file property)
 - New project / file-from-template scaffolding via `dotnet new`, Maven, and Composer
 - Add existing project to solution
 
@@ -135,6 +155,7 @@ NVS is a code editor / IDE that:
 - Start Debugging (F5), Stop (Shift+F5)
 - Step Over (F10), Step Into (F11), Step Out (Shift+F11)
 - Toggle Breakpoint (F9) with red gutter markers
+- **Breakpoints persist across sessions** — stored per workspace in `.nvs/breakpoints.json`
 - Call Stack panel with frame navigation
 - Variables panel with expandable tree view (lazy-loaded children)
 - Debug output streamed to Build Output panel
@@ -147,7 +168,7 @@ NVS is a code editor / IDE that:
 - **Run All** (Build → Run All Tests or the toolbar), **re-run failed**, **run selected** scope (project, namespace, class, or a single test)
 - Results parsed from TRX: double-click a test to jump to its source line; the details pane shows the error message and stack trace for failures
 - Theory/parameterized cases tracked per case (matched by display name); projects run one-by-one and merge — a solution-wide `dotnet test` would overwrite one shared TRX file per project
-- Self-hosting aware: when NVS tests the solution it's running from, it skips the doomed build (locked binaries) and tests the already-built output
+- Self-hosting aware: when NVS tests the solution it's running from, it builds to and tests from a shadow output directory (see Settings → Build)
 - Parallel project discovery (~2× faster on multi-project solutions)
 
 ### 💬 LLM Chat Assistant
@@ -199,13 +220,13 @@ NVS is a code editor / IDE that:
 
 ### ❓ Help System
 - Welcome tab with getting started links and feature overview
-- Searchable help panel (F1) with 13 built-in topics
+- Searchable help panel (F1) with 15 built-in topics
 - Keyboard shortcuts reference
 - Contextual tooltips on all toolbar buttons
 - The help content was written by the AI, so it sounds very confident about features that were definitely not tested on macOS
 
 ### ⚙️ Settings
-- 5-section settings UI (General, Editor, Terminal, Language Servers, LLM)
+- 7-section settings UI (General, Editor, Terminal, Language Servers, LLM, Web / Launch, Build)
 - **4 built-in themes**: NVS Dark (default), NVS Light, Monokai, Solarized Dark
 - Live theme switching with no restart required
 - LLM configuration: endpoint, API key, model, temperature, streaming, prompt templates
