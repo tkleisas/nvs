@@ -32,8 +32,11 @@ public interface IAutomationHost
     /// <summary>Sets the text of a control (TextEditor or TextBox) found by automation id/name.</summary>
     Task<object> SetTextAsync(string controlId, string text);
 
-    /// <summary>Clicks a Button found by automation id/name.</summary>
+    /// <summary>Clicks a Button or selects a TabItem found by automation id/name.</summary>
     Task<object> ClickAsync(string controlId);
+
+    /// <summary>Types text into a TextEditor/TextBox via real input events (drives debounced triggers).</summary>
+    Task<object> TypeTextAsync(string controlId, string text);
 
     /// <summary>Opens a solution file in the IDE.</summary>
     Task<object> OpenSolutionAsync(string path);

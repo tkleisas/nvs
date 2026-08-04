@@ -204,10 +204,16 @@ public sealed class MainWindowAutomationHost : IAutomationHost
             var control = FindControl(controlId)
                 ?? throw new InvalidOperationException($"no control with automation id or name '{controlId}'");
 
+            if (control is TabItem tabItem)
+            {
+                tabItem.IsSelected = true;
+                return (object)new Dictionary<string, object?> { ["clicked"] = controlId };
+            }
+
             if (control is not Button button)
             {
                 throw new InvalidOperationException(
-                    $"control '{controlId}' is a {control.GetType().Name}; expected a Button");
+                    $"control '{controlId}' is a {control.GetType().Name}; expected a Button or TabItem");
             }
 
             // Executing the bound Command directly is more reliable than raising
@@ -225,6 +231,35 @@ public sealed class MainWindowAutomationHost : IAutomationHost
             }
 
             return (object)new Dictionary<string, object?> { ["clicked"] = controlId };
+        });
+
+    public async Task<object> TypeTextAsync(string controlId, string text) =>
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var control = FindControl(controlId)
+                ?? throw new InvalidOperationException($"no control with automation id or name '{controlId}'");
+
+            switch (control)
+            {
+                case AvaloniaEdit.TextEditor editor:
+                    // PerformTextInput is the IME path AvaloniaEdit itself uses:
+                    // inserts at the caret and raises TextEntered, which drives
+                    // debounced triggers (completion window, ghost text).
+                    editor.Focus();
+                    editor.TextArea.PerformTextInput(text);
+                    break;
+                case TextBox textBox:
+                    textBox.Focus();
+                    var caret = textBox.CaretIndex;
+                    textBox.SetCurrentValue(TextBox.TextProperty, (textBox.Text ?? string.Empty).Insert(caret, text));
+                    textBox.CaretIndex = caret + text.Length;
+                    break;
+                default:
+                    throw new InvalidOperationException(
+                        $"control '{controlId}' is a {control.GetType().Name}; expected a TextEditor or TextBox");
+            }
+
+            return (object)new Dictionary<string, object?> { ["control"] = controlId, ["typed"] = text.Length };
         });
 
     public async Task<object> OpenSolutionAsync(string path) =>

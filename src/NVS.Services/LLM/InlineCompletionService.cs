@@ -39,13 +39,17 @@ public sealed class InlineCompletionService : IInlineCompletionService
         try
         {
             var prompt = BuildCompletionPrompt(prefix, suffix, language, filePath);
+            Log.Debug("Inline completion requested for {FilePath} at {Line}:{Column}", filePath, line, column);
 
             var request = new ChatCompletionRequest
             {
                 Model = settings.Model,
                 Messages = [ChatCompletionMessage.User(prompt)],
                 Temperature = 0.0,
-                MaxTokens = 256,
+                // Reasoning models (e.g. deepseek-v4) burn any small token cap on
+                // reasoning before producing content — don't cap here; ask for a
+                // low reasoning budget to keep latency sane.
+                ReasoningEffort = "low",
                 Stream = false,
                 // No tools for inline completions
                 Tools = null,
@@ -55,6 +59,7 @@ public sealed class InlineCompletionService : IInlineCompletionService
             var response = await _llmService.SendAsync(request, cancellationToken: cancellationToken);
 
             var completion = CleanCompletion(response.Content, prefix);
+            Log.Debug("Inline completion for {FilePath} returned {Length} chars", filePath, completion?.Length ?? 0);
             return string.IsNullOrWhiteSpace(completion) ? null : completion;
         }
         catch (OperationCanceledException)

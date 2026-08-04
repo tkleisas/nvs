@@ -41,4 +41,10 @@ public sealed class ChatCompletionRequest
     [JsonPropertyName("stop")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<string>? Stop { get; set; }
+
+    /// <summary>Provider-specific reasoning budget hint (e.g. "low"/"medium"/"high" on
+    /// DeepSeek reasoning models); ignored by providers that don't know it.</summary>
+    [JsonPropertyName("reasoning_effort")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ReasoningEffort { get; set; }
 }

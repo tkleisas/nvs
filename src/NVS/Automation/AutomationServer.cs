@@ -158,6 +158,10 @@ public sealed class AutomationServer : IDisposable
             case "click":
                 var clickId = GetString(args, "control") ?? throw new InvalidOperationException("click requires args.control");
                 return await _host.ClickAsync(clickId).ConfigureAwait(false);
+            case "type":
+                var typeId = GetString(args, "control") ?? throw new InvalidOperationException("type requires args.control");
+                var typeText = GetString(args, "text") ?? throw new InvalidOperationException("type requires args.text");
+                return await _host.TypeTextAsync(typeId, typeText).ConfigureAwait(false);
             case "open-solution":
                 var slnPath = GetString(args, "path") ?? throw new InvalidOperationException("open-solution requires args.path");
                 return await _host.OpenSolutionAsync(slnPath).ConfigureAwait(false);
