@@ -873,25 +873,35 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ToggleSidebar()
     {
-        SidebarMode = SidebarMode == "Git" ? "Explorer" : "Git";
+        if (SidebarMode == "Git")
+        {
+            ShowExplorer();
+        }
+        else
+        {
+            ShowSourceControl();
+        }
     }
 
     [RelayCommand]
     private void ShowExplorer()
     {
         SidebarMode = "Explorer";
+        _dockFactory?.ShowToolInLeftDock(_dockFactory.ExplorerTool);
     }
 
     [RelayCommand]
     private void ShowSourceControl()
     {
         SidebarMode = "Git";
+        _dockFactory?.ShowToolInLeftDock(_dockFactory.GitTool);
     }
 
     [RelayCommand]
     private void ShowSearch()
     {
         SidebarMode = "Search";
+        _dockFactory?.ShowToolInLeftDock(_dockFactory.SearchTool);
     }
 
     [RelayCommand]

@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Data;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -185,14 +186,45 @@ public sealed class MainWindowAutomationHost : IAutomationHost
                     editor.Document.Text = text;
                     break;
                 case TextBox textBox:
-                    textBox.Text = text;
+                    // SetCurrentValue (not Text = ...): it pushes through the TwoWay
+                    // binding immediately, so a subsequent automation click doesn't
+                    // run commands against the stale view-model value.
+                    textBox.SetCurrentValue(TextBox.TextProperty, text);
                     break;
                 default:
                     throw new InvalidOperationException(
                         $"control '{controlId}' is a {control.GetType().Name}; expected a TextEditor or TextBox");
             }
-
             return (object)new Dictionary<string, object?> { ["control"] = controlId, ["length"] = text.Length };
+        });
+
+    public async Task<object> ClickAsync(string controlId) =>
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var control = FindControl(controlId)
+                ?? throw new InvalidOperationException($"no control with automation id or name '{controlId}'");
+
+            if (control is not Button button)
+            {
+                throw new InvalidOperationException(
+                    $"control '{controlId}' is a {control.GetType().Name}; expected a Button");
+            }
+
+            // Executing the bound Command directly is more reliable than raising
+            // ClickEvent, which does not reach OnClick on every Avalonia version.
+            if (button.Command is not null)
+            {
+                if (button.Command.CanExecute(button.CommandParameter))
+                {
+                    button.Command.Execute(button.CommandParameter);
+                }
+            }
+            else
+            {
+                button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, button));
+            }
+
+            return (object)new Dictionary<string, object?> { ["clicked"] = controlId };
         });
 
     public async Task<object> OpenSolutionAsync(string path) =>

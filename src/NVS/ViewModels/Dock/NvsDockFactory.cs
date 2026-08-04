@@ -22,6 +22,9 @@ public sealed class NvsDockFactory : Factory
     private ToolDock? _bottomToolDock;
     private SymbolsToolViewModel? _symbolsTool;
     private TestExplorerToolViewModel? _testExplorerTool;
+    private ExplorerToolViewModel? _explorerTool;
+    private SearchToolViewModel? _searchTool;
+    private GitToolViewModel? _gitTool;
     private TerminalToolViewModel? _terminalTool;
     private NuGetToolViewModel? _nugetTool;
     private ContainersToolViewModel? _containersTool;
@@ -40,6 +43,9 @@ public sealed class NvsDockFactory : Factory
     public CodeMetricsToolViewModel? CodeMetricsTool => _codeMetricsTool;
     public SymbolsToolViewModel? SymbolsTool => _symbolsTool;
     public TestExplorerToolViewModel? TestExplorerTool => _testExplorerTool;
+    public ExplorerToolViewModel? ExplorerTool => _explorerTool;
+    public SearchToolViewModel? SearchTool => _searchTool;
+    public GitToolViewModel? GitTool => _gitTool;
     public NvsDockFactory(MainViewModel main, NVS.Core.Models.Settings.DockLayoutSettings? dockSettings = null)
     {
         _main = main;
@@ -89,6 +95,9 @@ public sealed class NvsDockFactory : Factory
         _leftToolDock = (ToolDock)leftDock.VisibleDockables![0];
         _symbolsTool = symbols;
         _testExplorerTool = testExplorer;
+        _explorerTool = explorer;
+        _searchTool = search;
+        _gitTool = git;
 
         var bottomToolDock = new ToolDock
         {

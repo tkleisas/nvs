@@ -29,6 +29,7 @@ public class AutomationServerTests
         public Task<object> InvokeCommandAsync(string name) => Task.FromResult<object>(new Dictionary<string, object?> { ["invoked"] = name });
         public Task<object> InvokeMenuAsync(string path) => Task.FromResult<object>(new Dictionary<string, object?> { ["invoked"] = path });
         public Task<object> SetTextAsync(string controlId, string text) => Task.FromResult<object>(new Dictionary<string, object?> { ["control"] = controlId });
+        public Task<object> ClickAsync(string controlId) => Task.FromResult<object>(new Dictionary<string, object?> { ["clicked"] = controlId });
         public Task<object> OpenSolutionAsync(string path) => Task.FromResult<object>(new Dictionary<string, object?> { ["opened"] = path });
         public Task<object> OpenFileAsync(string path) => Task.FromResult<object>(new Dictionary<string, object?> { ["opened"] = path });
         public Task<object> ActivateAsync(string id) => Task.FromResult<object>(new Dictionary<string, object?> { ["activated"] = id });
@@ -140,6 +141,32 @@ public class AutomationServerTests
         using var doc = JsonDocument.Parse(response);
         doc.RootElement.GetProperty("ok").GetBoolean().Should().BeFalse();
         doc.RootElement.GetProperty("error").GetString().Should().Contain("args.path");
+    }
+
+    [Fact]
+    public async Task Click_ForwardsControlToHost()
+    {
+        using var server = new AutomationServer(new FakeHost(), 0);
+        server.Start();
+
+        var response = await RoundTripAsync(server, """{"id":5,"cmd":"click","args":{"control":"AiGenerateSqlButton"}}""");
+
+        using var doc = JsonDocument.Parse(response);
+        doc.RootElement.GetProperty("ok").GetBoolean().Should().BeTrue();
+        doc.RootElement.GetProperty("result").GetProperty("clicked").GetString().Should().Be("AiGenerateSqlButton");
+    }
+
+    [Fact]
+    public async Task Click_MissingControl_ReturnsHelpfulError()
+    {
+        using var server = new AutomationServer(new FakeHost(), 0);
+        server.Start();
+
+        var response = await RoundTripAsync(server, """{"id":6,"cmd":"click"}""");
+
+        using var doc = JsonDocument.Parse(response);
+        doc.RootElement.GetProperty("ok").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetProperty("error").GetString().Should().Contain("args.control");
     }
 }
 
