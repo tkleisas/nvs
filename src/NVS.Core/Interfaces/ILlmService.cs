@@ -25,7 +25,8 @@ public interface ILlmService
         ChatCompletionRequest request,
         Action<string>? onToken = null,
         CancellationToken cancellationToken = default,
-        string? modelId = null);
+        string? modelId = null,
+        Action<string>? onReasoningToken = null);
 
     /// <summary>
     /// Run the agent loop: send messages, execute tool calls, repeat until done or max iterations.
@@ -42,7 +43,8 @@ public interface ILlmService
         Func<ToolApprovalRequest, Task<bool>>? onApprovalRequired = null,
         int maxIterations = 20,
         CancellationToken cancellationToken = default,
-        string? modelId = null);
+        string? modelId = null,
+        Action<string>? onReasoningToken = null);
 
     /// <summary>Cancel any in-progress request.</summary>
     void CancelCurrentRequest();

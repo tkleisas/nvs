@@ -245,6 +245,17 @@ public sealed class NvsDockFactory : Factory
     }
 
     /// <summary>
+    /// Creates and opens a NEW Database Explorer document with its own connection —
+    /// allowing many databases to be open concurrently, each in its own tab.
+    /// </summary>
+    public DatabaseExplorerToolViewModel CreateDatabaseExplorerDocument(string title)
+    {
+        var dbExplorer = new DatabaseExplorerToolViewModel(_main) { Title = title };
+        dbExplorer.Id = $"DatabaseExplorer-{System.Guid.NewGuid():N}";
+        return OpenDocument(dbExplorer);
+    }
+
+    /// <summary>
     /// Opens the API Client as a document tab (creating the tab on first use,
     /// reactivating it afterwards — including after it was closed).
     /// </summary>

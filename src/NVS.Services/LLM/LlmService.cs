@@ -99,7 +99,8 @@ public sealed class LlmService : ILlmService
     /// </summary>
     private static (
         string Endpoint, string Model, string ApiKey, string AuthScheme, string CompletionsPath,
-        int MaxTokens, double Temperature, int HttpTimeoutSeconds
+        int MaxTokens, double Temperature, int HttpTimeoutSeconds,
+        bool ThinkingMode, string? ThinkingEffort
     ) GetEffectiveSettings(Core.Models.Settings.LlmSettings global, LlmModelConfig? cfg)
     {
         return (
@@ -110,7 +111,9 @@ public sealed class LlmService : ILlmService
             CompletionsPath: !string.IsNullOrWhiteSpace(cfg?.CompletionsPath) ? cfg!.CompletionsPath : global.CompletionsPath,
             MaxTokens: cfg?.MaxOutputTokens > 0 ? cfg.MaxOutputTokens : global.MaxTokens,
             Temperature: cfg?.Temperature > 0 ? cfg.Temperature : global.Temperature,
-            HttpTimeoutSeconds: cfg?.HttpTimeoutSeconds > 0 ? cfg.HttpTimeoutSeconds : global.HttpTimeoutSeconds
+            HttpTimeoutSeconds: cfg?.HttpTimeoutSeconds > 0 ? cfg.HttpTimeoutSeconds : global.HttpTimeoutSeconds,
+            ThinkingMode: cfg?.ThinkingMode ?? global.ThinkingMode,
+            ThinkingEffort: !string.IsNullOrWhiteSpace(cfg?.ThinkingEffort) ? cfg!.ThinkingEffort : global.ThinkingEffort
         );
     }
 
@@ -132,7 +135,8 @@ public sealed class LlmService : ILlmService
         ChatCompletionRequest request,
         Action<string>? onToken = null,
         CancellationToken cancellationToken = default,
-        string? modelId = null)
+        string? modelId = null,
+        Action<string>? onReasoningToken = null)
     {
         var requestCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         lock (_requestLock)
@@ -147,6 +151,11 @@ public sealed class LlmService : ILlmService
             var settings = _settingsService.AppSettings.Llm;
             var modelCfg = ResolveModelConfig(modelId);
             var eff = GetEffectiveSettings(settings, modelCfg);
+
+            // Apply the configured thinking mode/effort when the caller didn't
+            // pin a specific value (adapters and other callers inherit NVS settings).
+            if (eff.ThinkingMode && request.ReasoningEffort is null && !string.IsNullOrWhiteSpace(eff.ThinkingEffort))
+                request.ReasoningEffort = eff.ThinkingEffort;
 
             // Build the URL using the resolved endpoint + path
             var url = BuildCompletionsUrl(eff.Endpoint, eff.CompletionsPath);
@@ -184,6 +193,7 @@ public sealed class LlmService : ILlmService
                 result = await StreamParser.ParseStreamAsync(
                     response,
                     onToken,
+                    onReasoningToken,
                     cancellationToken: requestCts.Token);
             }
             else
@@ -250,7 +260,8 @@ public sealed class LlmService : ILlmService
         Func<ToolApprovalRequest, Task<bool>>? onApprovalRequired = null,
         int maxIterations = 20,
         CancellationToken cancellationToken = default,
-        string? modelId = null)
+        string? modelId = null,
+        Action<string>? onReasoningToken = null)
     {
         var settings = _settingsService.AppSettings.Llm;
         var modelCfg = ResolveModelConfig(modelId);
@@ -287,7 +298,7 @@ public sealed class LlmService : ILlmService
                 Stream = settings.Stream
             };
 
-            var response = await SendAsync(request, onToken, cancellationToken, modelId);
+            var response = await SendAsync(request, onToken, cancellationToken, modelId, onReasoningToken);
 
             totalInputTokens += response.InputTokens;
             totalOutputTokens += response.OutputTokens;

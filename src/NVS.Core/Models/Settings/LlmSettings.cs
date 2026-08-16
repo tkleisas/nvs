@@ -31,6 +31,13 @@ public sealed record LlmSettings
     /// <summary>Enable streaming responses.</summary>
     public bool Stream { get; init; } = true;
 
+    /// <summary>Enable thinking/reasoning mode (sent as OpenAI-compatible
+    /// <c>reasoning_effort</c> when supported by the provider/model).</summary>
+    public bool ThinkingMode { get; init; }
+
+    /// <summary>Reasoning budget for thinking models: "low", "medium" or "high".</summary>
+    public string ThinkingEffort { get; init; } = "medium";
+
     /// <summary>Max tool-calling iterations per agent loop.</summary>
     public int MaxIterations { get; init; } = 20;
 

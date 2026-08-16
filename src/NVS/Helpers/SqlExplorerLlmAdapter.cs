@@ -23,18 +23,34 @@ public sealed class SqlExplorerLlmAdapter : ExplorerLlm.ILlmService
     public async Task<string> ChatAsync(string systemPrompt, string userPrompt, CancellationToken ct = default)
     {
         var response = await _inner.SendAsync(
-            new ChatCompletionRequest
-            {
-                Model = string.Empty, // resolved from NVS settings by LlmService
-                Messages =
-                [
-                    ChatCompletionMessage.System(systemPrompt),
-                    ChatCompletionMessage.User(userPrompt)
-                ],
-                Stream = false
-            },
+            BuildRequest(systemPrompt, userPrompt, stream: false),
             cancellationToken: ct);
 
         return response.Content;
     }
+
+    public async Task<string> ChatStreamingAsync(
+        string systemPrompt,
+        string userPrompt,
+        Action<string>? onToken,
+        CancellationToken ct = default)
+    {
+        var response = await _inner.SendAsync(
+            BuildRequest(systemPrompt, userPrompt, stream: true),
+            onToken: onToken,
+            cancellationToken: ct);
+
+        return response.Content;
+    }
+
+    private static ChatCompletionRequest BuildRequest(string systemPrompt, string userPrompt, bool stream) => new()
+    {
+        Model = string.Empty, // resolved from NVS settings by LlmService
+        Messages =
+        [
+            ChatCompletionMessage.System(systemPrompt),
+            ChatCompletionMessage.User(userPrompt)
+        ],
+        Stream = stream
+    };
 }

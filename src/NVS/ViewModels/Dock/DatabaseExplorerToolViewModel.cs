@@ -68,6 +68,11 @@ public class DatabaseExplorerToolViewModel : Document
     public async Task OpenDatabase(string filePath)
     {
         await DatabaseViewModel.OpenDatabaseByPathAsync(filePath);
+
+        // Reflect the connected database in the document tab title so multiple
+        // concurrent connections are distinguishable at a glance.
+        if (!string.IsNullOrWhiteSpace(DatabaseViewModel.ConnectionDisplayName))
+            Title = $"🗄 {DatabaseViewModel.ConnectionDisplayName}";
     }
 
     /// <summary>
@@ -82,4 +87,11 @@ public class DatabaseExplorerToolViewModel : Document
     /// Whether a database is currently connected.
     /// </summary>
     public bool IsConnected => DatabaseViewModel.IsConnected;
+
+    /// <summary>Releases the database connection when the explorer tab is closed.</summary>
+    public override bool OnClose()
+    {
+        DatabaseViewModel.Dispose();
+        return base.OnClose();
+    }
 }

@@ -17,6 +17,8 @@ public sealed class LlmModelViewModel : INotifyPropertyChanged
     private double _temperature;
     private int _maxOutputTokens = 4096;
     private int _httpTimeoutSeconds;
+    private bool? _thinkingMode;
+    private string? _thinkingEffort;
     private bool _isEditing;
 
     public string DisplayName { get => _displayName; set => Set(ref _displayName, value); }
@@ -31,6 +33,19 @@ public sealed class LlmModelViewModel : INotifyPropertyChanged
     public int MaxOutputTokens { get => _maxOutputTokens; set => Set(ref _maxOutputTokens, value); }
     public int HttpTimeoutSeconds { get => _httpTimeoutSeconds; set => Set(ref _httpTimeoutSeconds, value); }
     public bool IsEditing { get => _isEditing; set => Set(ref _isEditing, value); }
+
+    /// <summary>Per-model thinking override. Null inherits the global setting.</summary>
+    public bool? ThinkingMode { get => _thinkingMode; set => Set(ref _thinkingMode, value); }
+
+    /// <summary>Per-model reasoning effort override. Null inherits the global setting.</summary>
+    public string? ThinkingEffort { get => _thinkingEffort; set => Set(ref _thinkingEffort, value); }
+
+    /// <summary>Whether a per-model thinking override is active (for the UI toggle).</summary>
+    public bool HasThinkingOverride
+    {
+        get => _thinkingMode.HasValue;
+        set => ThinkingMode = value ? true : null;
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -49,6 +64,8 @@ public sealed class LlmModelViewModel : INotifyPropertyChanged
         _temperature = cfg.Temperature,
         _maxOutputTokens = cfg.MaxOutputTokens,
         _httpTimeoutSeconds = cfg.HttpTimeoutSeconds,
+        _thinkingMode = cfg.ThinkingMode,
+        _thinkingEffort = cfg.ThinkingEffort,
     };
 
     public LlmModelConfig ToConfig() => new()
@@ -64,6 +81,8 @@ public sealed class LlmModelViewModel : INotifyPropertyChanged
         Temperature = _temperature,
         MaxOutputTokens = _maxOutputTokens,
         HttpTimeoutSeconds = _httpTimeoutSeconds,
+        ThinkingMode = _thinkingMode,
+        ThinkingEffort = _thinkingEffort,
     };
 
     private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)

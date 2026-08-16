@@ -118,6 +118,18 @@ public sealed partial class LlmChatToolViewModel : Tool
         CanClose = true;
         CanPin = true;
         RefreshModelList();
+
+        // Keep the model dropdown (and vision support) in sync with settings
+        // changes (e.g. a model added in Settings) without an app restart.
+        main.SettingsService.AppSettingsChanged += (_, _) =>
+        {
+            var previous = _selectedModelName;
+            RefreshModelList();
+            if (previous is not null && !AvailableModelNames.Contains(previous))
+                _selectedModelName = null;
+            OnPropertyChanged(nameof(SelectedModelName));
+            OnPropertyChanged(nameof(SupportsVision));
+        };
     }
 
     /// <summary>Load sessions from the workspace database. Called when workspace opens.</summary>
@@ -288,6 +300,11 @@ public sealed partial class LlmChatToolViewModel : Tool
                 {
                     assistantBubble.AppendContent(token);
                     StatusText = "Streaming...";
+                },
+                onReasoningToken: token =>
+                {
+                    assistantBubble.AppendReasoning(token);
+                    StatusText = "Thinking...";
                 },
                 onToolCall: toolCall =>
                 {
@@ -669,6 +686,7 @@ public sealed partial class LlmChatToolViewModel : Tool
 public sealed class ChatBubble : INotifyPropertyChanged
 {
     private string _content;
+    private string _reasoning = string.Empty;
     private bool _isApprovalPending;
     private TaskCompletionSource<bool>? _approvalTcs;
 
@@ -685,6 +703,23 @@ public sealed class ChatBubble : INotifyPropertyChanged
             }
         }
     }
+
+    /// <summary>Reasoning/thinking tokens streamed by reasoning models (not persisted).</summary>
+    public string Reasoning
+    {
+        get => _reasoning;
+        private set
+        {
+            if (_reasoning != value)
+            {
+                _reasoning = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Reasoning)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasReasoning)));
+            }
+        }
+    }
+
+    public bool HasReasoning => !string.IsNullOrEmpty(_reasoning);
 
     public bool IsUser => Role == "user";
     public bool IsAssistant => Role == "assistant";
@@ -743,6 +778,12 @@ public sealed class ChatBubble : INotifyPropertyChanged
     public void AppendContent(string token)
     {
         Content += token;
+    }
+
+    /// <summary>Append a reasoning/thinking token during streaming.</summary>
+    public void AppendReasoning(string token)
+    {
+        Reasoning += token;
     }
 
     /// <summary>Replace content entirely.</summary>

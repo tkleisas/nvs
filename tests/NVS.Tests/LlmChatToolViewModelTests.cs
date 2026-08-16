@@ -204,26 +204,51 @@ public class LlmChatToolViewModelTests
         bubble.Timestamp.Should().BeBefore(after);
     }
 
+    [Fact]
+    public void AppSettingsChanged_ShouldRefreshModelListAndNotifyVisionSupport()
+    {
+        var mainVm = CreateMainVm(out var settingsService);
+        var vm = new LlmChatToolViewModel(mainVm);
+        var visionRaised = false;
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(LlmChatToolViewModel.SupportsVision))
+                visionRaised = true;
+        };
+
+        var newSettings = new NVS.Core.Models.Settings.AppSettings
+        {
+            Llm = new NVS.Core.Models.Settings.LlmSettings { SupportsVision = true }
+        };
+        settingsService.AppSettings.Returns(newSettings);
+        settingsService.AppSettingsChanged += Raise.Event<EventHandler<NVS.Core.Models.Settings.AppSettings>>(null, newSettings);
+
+        visionRaised.Should().BeTrue();
+        vm.SupportsVision.Should().BeTrue();
+        vm.AvailableModelNames.Should().Contain("(default)");
+    }
+
     // --- Helper ---
 
-    private static LlmChatToolViewModel CreateViewModel()
+    private static LlmChatToolViewModel CreateViewModel() =>
+        new(CreateMainVm(out _));
+
+    private static NVS.ViewModels.MainViewModel CreateMainVm(out NVS.Core.Interfaces.ISettingsService settingsService)
     {
         var workspaceService = Substitute.For<NVS.Core.Interfaces.IWorkspaceService>();
         var editorService = Substitute.For<NVS.Core.Interfaces.IEditorService>();
         var fileSystemService = Substitute.For<NVS.Core.Interfaces.IFileSystemService>();
         var gitService = Substitute.For<NVS.Core.Interfaces.IGitService>();
         var terminalService = Substitute.For<NVS.Core.Interfaces.ITerminalService>();
-        var settingsService = Substitute.For<NVS.Core.Interfaces.ISettingsService>();
+        settingsService = Substitute.For<NVS.Core.Interfaces.ISettingsService>();
         settingsService.AppSettings.Returns(new NVS.Core.Models.Settings.AppSettings());
         var solutionService = Substitute.For<NVS.Core.Interfaces.ISolutionService>();
         var buildService = Substitute.For<NVS.Core.Interfaces.IBuildService>();
         var editorVm = new NVS.ViewModels.EditorViewModel(editorService, fileSystemService, null, null);
 
-        var mainVm = new NVS.ViewModels.MainViewModel(
+        return new NVS.ViewModels.MainViewModel(
             workspaceService, editorService, fileSystemService,
             editorVm, gitService, terminalService, settingsService,
             solutionService, buildService);
-
-        return new LlmChatToolViewModel(mainVm);
     }
 }

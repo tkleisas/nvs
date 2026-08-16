@@ -42,6 +42,12 @@ public sealed record LlmModelConfig
     /// <summary>Whether this model is a thinking/reasoning model (e.g., DeepSeek-R1).</summary>
     public bool IsThinkingModel { get; init; }
 
+    /// <summary>Per-model thinking override. Null inherits the global LlmSettings.ThinkingMode.</summary>
+    public bool? ThinkingMode { get; init; }
+
+    /// <summary>Per-model reasoning effort override ("low"/"medium"/"high"). Null inherits the global setting.</summary>
+    public string? ThinkingEffort { get; init; }
+
     /// <summary>HTTP request timeout in seconds.</summary>
     public int HttpTimeoutSeconds { get; init; } = 120;
 

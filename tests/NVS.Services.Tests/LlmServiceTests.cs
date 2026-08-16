@@ -563,6 +563,135 @@ public sealed class LlmServiceTests
     }
 
     [Fact]
+    public async Task SendAsync_ThinkingModeEnabled_AddsReasoningEffortToRequest()
+    {
+        var settingsService = CreateSettingsService(new LlmSettings
+        {
+            Endpoint = "http://localhost:9999",
+            Model = "test",
+            Stream = false,
+            ThinkingMode = true,
+            ThinkingEffort = "high"
+        });
+        var handler = new FakeHttpHandler();
+        var service = new LlmService(settingsService, () => handler);
+
+        await service.SendAsync(CreateRequest());
+
+        handler.RequestBodies.Should().ContainSingle()
+            .Which.Should().Contain("\"reasoning_effort\":\"high\"");
+    }
+
+    [Fact]
+    public async Task SendAsync_ThinkingModeDisabled_OmitsReasoningEffort()
+    {
+        var settingsService = CreateSettingsService(new LlmSettings
+        {
+            Endpoint = "http://localhost:9999",
+            Model = "test",
+            Stream = false,
+            ThinkingMode = false,
+            ThinkingEffort = "high"
+        });
+        var handler = new FakeHttpHandler();
+        var service = new LlmService(settingsService, () => handler);
+
+        await service.SendAsync(CreateRequest());
+
+        handler.RequestBodies.Should().ContainSingle()
+            .Which.Should().NotContain("reasoning_effort");
+    }
+
+    [Fact]
+    public async Task SendAsync_PerModelThinkingOverride_UsesModelEffort()
+    {
+        var settingsService = CreateSettingsService(new LlmSettings
+        {
+            Endpoint = "http://localhost:9999",
+            Model = "test",
+            Stream = false,
+            ThinkingMode = true,
+            ThinkingEffort = "low",
+            Models =
+            [
+                new LlmModelConfig
+                {
+                    DisplayName = "Reasoner",
+                    ModelId = "reasoner-1",
+                    HostUrl = "http://localhost:9999",
+                    ThinkingMode = true,
+                    ThinkingEffort = "high"
+                }
+            ]
+        });
+        var handler = new FakeHttpHandler();
+        var service = new LlmService(settingsService, () => handler);
+
+        await service.SendAsync(CreateRequest(), modelId: "reasoner-1");
+
+        handler.RequestBodies.Should().ContainSingle()
+            .Which.Should().Contain("\"reasoning_effort\":\"high\"");
+    }
+
+    [Fact]
+    public async Task SendAsync_ExplicitRequestEffort_WinsOverSettings()
+    {
+        var settingsService = CreateSettingsService(new LlmSettings
+        {
+            Endpoint = "http://localhost:9999",
+            Model = "test",
+            Stream = false,
+            ThinkingMode = true,
+            ThinkingEffort = "high"
+        });
+        var handler = new FakeHttpHandler();
+        var service = new LlmService(settingsService, () => handler);
+
+        await service.SendAsync(new ChatCompletionRequest
+        {
+            Model = "test",
+            Messages = [ChatCompletionMessage.User("hi")],
+            Stream = false,
+            ReasoningEffort = "low"
+        });
+
+        handler.RequestBodies.Should().ContainSingle()
+            .Which.Should().Contain("\"reasoning_effort\":\"low\"");
+    }
+
+    [Fact]
+    public async Task SendAsync_StreamingReasoningTokens_InvokeCallback()
+    {
+        var sse =
+            "data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"Let me think...\"},\"finish_reason\":null}]}\n\n" +
+            "data: {\"choices\":[{\"delta\":{\"content\":\"Answer\"},\"finish_reason\":\"stop\"}]}\n\n" +
+            "data: [DONE]\n\n";
+
+        var settingsService = CreateSettingsService(new LlmSettings
+        {
+            Endpoint = "http://localhost:9999",
+            Model = "test",
+            Stream = true
+        });
+        var handler = new FakeHttpHandler(sse);
+        var service = new LlmService(settingsService, () => handler);
+
+        var reasoningTokens = new List<string>();
+        var response = await service.SendAsync(
+            new ChatCompletionRequest
+            {
+                Model = "test",
+                Messages = [ChatCompletionMessage.User("hi")],
+                Stream = true
+            },
+            onReasoningToken: t => reasoningTokens.Add(t));
+
+        reasoningTokens.Should().ContainSingle().Which.Should().Be("Let me think...");
+        response.Content.Should().Be("Answer");
+        response.ReasoningContent.Should().Be("Let me think...");
+    }
+
+    [Fact]
     public async Task SendAsync_ErrorResponse_SurfacesProviderErrorBody()
     {
         var settingsService = CreateSettingsService(new LlmSettings
@@ -648,6 +777,9 @@ public sealed class LlmServiceTests
 
         public List<string?> AuthorizationHeaders { get; } = [];
 
+        /// <summary>Raw JSON bodies of every request sent through this handler.</summary>
+        public List<string> RequestBodies { get; } = [];
+
         /// <summary>When set, returned verbatim for the next request instead of a 200.</summary>
         public HttpResponseMessage? NextResponse { get; set; }
 
@@ -659,6 +791,11 @@ public sealed class LlmServiceTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             AuthorizationHeaders.Add(request.Headers.Authorization?.ToString());
+
+            if (request.Content is not null)
+            {
+                RequestBodies.Add(request.Content.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult());
+            }
 
             if (NextResponse is not null)
             {

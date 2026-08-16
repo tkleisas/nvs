@@ -57,4 +57,25 @@ public class DatabaseExplorerToolViewModelTests
         vm.CanClose.Should().BeTrue();
         vm.CanPin.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task OpenDatabase_ShouldConnectAndReflectNameInTitle()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"nvs-db-test-{Guid.NewGuid():N}.db");
+        await File.WriteAllBytesAsync(path, []);
+        var vm = new DatabaseExplorerToolViewModel(CreateMainVm());
+
+        try
+        {
+            await vm.OpenDatabase(path);
+
+            vm.IsConnected.Should().BeTrue();
+            vm.Title.Should().Contain(Path.GetFileName(path));
+        }
+        finally
+        {
+            vm.DatabaseViewModel.Dispose();
+            File.Delete(path);
+        }
+    }
 }

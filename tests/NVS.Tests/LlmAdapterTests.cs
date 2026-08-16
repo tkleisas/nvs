@@ -65,6 +65,44 @@ public class LlmAdapterTests
     }
 
     [Fact]
+    public async Task SqlExplorerAdapter_ChatStreamingAsync_StreamsTokensAndRequestsStreaming()
+    {
+        var inner = Substitute.For<ILlmService>();
+        inner.IsConfigured.Returns(true);
+        inner.SendAsync(
+                Arg.Any<ChatCompletionRequest>(),
+                Arg.Any<Action<string>?>(),
+                Arg.Any<CancellationToken>(),
+                Arg.Any<string?>(),
+                Arg.Any<Action<string>?>())
+            .Returns(async ci =>
+            {
+                var onToken = ci.ArgAt<Action<string>?>(1);
+                onToken?.Invoke("SELECT ");
+                onToken?.Invoke("1;");
+                return new LlmResponse
+                {
+                    Content = "SELECT 1;",
+                    InputTokens = 1,
+                    OutputTokens = 1,
+                    Model = "test-model",
+                };
+            });
+
+        var adapter = new SqlExplorerLlmAdapter(inner);
+        var tokens = new List<string>();
+
+        var result = await adapter.ChatStreamingAsync("s", "u", tokens.Add);
+
+        result.Should().Be("SELECT 1;");
+        tokens.Should().Equal("SELECT ", "1;");
+
+        var request = CapturedRequest(inner);
+        request.Should().NotBeNull();
+        request!.Stream.Should().BeTrue();
+    }
+
+    [Fact]
     public void Adapters_IsConfigured_PassesThrough()
     {
         var inner = ConfiguredInner("x");

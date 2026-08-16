@@ -395,6 +395,12 @@
                              Foreground="{DynamicResource TextForegroundBrush}" />
                     <ProgressBar Height="4" IsIndeterminate="True"
                                  IsVisible="{Binding InlineChat.IsBusy}" />
+                    <ScrollViewer MaxHeight="160" IsVisible="{Binding InlineChat.IsBusy}">
+                        <TextBlock Text="{Binding InlineChat.LiveProposal}"
+                                   FontFamily="Consolas,Courier New,monospace" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryForegroundBrush}"
+                                   TextWrapping="Wrap" />
+                    </ScrollViewer>
                     <ScrollViewer MaxHeight="320" IsVisible="{Binding InlineChat.HasPreview}">
                         <ItemsControl ItemsSource="{Binding InlineChat.PreviewRows}">
                             <ItemsControl.ItemTemplate>

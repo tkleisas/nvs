@@ -1160,11 +1160,23 @@ public partial class MainViewModel : ObservableObject
     private void CloseEditorSplit() => Editor?.CloseSplitCommand.Execute(null);
 
     /// <summary>
-    /// Opens a database file in the Database Explorer panel.
+    /// Opens a database file in the Database Explorer. The first database uses the
+    /// default explorer document; opening further databases while one is already
+    /// connected creates additional explorer tabs, so many databases can be open
+    /// concurrently (each with its own connection).
     /// </summary>
     public async Task OpenDatabaseFile(string filePath)
     {
-        var dbTool = _dockFactory?.OpenDatabaseExplorerDocument();
+        DatabaseExplorerToolViewModel? dbTool;
+        if (DatabaseExplorer?.IsConnected == true)
+        {
+            dbTool = _dockFactory?.CreateDatabaseExplorerDocument($"🗄 {Path.GetFileName(filePath)}");
+        }
+        else
+        {
+            dbTool = _dockFactory?.OpenDatabaseExplorerDocument();
+        }
+
         if (dbTool is not null)
         {
             await dbTool.OpenDatabase(filePath);

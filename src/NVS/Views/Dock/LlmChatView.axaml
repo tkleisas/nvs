@@ -128,7 +128,22 @@
                             <!-- Assistant bubble -->
                             <Border Classes="assistant-bubble"
                                     IsVisible="{Binding IsAssistant}">
-                                <controls:ChatContentPresenter ContentText="{Binding Content}" />
+                                <StackPanel>
+                                    <!-- Streaming reasoning/thinking block (reasoning models) -->
+                                    <Border IsVisible="{Binding HasReasoning}"
+                                            Background="{DynamicResource InputBackgroundBrush}" CornerRadius="4"
+                                            Padding="6,4" Margin="0,0,0,4">
+                                        <StackPanel>
+                                            <TextBlock Text="💭 Thinking" FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryForegroundBrush}" />
+                                            <TextBlock Text="{Binding Reasoning}"
+                                                       FontSize="11" FontStyle="Italic"
+                                                       Foreground="{DynamicResource TextSecondaryForegroundBrush}"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+                                    <controls:ChatContentPresenter ContentText="{Binding Content}" />
+                                </StackPanel>
                             </Border>
                             <!-- System bubble -->
                             <Border Classes="system-bubble"

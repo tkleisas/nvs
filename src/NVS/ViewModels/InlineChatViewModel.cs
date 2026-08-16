@@ -33,6 +33,10 @@ public partial class InlineChatViewModel : ObservableObject
     [ObservableProperty]
     private string _contextSummary = string.Empty;
 
+    /// <summary>Proposal text streamed in live while the LLM is generating.</summary>
+    [ObservableProperty]
+    private string _liveProposal = string.Empty;
+
     public ObservableCollection<DiffRow> PreviewRows { get; } = [];
 
     /// <summary>Optional LLM factory for tests; defaults to the app's ILlmService from DI.</summary>
@@ -93,18 +97,26 @@ public partial class InlineChatViewModel : ObservableObject
         var (system, user) = InlineEditPrompts.Build(Instruction, _contextText, language, _hadSelection);
 
         IsBusy = true;
+        LiveProposal = string.Empty;
         try
         {
-            var response = await llm.SendAsync(new ChatCompletionRequest
-            {
-                Model = string.Empty,
-                Messages =
-                [
-                    ChatCompletionMessage.System(system),
-                    ChatCompletionMessage.User(user)
-                ],
-                Stream = false,
-            });
+            var sb = new System.Text.StringBuilder();
+            var response = await llm.SendAsync(
+                new ChatCompletionRequest
+                {
+                    Model = string.Empty,
+                    Messages =
+                    [
+                        ChatCompletionMessage.System(system),
+                        ChatCompletionMessage.User(user)
+                    ],
+                    Stream = true,
+                },
+                onToken: token =>
+                {
+                    sb.Append(token);
+                    LiveProposal = sb.ToString();
+                });
 
             _proposed = InlineEditPrompts.ExtractCode(response.Content);
             if (string.IsNullOrWhiteSpace(_proposed))
@@ -128,6 +140,7 @@ public partial class InlineChatViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+            LiveProposal = string.Empty;
         }
     }
 

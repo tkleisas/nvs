@@ -18,9 +18,9 @@ public class InlineChatViewModelTests
         public event EventHandler? RequestCompleted { add { } remove { } }
         public event EventHandler<LlmErrorEventArgs>? ErrorOccurred { add { } remove { } }
 
-        public Task<LlmResponse> SendAsync(ChatCompletionRequest request, Action<string>? onToken = null, CancellationToken cancellationToken = default, string? modelId = null)
+        public Task<LlmResponse> SendAsync(ChatCompletionRequest request, Action<string>? onToken = null, CancellationToken cancellationToken = default, string? modelId = null, Action<string>? onReasoningToken = null)
             => Task.FromResult(new LlmResponse { Content = Reply, InputTokens = 1, OutputTokens = 1, Model = "m" });
-        public Task<AgentLoopResult> RunAgentLoopAsync(List<ChatCompletionMessage> messages, IReadOnlyList<ToolDefinition>? tools = null, string? systemPrompt = null, Action<string>? onToken = null, Action<AgentToolCallEvent>? onToolCall = null, Func<ToolApprovalRequest, Task<bool>>? onApprovalRequired = null, int maxIterations = 20, CancellationToken cancellationToken = default, string? modelId = null)
+        public Task<AgentLoopResult> RunAgentLoopAsync(List<ChatCompletionMessage> messages, IReadOnlyList<ToolDefinition>? tools = null, string? systemPrompt = null, Action<string>? onToken = null, Action<AgentToolCallEvent>? onToolCall = null, Func<ToolApprovalRequest, Task<bool>>? onApprovalRequired = null, int maxIterations = 20, CancellationToken cancellationToken = default, string? modelId = null, Action<string>? onReasoningToken = null)
             => Task.FromResult(new AgentLoopResult { Content = Reply, Iterations = 1, TotalInputTokens = 1, TotalOutputTokens = 1 });
         public void CancelCurrentRequest() { }
     }

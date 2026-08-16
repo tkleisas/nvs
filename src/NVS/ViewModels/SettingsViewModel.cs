@@ -54,6 +54,8 @@ public partial class SettingsViewModel : INotifyPropertyChanged
     private bool _llmEnableChat = true;
     private bool _llmRequireToolApproval = true;
     private bool _llmStream = true;
+    private bool _llmThinkingMode;
+    private string _llmThinkingEffort = "medium";
     private string _llmActivePromptTemplate = "general";
     private int _buildOutputModeIndex = (int)NVS.Core.Models.Settings.BuildOutputMode.Auto;
     private string _customBuildOutputDirectory = "";
@@ -328,6 +330,22 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         set => SetProperty(ref _llmEnableAutoComplete, value);
     }
 
+    /// <summary>Whether thinking/reasoning mode is enabled for LLM requests.</summary>
+    public bool LlmThinkingMode
+    {
+        get => _llmThinkingMode;
+        set => SetProperty(ref _llmThinkingMode, value);
+    }
+
+    /// <summary>Reasoning budget ("low"/"medium"/"high") sent when thinking mode is on.</summary>
+    public string LlmThinkingEffort
+    {
+        get => _llmThinkingEffort;
+        set => SetProperty(ref _llmThinkingEffort, value);
+    }
+
+    public static IReadOnlyList<string> AvailableThinkingEfforts { get; } = ["low", "medium", "high"];
+
     public bool LlmEnableChat
     {
         get => _llmEnableChat;
@@ -384,6 +402,8 @@ public partial class SettingsViewModel : INotifyPropertyChanged
         LlmMaxIterations = settings.Llm.MaxIterations;
         LlmHttpTimeoutSeconds = settings.Llm.HttpTimeoutSeconds;
         LlmStream = settings.Llm.Stream;
+        LlmThinkingMode = settings.Llm.ThinkingMode;
+        LlmThinkingEffort = settings.Llm.ThinkingEffort;
         LlmEnableAutoComplete = settings.Llm.EnableAutoComplete;
         LlmEnableChat = settings.Llm.EnableChat;
         LlmRequireToolApproval = settings.Llm.RequireToolApproval;
@@ -513,6 +533,8 @@ public partial class SettingsViewModel : INotifyPropertyChanged
                 MaxIterations = LlmMaxIterations,
                 HttpTimeoutSeconds = LlmHttpTimeoutSeconds,
                 Stream = LlmStream,
+                ThinkingMode = LlmThinkingMode,
+                ThinkingEffort = LlmThinkingEffort,
                 EnableAutoComplete = LlmEnableAutoComplete,
                 EnableChat = LlmEnableChat,
                 RequireToolApproval = LlmRequireToolApproval,
