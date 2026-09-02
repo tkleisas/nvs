@@ -8,8 +8,8 @@ A cross-platform IDE built with .NET 10 and AvaloniaUI — proudly assembled usi
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-purple)
 ![Avalonia 12](https://img.shields.io/badge/AvaloniaUI-12.0-blue)
-![Version](https://img.shields.io/badge/version-1.1.0-green)
-![Tests](https://img.shields.io/badge/tests-1426%20passing-brightgreen)
+![Version](https://img.shields.io/badge/version-1.3.0-green)
+![Tests](https://img.shields.io/badge/tests-1434%20passing-brightgreen)
 ![AI Slop](https://img.shields.io/badge/AI--Sloptronic™-certified-ff69b4)
 
 ---
@@ -36,7 +36,7 @@ NVS is a code editor / IDE that:
 - Supports multi-project solutions with startup project selection.
 - Can be launched from the command line: `nvs mysolution.sln` or `nvs ./myproject/`.
 - Was built in a series of increasingly ambitious "phases" by a human and an AI who kept saying "let's continue."
-- Has 1426 tests, which is 1426 more than the AI thought were necessary before the human insisted.
+- Has 1434 tests, which is 1434 more than the AI thought were necessary before the human insisted.
 
 ## What's New in 1.0.0
 
@@ -53,7 +53,7 @@ The first stable release. Highlights beyond the 0.x line:
 - **Copy to Output Directory** — Solution Explorer file context menu (Always / If newer / Never), like the Visual Studio file property.
 - **Containers** — Docker/Podman panel: containers, images, logs, Dockerfile scaffolding, image builds.
 - **Faster** — parallel test discovery (~2×), frame-coalesced terminal rendering, batched build output.
-- **Greener** — 1426 tests passing on Windows *and* Linux, with the flaky native suites properly isolated.
+- **Greener** — 1434 tests passing on Windows *and* Linux, with the flaky native suites properly isolated.
 
 ## Features
 
@@ -371,7 +371,7 @@ git push origin v0.5.0
 
 ## Testing
 
-1426 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
+1434 tests across 4 test projects. Every single one demanded by the human, who apparently doesn't trust code written by a language model. Can't imagine why.
 
 - **NVS.Core.Tests** — Core model tests
 - **NVS.Plugins.Tests** — Plugin system tests
